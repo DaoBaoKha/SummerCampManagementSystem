@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SummerCampManagementSystem.Core\SummerCampManagementSystem.Core.csproj" />
+    <ProjectReference Include="..\SummerCampManagementSystem.DAL\SummerCampManagementSystem.DAL.csproj" />
+  </ItemGroup>
+
+</Project>
