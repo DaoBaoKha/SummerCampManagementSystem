@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
-using SummerCampManagementSystem.BLL.UserService;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;

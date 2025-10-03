@@ -18,7 +18,15 @@ public partial class CampEaseDatabaseContext : DbContext
     {
     }
 
+    public virtual DbSet<Driver> Drivers { get; set; }
+
+    public virtual DbSet<DriverVehicle> DriverVehicles { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<Vehicle> Vehicles { get; set; }
+
+    public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -32,10 +40,53 @@ public partial class CampEaseDatabaseContext : DbContext
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection")).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-
+      => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection")).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Driver>(entity =>
+        {
+            entity.HasKey(e => e.driverId).HasName("PK__Driver__F1532DF2FA111655");
+
+            entity.ToTable("Driver");
+
+            entity.Property(e => e.driverId).ValueGeneratedNever();
+            entity.Property(e => e.driverAddress).HasMaxLength(255);
+            entity.Property(e => e.driverLicense)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.driverName)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.driverPhoneNumber)
+                .HasMaxLength(20)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.user).WithMany(p => p.Drivers)
+                .HasForeignKey(d => d.userId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Driver_User");
+        });
+
+        modelBuilder.Entity<DriverVehicle>(entity =>
+        {
+            entity.HasKey(e => e.driverVehicleId).HasName("PK__DriverVe__D1A5D388C04F6C44");
+
+            entity.ToTable("DriverVehicle");
+
+            entity.Property(e => e.driverVehicleId).ValueGeneratedNever();
+
+            entity.HasOne(d => d.driver).WithMany(p => p.DriverVehicles)
+                .HasForeignKey(d => d.driverId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DriverVehicle_Driver");
+
+            entity.HasOne(d => d.vehicle).WithMany(p => p.DriverVehicles)
+                .HasForeignKey(d => d.vehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_DriverVehicle_Vehicle");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.userId).HasName("PK__User__CB9A1CFF1A9CFB31");
@@ -65,9 +116,46 @@ public partial class CampEaseDatabaseContext : DbContext
                 .HasMaxLength(255);
             entity.Property(e => e.phoneNumber).HasMaxLength(20);
             entity.Property(e => e.role)
-                .HasConversion<string>()
                 .IsRequired()
                 .HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<Vehicle>(entity =>
+        {
+            entity.HasKey(e => e.vehicleId).HasName("PK__Vehicle__5B9D25F233992705");
+
+            entity.ToTable("Vehicle");
+
+            entity.Property(e => e.vehicleId).ValueGeneratedNever();
+            entity.Property(e => e.status)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+            entity.Property(e => e.vehicleName)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.vehicleNumber)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.vehicleType).WithMany(p => p.Vehicles)
+                .HasForeignKey(d => d.vehicleTypeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Vehicle_VehicleType");
+        });
+
+        modelBuilder.Entity<VehicleType>(entity =>
+        {
+            entity.HasKey(e => e.vehicleTypeId).HasName("PK__VehicleT__4709A1D48C662D2F");
+
+            entity.ToTable("VehicleType");
+
+            entity.Property(e => e.vehicleTypeId).ValueGeneratedNever();
+            entity.Property(e => e.isActive).HasDefaultValue(true);
+            entity.Property(e => e.name)
+                .IsRequired()
+                .HasMaxLength(100)
+                .IsUnicode(false);
         });
 
         OnModelCreatingPartial(modelBuilder);
