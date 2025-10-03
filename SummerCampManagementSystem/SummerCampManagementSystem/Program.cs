@@ -1,10 +1,9 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using SummerCampManagementSystem.BLL.UserService;
+using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Repositories.UserRepository;
-using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Text;
 using System.Text.Json.Serialization;
 
