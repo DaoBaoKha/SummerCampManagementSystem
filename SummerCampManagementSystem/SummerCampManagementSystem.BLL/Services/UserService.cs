@@ -1,13 +1,8 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.UserRepository;
-using SummerCampManagementSystem.DAL.UnitOfWork;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace SummerCampManagementSystem.BLL.UserService
+namespace SummerCampManagementSystem.BLL.Services
 {
     public class UserService : IUserService
     {
