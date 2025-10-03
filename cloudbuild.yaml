@@ -1,5 +1,5 @@
 steps:
-  #build image
+  # build image
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
@@ -7,14 +7,14 @@ steps:
       '.'
     ]
 
-  #push image to Artifact Registry
+  # push image
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push',
       'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA'
     ]
 
-  #deploy to Google Cloud Run
+  # deploy to Cloud Run with secret env
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args: [
@@ -22,7 +22,8 @@ steps:
       '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA',
       '--region', 'asia-southeast1',
       '--platform', 'managed',
-      '--allow-unauthenticated'
+      '--allow-unauthenticated',
+      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest'
     ]
 
 images:
