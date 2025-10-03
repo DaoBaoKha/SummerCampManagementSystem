@@ -4,6 +4,7 @@ using Microsoft.OpenApi.Models;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Repositories.UserRepository;
+using SummerCampManagementSystem.DAL.Repositories.VehicleRepository;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -11,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 
 builder.Services.AddControllers().AddJsonOptions(options =>
