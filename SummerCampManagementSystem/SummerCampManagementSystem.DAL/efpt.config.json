@@ -15,7 +15,23 @@
    "T4TemplatePath": null,
    "Tables": [
       {
+         "Name": "[dbo].[Driver]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DriverVehicle]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[User]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Vehicle]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[VehicleType]",
          "ObjectType": 0
       }
    ],
@@ -24,7 +40,6 @@
    "UseAsyncStoredProcedureCalls": true,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
-   "UseDatabaseNamesForRoutines": true,
    "UseDateOnlyTimeOnly": true,
    "UseDbContextSplitting": false,
    "UseDecimalDataAnnotationForSprocResult": true,
@@ -43,6 +58,5 @@
    "UseSchemaFolders": false,
    "UseSchemaNamespaces": false,
    "UseSpatial": false,
-   "UseT4": false,
-   "UseT4Split": false
+   "UseT4": false
 }
