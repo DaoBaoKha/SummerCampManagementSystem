@@ -1,20 +1,32 @@
 steps:
-  # Build Docker image from Dockerfile from SummerCampManagementSystem.API
+  #build image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA', './SummerCampManagementSystem.API']
+    args: [
+      'build',
+      '-t', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA',
+      '.'
+    ]
 
-  # Push image to Artifact Registry
+  #push image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA']
+    args: [
+      'push',
+      'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA'
+    ]
 
-  # Deploy image to Cloud Run
+  #deploy to Google Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
-    args:
-      [
-        'run', 'deploy', 'summercampapi',
-        '--image=asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA',
-        '--region=asia-southeast1',
-        '--platform=managed',
-        '--allow-unauthenticated'
-      ]
+    args: [
+      'run', 'deploy', 'summercampapi',
+      '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed',
+      '--allow-unauthenticated'
+    ]
+
+images:
+  - 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
