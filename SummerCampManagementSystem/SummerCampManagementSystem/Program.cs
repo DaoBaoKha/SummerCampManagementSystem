@@ -1,3 +1,4 @@
+﻿using Google.Cloud.SecretManager.V1; 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -10,12 +11,25 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+//connection string from GCP Secret Manager
+string projectId = "campease-473401"; // GCP Project ID
+string secretId = "db-connection-string"; // secret ID
+string versionId = "1";
+
+SecretManagerServiceClient client = SecretManagerServiceClient.Create();
+AccessSecretVersionResponse result = client.AccessSecretVersion(
+    new SecretVersionName(projectId, secretId, versionId));
+
+string connectionString = result.Payload.Data.ToStringUtf8();
+
+// Gán connection string vào Configuration
+builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+
+// Đăng ký DI
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
-
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
-
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -23,13 +37,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
 
-
-
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -41,16 +52,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-            // ClockSkew = TimeSpan.Zero
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
 
 builder.Services.AddSwaggerGen(option =>
 {
-    ////JWT Config
     option.DescribeAllParametersInCamelCase();
-    option.ResolveConflictingActions(conf => conf.First());     // duplicate API name if any, ex: Get() & Get(string id)
+    option.ResolveConflictingActions(conf => conf.First());
     option.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -75,6 +84,7 @@ builder.Services.AddSwaggerGen(option =>
         }
     });
 });
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -84,12 +94,8 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
     app.UseSwaggerUI();
 }
 
-
 app.UseHttpsRedirection();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
