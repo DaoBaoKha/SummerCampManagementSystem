@@ -8,21 +8,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("VehicleType")]
-public partial class VehicleType
+[Table("FAQ")]
+public partial class FAQ
 {
     [Key]
-    public int vehicleTypeId { get; set; }
+    public int faqId { get; set; }
 
     [StringLength(255)]
     [Unicode(false)]
-    public string name { get; set; }
+    public string question { get; set; }
 
     [Column(TypeName = "text")]
-    public string description { get; set; }
-
-    public bool? isActive { get; set; }
-
-    [InverseProperty("vehicleTypeNavigation")]
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    public string answer { get; set; }
 }

@@ -3,8 +3,8 @@ using SummerCampManagementSystem.DAL.Repositories.GenericRepository;
 
 namespace SummerCampManagementSystem.DAL.Repositories.UserRepository
 {
-    public interface IUserRepository : IGenericRepository<User>
+    public interface IUserRepository : IGenericRepository<UserAccount>
     {
-        Task<User?> GetUserAccount(string email, string password);
+        Task<UserAccount?> GetUserAccount(string email, string password);
     }
 }

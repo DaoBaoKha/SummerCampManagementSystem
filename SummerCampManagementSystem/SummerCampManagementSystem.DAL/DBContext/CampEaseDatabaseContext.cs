@@ -18,15 +18,103 @@ public partial class CampEaseDatabaseContext : DbContext
     {
     }
 
+    public virtual DbSet<Accommodation> Accommodations { get; set; }
+
+    public virtual DbSet<AccommodationType> AccommodationTypes { get; set; }
+
+    public virtual DbSet<Activity> Activities { get; set; }
+
+    public virtual DbSet<Album> Albums { get; set; }
+
+    public virtual DbSet<AlbumPhoto> AlbumPhotos { get; set; }
+
+    public virtual DbSet<Badge> Badges { get; set; }
+
+    public virtual DbSet<BankUser> BankUsers { get; set; }
+
+    public virtual DbSet<Blog> Blogs { get; set; }
+
+    public virtual DbSet<Camp> Camps { get; set; }
+
+    public virtual DbSet<CampBadge> CampBadges { get; set; }
+
+    public virtual DbSet<CampType> CampTypes { get; set; }
+
+    public virtual DbSet<Camper> Campers { get; set; }
+
+    public virtual DbSet<CamperActivity> CamperActivities { get; set; }
+
+    public virtual DbSet<CamperBadge> CamperBadges { get; set; }
+
+    public virtual DbSet<CamperGroup> CamperGroups { get; set; }
+
+    public virtual DbSet<CamperGuardian> CamperGuardians { get; set; }
+
+    public virtual DbSet<ChatMessageAI> ChatMessageAIs { get; set; }
+
+    public virtual DbSet<ChatRoom> ChatRooms { get; set; }
+
+    public virtual DbSet<ChatRoomUser> ChatRoomUsers { get; set; }
+
     public virtual DbSet<Driver> Drivers { get; set; }
+
+    public virtual DbSet<DriverSchedule> DriverSchedules { get; set; }
 
     public virtual DbSet<DriverVehicle> DriverVehicles { get; set; }
 
-    public virtual DbSet<User> Users { get; set; }
+    public virtual DbSet<FAQ> FAQs { get; set; }
+
+    public virtual DbSet<Feedback> Feedbacks { get; set; }
+
+    public virtual DbSet<GroupActivity> GroupActivities { get; set; }
+
+    public virtual DbSet<Guardian> Guardians { get; set; }
+
+    public virtual DbSet<HealthRecord> HealthRecords { get; set; }
+
+    public virtual DbSet<Incident> Incidents { get; set; }
+
+    public virtual DbSet<Livestream> Livestreams { get; set; }
+
+    public virtual DbSet<LivestreamUser> LivestreamUsers { get; set; }
+
+    public virtual DbSet<Location> Locations { get; set; }
+
+    public virtual DbSet<ManagerAssignment> ManagerAssignments { get; set; }
+
+    public virtual DbSet<Message> Messages { get; set; }
+
+    public virtual DbSet<Notification> Notifications { get; set; }
+
+    public virtual DbSet<ParentCamper> ParentCampers { get; set; }
+
+    public virtual DbSet<Payment> Payments { get; set; }
+
+    public virtual DbSet<Promotion> Promotions { get; set; }
+
+    public virtual DbSet<PromotionType> PromotionTypes { get; set; }
+
+    public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+
+    public virtual DbSet<Registration> Registrations { get; set; }
+
+    public virtual DbSet<RegistrationCancel> RegistrationCancels { get; set; }
+
+    public virtual DbSet<Report> Reports { get; set; }
+
+    public virtual DbSet<Route> Routes { get; set; }
+
+    public virtual DbSet<Transaction> Transactions { get; set; }
+
+    public virtual DbSet<UserAccount> UserAccounts { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
+    public virtual DbSet<VehicleSchedule> VehicleSchedules { get; set; }
+
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
+
+    public virtual DbSet<Visitation> Visitations { get; set; }
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -41,121 +129,398 @@ public partial class CampEaseDatabaseContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
       => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection")).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Accommodation>(entity =>
+        {
+            entity.HasKey(e => e.accommodationId).HasName("PK__Accommod__20C0A5FD5401C017");
+
+            entity.HasOne(d => d.accommodationType).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__accom__1CBC4616");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__campI__1BC821DD");
+
+            entity.HasOne(d => d.camperGroup).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__campe__1DB06A4F");
+        });
+
+        modelBuilder.Entity<AccommodationType>(entity =>
+        {
+            entity.HasKey(e => e.accommodationTypeId).HasName("PK__Accommod__7380C37A36BF9C0D");
+        });
+
+        modelBuilder.Entity<Activity>(entity =>
+        {
+            entity.HasKey(e => e.activityId).HasName("PK__Activity__0FC9CBEC92704BD9");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Activities).HasConstraintName("FK__Activity__campId__3587F3E0");
+
+            entity.HasOne(d => d.staff).WithMany(p => p.Activities).HasConstraintName("FK__Activity__staffI__367C1819");
+        });
+
+        modelBuilder.Entity<Album>(entity =>
+        {
+            entity.HasKey(e => e.albumId).HasName("PK__Album__75BF3ECFA51B9673");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Albums).HasConstraintName("FK__Album__campId__7E02B4CC");
+        });
+
+        modelBuilder.Entity<AlbumPhoto>(entity =>
+        {
+            entity.HasKey(e => e.albumPhotoId).HasName("PK__AlbumPho__695404581FC4A374");
+
+            entity.HasOne(d => d.album).WithMany(p => p.AlbumPhotos).HasConstraintName("FK__AlbumPhot__album__00DF2177");
+        });
+
+        modelBuilder.Entity<Badge>(entity =>
+        {
+            entity.HasKey(e => e.badgeId).HasName("PK__Badge__75B46C9F476C0756");
+        });
+
+        modelBuilder.Entity<BankUser>(entity =>
+        {
+            entity.HasKey(e => e.bankUserId).HasName("PK__BankUser__CBF11725229B75CF");
+
+            entity.HasOne(d => d.user).WithMany(p => p.BankUsers).HasConstraintName("FK__BankUser__userId__7D439ABD");
+        });
+
+        modelBuilder.Entity<Blog>(entity =>
+        {
+            entity.HasKey(e => e.blogId).HasName("PK__Blog__FA0AA72D8027A916");
+
+            entity.HasOne(d => d.author).WithMany(p => p.Blogs).HasConstraintName("FK__Blog__authorId__0880433F");
+        });
+
+        modelBuilder.Entity<Camp>(entity =>
+        {
+            entity.HasKey(e => e.campId).HasName("PK__Camp__BC586B191C6014DA");
+
+            entity.HasOne(d => d.campType).WithMany(p => p.Camps).HasConstraintName("FK__Camp__campTypeId__04E4BC85");
+
+            entity.HasOne(d => d.createByNavigation).WithMany(p => p.Camps).HasConstraintName("FK__Camp__createBy__05D8E0BE");
+
+            entity.HasOne(d => d.location).WithMany(p => p.Camps).HasConstraintName("FK_Camp_Location");
+
+            entity.HasOne(d => d.promotion).WithMany(p => p.Camps).HasConstraintName("FK_Camp_Promotion");
+        });
+
+        modelBuilder.Entity<CampBadge>(entity =>
+        {
+            entity.HasKey(e => e.campBadgeId).HasName("PK__CampBadg__7452AA76F8B74F8D");
+
+            entity.HasOne(d => d.badge).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__badge__208CD6FA");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__campI__2180FB33");
+        });
+
+        modelBuilder.Entity<CampType>(entity =>
+        {
+            entity.HasKey(e => e.campTypeId).HasName("PK__CampType__3EADA5F5A74792CC");
+        });
+
+        modelBuilder.Entity<Camper>(entity =>
+        {
+            entity.HasKey(e => e.camperId).HasName("PK__Camper__1F5EA63223697F05");
+
+            entity.HasOne(d => d.group).WithMany(p => p.Campers).HasConstraintName("FK__Camper__groupId__245D67DE");
+        });
+
+        modelBuilder.Entity<CamperActivity>(entity =>
+        {
+            entity.HasKey(e => e.camperActivityId).HasName("PK__CamperAc__B77C246F3CB74DB4");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__activ__3A4CA8FD");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__campe__395884C4");
+        });
+
+        modelBuilder.Entity<CamperBadge>(entity =>
+        {
+            entity.HasKey(e => e.camperBadgeId).HasName("PK__CamperBa__67972E47D42C121E");
+
+            entity.HasOne(d => d.badge).WithMany(p => p.CamperBadges).HasConstraintName("FK__CamperBad__badge__32AB8735");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.CamperBadges).HasConstraintName("FK__CamperBad__campe__31B762FC");
+        });
+
+        modelBuilder.Entity<CamperGroup>(entity =>
+        {
+            entity.HasKey(e => e.camperGroupId).HasName("PK__CamperGr__A3F9F2EB18FD70C7");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.CamperGroups).HasConstraintName("FK__CamperGro__campI__18EBB532");
+
+            entity.HasOne(d => d.supervisor).WithMany(p => p.CamperGroups).HasConstraintName("FK__CamperGro__super__17F790F9");
+        });
+
+        modelBuilder.Entity<CamperGuardian>(entity =>
+        {
+            entity.HasKey(e => e.camperGuardianId).HasName("PK__CamperGu__B304497C5424285B");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.CamperGuardians).HasConstraintName("FK__CamperGua__campe__2739D489");
+
+            entity.HasOne(d => d.guardian).WithMany(p => p.CamperGuardians).HasConstraintName("FK__CamperGua__guard__282DF8C2");
+        });
+
+        modelBuilder.Entity<ChatMessageAI>(entity =>
+        {
+            entity.HasKey(e => e.chatMessageAiId).HasName("PK__ChatMess__DBC8291A920D34D4");
+
+            entity.HasOne(d => d.sender).WithMany(p => p.ChatMessageAIs).HasConstraintName("FK__ChatMessa__sende__607251E5");
+        });
+
+        modelBuilder.Entity<ChatRoom>(entity =>
+        {
+            entity.HasKey(e => e.chatRoomId).HasName("PK__ChatRoom__CB58B49253ED31B5");
+        });
+
+        modelBuilder.Entity<ChatRoomUser>(entity =>
+        {
+            entity.HasKey(e => e.chatRoomUserId).HasName("PK__ChatRoom__C9D3D5664196E8D8");
+
+            entity.HasOne(d => d.chatRoom).WithMany(p => p.ChatRoomUsers).HasConstraintName("FK__ChatRoomU__chatR__57DD0BE4");
+
+            entity.HasOne(d => d.user).WithMany(p => p.ChatRoomUsers).HasConstraintName("FK__ChatRoomU__userI__58D1301D");
+        });
+
         modelBuilder.Entity<Driver>(entity =>
         {
-            entity.HasKey(e => e.driverId).HasName("PK__Driver__F1532DF2FA111655");
+            entity.HasKey(e => e.driverId).HasName("PK__Driver__F1532DF2E68365B1");
 
-            entity.ToTable("Driver");
+            entity.HasOne(d => d.user).WithMany(p => p.Drivers).HasConstraintName("FK__Driver__userId__02084FDA");
+        });
 
-            entity.Property(e => e.driverId).ValueGeneratedNever();
-            entity.Property(e => e.driverAddress).HasMaxLength(255);
-            entity.Property(e => e.driverLicense)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.driverName)
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.driverPhoneNumber)
-                .HasMaxLength(20)
-                .IsUnicode(false);
+        modelBuilder.Entity<DriverSchedule>(entity =>
+        {
+            entity.HasKey(e => e.driverScheduleId).HasName("PK__DriverSc__8ACADD5F9F179836");
 
-            entity.HasOne(d => d.user).WithMany(p => p.Drivers)
-                .HasForeignKey(d => d.userId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Driver_User");
+            entity.HasOne(d => d.camp).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__campI__531856C7");
+
+            entity.HasOne(d => d.driver).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__drive__51300E55");
+
+            entity.HasOne(d => d.vehicle).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__vehic__5224328E");
         });
 
         modelBuilder.Entity<DriverVehicle>(entity =>
         {
-            entity.HasKey(e => e.driverVehicleId).HasName("PK__DriverVe__D1A5D388C04F6C44");
+            entity.HasKey(e => e.driverVehicleId).HasName("PK__DriverVe__D1A5D3882F71F9B3");
 
-            entity.ToTable("DriverVehicle");
+            entity.HasOne(d => d.driver).WithMany(p => p.DriverVehicles).HasConstraintName("FK__DriverVeh__drive__4D5F7D71");
 
-            entity.Property(e => e.driverVehicleId).ValueGeneratedNever();
-
-            entity.HasOne(d => d.driver).WithMany(p => p.DriverVehicles)
-                .HasForeignKey(d => d.driverId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_DriverVehicle_Driver");
-
-            entity.HasOne(d => d.vehicle).WithMany(p => p.DriverVehicles)
-                .HasForeignKey(d => d.vehicleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_DriverVehicle_Vehicle");
+            entity.HasOne(d => d.vehicle).WithMany(p => p.DriverVehicles).HasConstraintName("FK__DriverVeh__vehic__4E53A1AA");
         });
 
-        modelBuilder.Entity<User>(entity =>
+        modelBuilder.Entity<FAQ>(entity =>
         {
-            entity.HasKey(e => e.userId).HasName("PK__User__CB9A1CFF1A9CFB31");
+            entity.HasKey(e => e.faqId).HasName("PK__FAQ__B18E4567C2723C94");
+        });
 
-            entity.ToTable("User");
+        modelBuilder.Entity<Feedback>(entity =>
+        {
+            entity.HasKey(e => e.feedbackId).HasName("PK__Feedback__2613FD244309CC64");
 
-            entity.HasIndex(e => e.phoneNumber, "UQ__User__4849DA013D9474BF").IsUnique();
+            entity.HasOne(d => d.camp).WithMany(p => p.Feedbacks).HasConstraintName("FK__Feedback__campId__7849DB76");
 
-            entity.HasIndex(e => e.email, "UQ__User__AB6E61643FCDEBA8").IsUnique();
+            entity.HasOne(d => d.registration).WithMany(p => p.Feedbacks).HasConstraintName("FK__Feedback__regist__76619304");
 
-            entity.Property(e => e.avatar).HasMaxLength(255);
-            entity.Property(e => e.createAt)
-                .HasDefaultValueSql("(getdate())")
-                .HasColumnType("datetime");
-            entity.Property(e => e.email)
-                .IsRequired()
-                .HasMaxLength(100);
-            entity.Property(e => e.firstName)
-                .IsRequired()
-                .HasMaxLength(50);
-            entity.Property(e => e.isActive).HasDefaultValue(true);
-            entity.Property(e => e.lastName)
-                .IsRequired()
-                .HasMaxLength(50);
-            entity.Property(e => e.password_hash)
-                .IsRequired()
-                .HasMaxLength(255);
-            entity.Property(e => e.phoneNumber).HasMaxLength(20);
-            entity.Property(e => e.role)
-                .IsRequired()
-                .HasMaxLength(20);
+            entity.HasOne(d => d.user).WithMany(p => p.Feedbacks).HasConstraintName("FK__Feedback__userId__7755B73D");
+        });
+
+        modelBuilder.Entity<GroupActivity>(entity =>
+        {
+            entity.HasKey(e => e.groupActivityId).HasName("PK__GroupAct__4CEA4BBCEF38C6BA");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.GroupActivities).HasConstraintName("FK__GroupActi__activ__3E1D39E1");
+
+            entity.HasOne(d => d.camperGroup).WithMany(p => p.GroupActivities).HasConstraintName("FK__GroupActi__campe__3D2915A8");
+        });
+
+        modelBuilder.Entity<Guardian>(entity =>
+        {
+            entity.HasKey(e => e.guardianId).HasName("PK__Guardian__8A1718E14FC024F6");
+        });
+
+        modelBuilder.Entity<HealthRecord>(entity =>
+        {
+            entity.HasKey(e => e.healthRecordId).HasName("PK__HealthRe__59B2D406F4033F3E");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.HealthRecords).HasConstraintName("FK__HealthRec__campe__2EDAF651");
+        });
+
+        modelBuilder.Entity<Incident>(entity =>
+        {
+            entity.HasKey(e => e.incidentId).HasName("PK__Incident__06A5D741842EED80");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Incidents).HasConstraintName("FK__Incident__campId__47A6A41B");
+
+            entity.HasOne(d => d.campStaff).WithMany(p => p.Incidents).HasConstraintName("FK__Incident__campSt__46B27FE2");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.Incidents).HasConstraintName("FK__Incident__camper__45BE5BA9");
+        });
+
+        modelBuilder.Entity<Livestream>(entity =>
+        {
+            entity.HasKey(e => e.livestreamId).HasName("PK__Livestre__650D2CD3F56FAE02");
+
+            entity.HasOne(d => d.host).WithMany(p => p.Livestreams).HasConstraintName("FK__Livestrea__hostI__634EBE90");
+        });
+
+        modelBuilder.Entity<LivestreamUser>(entity =>
+        {
+            entity.HasKey(e => e.livestreamUserId).HasName("PK__Livestre__A1E8B1E8EC9C9A7E");
+
+            entity.HasOne(d => d.livestream).WithMany(p => p.LivestreamUsers).HasConstraintName("FK__Livestrea__lives__662B2B3B");
+
+            entity.HasOne(d => d.user).WithMany(p => p.LivestreamUsers).HasConstraintName("FK__Livestrea__userI__671F4F74");
+        });
+
+        modelBuilder.Entity<Location>(entity =>
+        {
+            entity.HasKey(e => e.locationId).HasName("PK__Location__30646B6E1B427B16");
+
+            entity.HasOne(d => d.route).WithMany(p => p.Locations).HasConstraintName("FK__Location__routeI__0B91BA14");
+        });
+
+        modelBuilder.Entity<ManagerAssignment>(entity =>
+        {
+            entity.HasKey(e => e.managerAssignmentId).HasName("PK__ManagerA__703B219833FB8987");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.ManagerAssignments).HasConstraintName("FK__ManagerAs__campI__151B244E");
+
+            entity.HasOne(d => d.manager).WithMany(p => p.ManagerAssignments).HasConstraintName("FK__ManagerAs__manag__14270015");
+        });
+
+        modelBuilder.Entity<Message>(entity =>
+        {
+            entity.HasKey(e => e.messageId).HasName("PK__Message__4808B9934C3F9FF7");
+
+            entity.HasOne(d => d.chatRoom).WithMany(p => p.Messages).HasConstraintName("FK__Message__chatRoo__5BAD9CC8");
+
+            entity.HasOne(d => d.receiver).WithMany(p => p.Messagereceivers).HasConstraintName("FK__Message__receive__5D95E53A");
+
+            entity.HasOne(d => d.sender).WithMany(p => p.Messagesenders).HasConstraintName("FK__Message__senderI__5CA1C101");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.notificationId).HasName("PK__Notifica__4BA5CEA9134CC0BA");
+
+            entity.HasOne(d => d.user).WithMany(p => p.Notifications).HasConstraintName("FK__Notificat__userI__7B264821");
+        });
+
+        modelBuilder.Entity<ParentCamper>(entity =>
+        {
+            entity.HasKey(e => e.parentCamperId).HasName("PK__ParentCa__6645EA93BF9107B7");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.ParentCampers).HasConstraintName("FK__ParentCam__campe__2BFE89A6");
+
+            entity.HasOne(d => d.parent).WithMany(p => p.ParentCampers).HasConstraintName("FK__ParentCam__paren__2B0A656D");
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasKey(e => e.paymentId).HasName("PK__Payment__A0D9EFC6D162629F");
+        });
+
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.HasKey(e => e.promotionId).HasName("PK__Promotio__99EB696EC39A7ACC");
+
+            entity.HasOne(d => d.createByNavigation).WithMany(p => p.Promotions).HasConstraintName("FK__Promotion__creat__0F624AF8");
+
+            entity.HasOne(d => d.promotionType).WithMany(p => p.Promotions).HasConstraintName("FK__Promotion__promo__10566F31");
+        });
+
+        modelBuilder.Entity<PromotionType>(entity =>
+        {
+            entity.HasKey(e => e.promotionTypeId).HasName("PK__Promotio__847F158D388561AD");
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.HasKey(e => e.id).HasName("PK__RefreshT__3213E83F646E62AB");
+
+            entity.HasOne(d => d.user).WithMany(p => p.RefreshTokens)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RefreshToken_User");
+        });
+
+        modelBuilder.Entity<Registration>(entity =>
+        {
+            entity.HasKey(e => e.registrationId).HasName("PK__Registra__A3DB1435EB987530");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campI__6CD828CA");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campe__6BE40491");
+
+            entity.HasOne(d => d.payment).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__payme__6DCC4D03");
+        });
+
+        modelBuilder.Entity<RegistrationCancel>(entity =>
+        {
+            entity.HasKey(e => e.registrationCancelId).HasName("PK__Registra__1BFD300A16D0BB46");
+
+            entity.HasOne(d => d.registration).WithMany(p => p.RegistrationCancels).HasConstraintName("FK__Registrat__regis__73852659");
+        });
+
+        modelBuilder.Entity<Report>(entity =>
+        {
+            entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.Reports).HasConstraintName("FK__Report__activity__42E1EEFE");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
+
+            entity.HasOne(d => d.reportedByNavigation).WithMany(p => p.Reports).HasConstraintName("FK__Report__reported__41EDCAC5");
+        });
+
+        modelBuilder.Entity<Route>(entity =>
+        {
+            entity.HasKey(e => e.routeId).HasName("PK__Route__BAC024C756723709");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Routes).HasConstraintName("FK__Route__campId__08B54D69");
+        });
+
+        modelBuilder.Entity<Transaction>(entity =>
+        {
+            entity.HasKey(e => e.transactionId).HasName("PK__Transact__9B57CF7216BC3CDE");
+
+            entity.HasOne(d => d.registration).WithMany(p => p.Transactions).HasConstraintName("FK__Transacti__regis__70A8B9AE");
+        });
+
+        modelBuilder.Entity<UserAccount>(entity =>
+        {
+            entity.HasKey(e => e.userId).HasName("PK__UserAcco__CB9A1CFF87D326B1");
         });
 
         modelBuilder.Entity<Vehicle>(entity =>
         {
-            entity.HasKey(e => e.vehicleId).HasName("PK__Vehicle__5B9D25F233992705");
+            entity.HasKey(e => e.vehicleId).HasName("PK__Vehicle__5B9D25F2463A0876");
 
-            entity.ToTable("Vehicle");
+            entity.HasOne(d => d.vehicleTypeNavigation).WithMany(p => p.Vehicles).HasConstraintName("FK__Vehicle__vehicle__4A8310C6");
+        });
 
-            entity.Property(e => e.vehicleId).ValueGeneratedNever();
-            entity.Property(e => e.status)
-                .HasMaxLength(50)
-                .IsUnicode(false);
-            entity.Property(e => e.vehicleName)
-                .IsRequired()
-                .HasMaxLength(100)
-                .IsUnicode(false);
-            entity.Property(e => e.vehicleNumber)
-                .HasMaxLength(50)
-                .IsUnicode(false);
+        modelBuilder.Entity<VehicleSchedule>(entity =>
+        {
+            entity.HasKey(e => e.vehicleScheduleId).HasName("PK__VehicleS__98B042A10CA86140");
 
-            entity.HasOne(d => d.vehicleType).WithMany(p => p.Vehicles)
-                .HasForeignKey(d => d.vehicleTypeId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Vehicle_VehicleType");
+            entity.HasOne(d => d.route).WithMany(p => p.VehicleSchedules).HasConstraintName("FK__VehicleSc__route__0C50D423");
+
+            entity.HasOne(d => d.vehicle).WithMany(p => p.VehicleSchedules).HasConstraintName("FK__VehicleSc__vehic__0B5CAFEA");
         });
 
         modelBuilder.Entity<VehicleType>(entity =>
         {
-            entity.HasKey(e => e.vehicleTypeId).HasName("PK__VehicleT__4709A1D48C662D2F");
+            entity.HasKey(e => e.vehicleTypeId).HasName("PK__VehicleT__4709A1D4F0649896");
+        });
 
-            entity.ToTable("VehicleType");
+        modelBuilder.Entity<Visitation>(entity =>
+        {
+            entity.HasKey(e => e.visitationId).HasName("PK__Visitati__E33BAE4142B08E97");
 
-            entity.Property(e => e.vehicleTypeId).ValueGeneratedNever();
-            entity.Property(e => e.isActive).HasDefaultValue(true);
-            entity.Property(e => e.name)
-                .IsRequired()
-                .HasMaxLength(100)
-                .IsUnicode(false);
+            entity.HasOne(d => d.approvedByNavigation).WithMany(p => p.VisitationapprovedByNavigations).HasConstraintName("FK__Visitatio__appro__05A3D694");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.Visitations).HasConstraintName("FK__Visitatio__campe__04AFB25B");
+
+            entity.HasOne(d => d.user).WithMany(p => p.Visitationusers).HasConstraintName("FK__Visitatio__userI__03BB8E22");
         });
 
         OnModelCreatingPartial(modelBuilder);

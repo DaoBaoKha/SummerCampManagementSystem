@@ -8,7 +8,7 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUserRepository _userRepository;
         public UserService() => _userRepository ??= new UserRepository();
-        public async Task<User?> Login(string email, string password)
+        public async Task<UserAccount?> Login(string email, string password)
         {
             return await _userRepository.GetUserAccount(email, password);
         }
