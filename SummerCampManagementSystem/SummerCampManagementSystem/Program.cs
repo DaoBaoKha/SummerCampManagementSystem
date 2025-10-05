@@ -1,11 +1,14 @@
 ﻿using Google.Cloud.SecretManager.V1;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
-using SummerCampManagementSystem.DAL.Repositories.UserRepository;
-using SummerCampManagementSystem.DAL.Repositories.VehicleRepository;
+using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
+using SummerCampManagementSystem.DAL.Repositories.Repository;
+using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Text;
 using System.Text.Json.Serialization;
 
@@ -52,6 +55,11 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
