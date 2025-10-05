@@ -15,7 +15,87 @@
    "T4TemplatePath": null,
    "Tables": [
       {
+         "Name": "[dbo].[Accommodation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AccommodationType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Activity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Album]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AlbumPhoto]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Badge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[BankUser]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Blog]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Camp]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CampBadge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Camper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperActivity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperBadge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperGroup]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperGuardian]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CampType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatMessageAI]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatRoom]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatRoomUser]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Driver]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DriverSchedule]",
          "ObjectType": 0
       },
       {
@@ -23,7 +103,95 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[User]",
+         "Name": "[dbo].[FAQ]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Feedback]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[GroupActivity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Guardian]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[HealthRecord]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Incident]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Livestream]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[LivestreamUser]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Location]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ManagerAssignment]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Message]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Notifications]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ParentCamper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Payment]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Promotion]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[PromotionType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RefreshToken]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Registration]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RegistrationCancel]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Report]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Route]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Transaction]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[UserAccount]",
          "ObjectType": 0
       },
       {
@@ -31,7 +199,15 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[VehicleSchedule]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[VehicleType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Visitation]",
          "ObjectType": 0
       }
    ],
@@ -43,7 +219,7 @@
    "UseDateOnlyTimeOnly": true,
    "UseDbContextSplitting": false,
    "UseDecimalDataAnnotationForSprocResult": true,
-   "UseFluentApiOnly": true,
+   "UseFluentApiOnly": false,
    "UseHandleBars": false,
    "UseHierarchyId": false,
    "UseInflector": true,

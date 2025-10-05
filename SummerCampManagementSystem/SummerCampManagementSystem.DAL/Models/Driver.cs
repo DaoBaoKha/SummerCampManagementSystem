@@ -2,26 +2,45 @@
 #nullable disable
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
+[Table("Driver")]
 public partial class Driver
 {
+    [Key]
     public int driverId { get; set; }
 
-    public int userId { get; set; }
+    public int? userId { get; set; }
 
+    [StringLength(255)]
+    [Unicode(false)]
     public string driverName { get; set; }
 
+    [StringLength(255)]
+    [Unicode(false)]
     public string driverPhoneNumber { get; set; }
 
+    [StringLength(255)]
+    [Unicode(false)]
     public string driverAddress { get; set; }
 
+    [StringLength(255)]
+    [Unicode(false)]
     public string driverLicense { get; set; }
 
     public DateOnly? dob { get; set; }
 
+    [InverseProperty("driver")]
+    public virtual ICollection<DriverSchedule> DriverSchedules { get; set; } = new List<DriverSchedule>();
+
+    [InverseProperty("driver")]
     public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();
 
-    public virtual User user { get; set; }
+    [ForeignKey("userId")]
+    [InverseProperty("Drivers")]
+    public virtual UserAccount user { get; set; }
 }
