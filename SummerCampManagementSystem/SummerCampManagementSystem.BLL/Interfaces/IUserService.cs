@@ -1,9 +1,12 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using SummerCampManagementSystem.BLL.DTOs.Requests.User;
+using SummerCampManagementSystem.BLL.DTOs.Responses;
+using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IUserService
     {
-        Task<UserAccount?> Login(string email, string password);
+        Task<(AuthResponseDto? authResponse, string? errorMessage)> LoginAsync(LoginRequestDto model);
+        Task<bool> LogoutAsync(int userId);
     }
 }
