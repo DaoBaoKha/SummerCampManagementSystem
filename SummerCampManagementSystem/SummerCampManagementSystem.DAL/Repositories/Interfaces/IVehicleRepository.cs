@@ -1,7 +1,6 @@
 ﻿using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.GenericRepository;
 
-namespace SummerCampManagementSystem.DAL.Repositories.VehicleRepository
+namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IVehicleRepository : IGenericRepository<Vehicle>
     {

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using SummerCampManagementSystem.BLL.DTOs.Requests.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using System.IdentityModel.Tokens.Jwt;
@@ -14,51 +15,29 @@ namespace SummerCampManagementSystem.API.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IConfiguration _config;
         private readonly IUserService  _userService;
 
-        public UserController(IConfiguration config, IUserService userService)
+        public UserController(IUserService userService)
         {
-            _config = config;
             _userService = userService;
         }
 
-        // POST api/<UserController>
-        [HttpPost]
-        public IActionResult Login([FromBody] LoginRequest request)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginRequestDto model)
         {
-            var user = _userService.Login(request.Email, request.Password);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            if (user == null || user.Result == null)
-                return Unauthorized();
+            var (authResponse, errorMessage) = await _userService.LoginAsync(model);
 
-            var token = GenerateJSONWebToken(user.Result);
+            if (errorMessage != null)
+            {
+                return Unauthorized(new { message = errorMessage });
+            }
 
-            return Ok(token);
+            return Ok(authResponse);
         }
-
-        private string GenerateJSONWebToken(UserAccount user)
-        {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(_config["Jwt:Issuer"]
-                    , _config["Jwt:Audience"]
-                    , new Claim[]
-                    {
-                new(ClaimTypes.Email, user.email),
-                new(ClaimTypes.Role, user.role.ToString()),
-                    },
-                    expires: DateTime.Now.AddMinutes(120),
-                    signingCredentials: credentials
-                );
-
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-
-            return tokenString;
-        }
-
-        public sealed record LoginRequest(string Email, string Password);
-
     }
 }
