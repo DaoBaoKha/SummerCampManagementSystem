@@ -1,4 +1,4 @@
-﻿using Google.Cloud.SecretManager.V1; 
+﻿using Google.Cloud.SecretManager.V1;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -11,21 +11,43 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//connection string from GCP Secret Manager
-string projectId = "campease-473401"; // GCP Project ID
-string secretId = "db-connection-string"; // secret ID
-string versionId = "1";
+// take connection string
+string connectionString;
 
-SecretManagerServiceClient client = SecretManagerServiceClient.Create();
-AccessSecretVersionResponse result = client.AccessSecretVersion(
-    new SecretVersionName(projectId, secretId, versionId));
+// if its production, get from GCP Secret Manager
+if (builder.Environment.IsProduction())
+{
+    try
+    {
+        Console.WriteLine("Loading connection string from GCP Secret Manager...");
+        string projectId = "campease-473401";
+        string secretId = "db-connection-string";
+        string versionId = "1";
 
-string connectionString = result.Payload.Data.ToStringUtf8();
+        SecretManagerServiceClient client = SecretManagerServiceClient.Create();
+        AccessSecretVersionResponse result = client.AccessSecretVersion(
+            new SecretVersionName(projectId, secretId, versionId));
 
-// Gán connection string vào Configuration
+        connectionString = result.Payload.Data.ToStringUtf8();
+        Console.WriteLine("Loaded connection string from Secret Manager.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Cannot load secret from GCP: {ex.Message}");
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    }
+}
+else
+{
+    // local development - get from appsettings.json
+    Console.WriteLine("Running in Development mode - using local connection string.");
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
+// configure connection string for DbContext
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 
-// Đăng ký DI
+// DI
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IVehicleService, VehicleService>();
@@ -37,10 +59,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
 
-// Add services to the container.
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-
+// jwt auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -52,10 +71,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
 
+// swagger
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
     option.DescribeAllParametersInCamelCase();
@@ -87,7 +109,7 @@ builder.Services.AddSwaggerGen(option =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// pipeline
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();

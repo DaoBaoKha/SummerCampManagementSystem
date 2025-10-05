@@ -4,6 +4,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IUserService
     {
-        Task<User?> Login(string email, string password);
+        Task<UserAccount?> Login(string email, string password);
     }
 }
