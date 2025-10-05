@@ -1,20 +1,18 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SummerCampManagementSystem.DAL.Repositories.GenericRepository
+namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {
         protected CampEaseDatabaseContext _context;
-        public GenericRepository()
-        {
-            _context ??= new CampEaseDatabaseContext();
-        }
+        
         public GenericRepository(CampEaseDatabaseContext context)
         {
             _context = context;
