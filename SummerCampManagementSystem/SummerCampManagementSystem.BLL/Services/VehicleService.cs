@@ -1,6 +1,6 @@
 ﻿using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.VehicleRepository;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
 namespace SummerCampManagementSystem.BLL.Services
 {

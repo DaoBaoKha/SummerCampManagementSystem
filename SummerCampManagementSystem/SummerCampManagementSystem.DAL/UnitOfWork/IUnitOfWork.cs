@@ -1,4 +1,4 @@
-﻿using SummerCampManagementSystem.DAL.Repositories.UserRepository;
+﻿using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,6 +10,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     public interface IUnitOfWork : IDisposable
     {
        IUserRepository Users { get; }
-       Task<int> CommitAsync();
+        IRefreshTokenRepository RefreshTokens { get; }
+
+        Task<int> CommitAsync();
     }
 }
