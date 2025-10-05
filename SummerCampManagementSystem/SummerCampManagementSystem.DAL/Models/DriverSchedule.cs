@@ -8,21 +8,37 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("DriverVehicle")]
-public partial class DriverVehicle
+[Table("DriverSchedule")]
+public partial class DriverSchedule
 {
     [Key]
-    public int driverVehicleId { get; set; }
+    public int driverScheduleId { get; set; }
 
     public int? driverId { get; set; }
 
     public int? vehicleId { get; set; }
 
+    public int? campId { get; set; }
+
+    public DateOnly? workDate { get; set; }
+
+    public TimeOnly? startTime { get; set; }
+
+    public TimeOnly? endTime { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string status { get; set; }
+
+    [ForeignKey("campId")]
+    [InverseProperty("DriverSchedules")]
+    public virtual Camp camp { get; set; }
+
     [ForeignKey("driverId")]
-    [InverseProperty("DriverVehicles")]
+    [InverseProperty("DriverSchedules")]
     public virtual Driver driver { get; set; }
 
     [ForeignKey("vehicleId")]
-    [InverseProperty("DriverVehicles")]
+    [InverseProperty("DriverSchedules")]
     public virtual Vehicle vehicle { get; set; }
 }

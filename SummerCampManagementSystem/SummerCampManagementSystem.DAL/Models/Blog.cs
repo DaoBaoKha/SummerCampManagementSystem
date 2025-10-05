@@ -8,21 +8,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("VehicleType")]
-public partial class VehicleType
+[Table("Blog")]
+public partial class Blog
 {
     [Key]
-    public int vehicleTypeId { get; set; }
+    public int blogId { get; set; }
 
     [StringLength(255)]
     [Unicode(false)]
-    public string name { get; set; }
+    public string title { get; set; }
 
     [Column(TypeName = "text")]
-    public string description { get; set; }
+    public string content { get; set; }
+
+    public int? authorId { get; set; }
 
     public bool? isActive { get; set; }
 
-    [InverseProperty("vehicleTypeNavigation")]
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    [Column(TypeName = "datetime")]
+    public DateTime? createAt { get; set; }
+
+    [ForeignKey("authorId")]
+    [InverseProperty("Blogs")]
+    public virtual UserAccount author { get; set; }
 }

@@ -8,21 +8,19 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("VehicleType")]
-public partial class VehicleType
+[Table("ChatRoom")]
+public partial class ChatRoom
 {
     [Key]
-    public int vehicleTypeId { get; set; }
+    public int chatRoomId { get; set; }
 
     [StringLength(255)]
     [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
-    public string description { get; set; }
+    [InverseProperty("chatRoom")]
+    public virtual ICollection<ChatRoomUser> ChatRoomUsers { get; set; } = new List<ChatRoomUser>();
 
-    public bool? isActive { get; set; }
-
-    [InverseProperty("vehicleTypeNavigation")]
-    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
+    [InverseProperty("chatRoom")]
+    public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
 }
