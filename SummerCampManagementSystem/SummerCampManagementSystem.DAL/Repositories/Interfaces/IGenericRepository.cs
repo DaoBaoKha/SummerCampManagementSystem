@@ -5,7 +5,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SummerCampManagementSystem.DAL.Repositories.GenericRepository
+namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IGenericRepository<T> where T : class
     {
