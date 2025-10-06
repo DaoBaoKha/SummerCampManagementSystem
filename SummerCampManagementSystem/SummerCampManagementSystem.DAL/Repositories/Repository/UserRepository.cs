@@ -17,5 +17,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.email == email);
         }
+
     }
 }
