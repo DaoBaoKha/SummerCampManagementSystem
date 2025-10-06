@@ -1,10 +1,11 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SummerCampManagementSystem.BLL.DTOs.Requests.User;
 using SummerCampManagementSystem.BLL.DTOs.Responses;
+using SummerCampManagementSystem.BLL.DTOs.Responses.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -17,10 +18,15 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IConfiguration _config;
-        public UserService(IUnitOfWork unitOfWork, IConfiguration config)
+        private readonly IMemoryCache _cache;
+        private readonly IEmailService _emailService;
+
+        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache, IEmailService emailService)
         {
             _unitOfWork = unitOfWork;
             _config = config;
+            _cache = memoryCache;
+            _emailService = emailService;
         }
 
 
@@ -147,5 +153,78 @@ namespace SummerCampManagementSystem.BLL.Services
                 Message = "Authentication successful!"
             };
         }
+
+        public async Task<RegisterUserResponseDto?> RegisterAsync(RegisterUserRequestDto model)
+        {
+            var existingUser = await _unitOfWork.Users.GetUserByEmail(model.Email);
+            if (existingUser != null)
+            {
+                return null;
+            }
+
+            var newUser = new UserAccount
+            {
+                firstName = model.FirstName,
+                lastName = model.LastName,
+                email = model.Email,
+                phoneNumber = model.PhoneNumber,
+                password = HashPassword(model.Password),
+                dob = model.Dob,
+                role = "User", // Default role
+                isActive = false,
+                createAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Users.CreateAsync(newUser);
+            await _unitOfWork.CommitAsync();
+
+
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            // store otp in cache for 5 mins
+            _cache.Set($"OTP_{model.Email}", otp, TimeSpan.FromMinutes(5));
+
+            // send otp
+            if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Contains("@"))
+            {
+                throw new ArgumentException($"Địa chỉ Email không chính xác: {model.Email}");
+            }
+
+            await _emailService.SendOtpEmailAsync(model.Email, otp);
+
+            return new RegisterUserResponseDto
+            {
+                UserId = newUser.userId,
+                Message = "Đăng ký thành công! OTP đã được gửi tới email của bạn."
+            };
+
+        }
+
+        public async Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model)
+        {
+            if(!_cache.TryGetValue($"OTP_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+            {
+                return new VerifyOtpResponseDto { IsSuccess = false, Message = "OTP Expired or Not Found!"};
+            }
+
+            if(cachedOtp != model.Otp)
+            {
+                return new VerifyOtpResponseDto { IsSuccess = false, Message = "Invalid OTP!"};
+            }
+
+            var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
+            if(user == null)
+            {
+                return new VerifyOtpResponseDto { IsSuccess = false, Message = "User Not Found!"};
+            }
+
+            user.isActive = true;
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            _cache.Remove($"OTP_{model.Email}");
+
+            return new VerifyOtpResponseDto { IsSuccess = true, Message = "Tài Khoản Đã Được Xác Minh Thành Công" };
+            }
     }
 }
