@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using SummerCampManagementSystem.BLL.DTOs.Requests.User;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -38,6 +39,33 @@ namespace SummerCampManagementSystem.API.Controllers
             }
 
             return Ok(authResponse);
+        }
+
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "User is not authenticated" });
+
+            try
+            {
+                if (int.TryParse(userId, out var userIdInt))
+                {
+                    await _userService.LogoutAsync(userIdInt);
+                    return Ok(new { message = "Logged out successfully" });
+                }
+                else
+                {
+                    return BadRequest(new { message = "Invalid user ID format" });
+                }
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { message = "An error occurred while logging out" });
+            }
         }
     }
 }
