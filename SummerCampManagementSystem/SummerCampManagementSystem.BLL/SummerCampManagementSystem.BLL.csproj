@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MailKit" Version="4.14.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\SummerCampManagementSystem.Core\SummerCampManagementSystem.Core.csproj" />
     <ProjectReference Include="..\SummerCampManagementSystem.DAL\SummerCampManagementSystem.DAL.csproj" />
   </ItemGroup>

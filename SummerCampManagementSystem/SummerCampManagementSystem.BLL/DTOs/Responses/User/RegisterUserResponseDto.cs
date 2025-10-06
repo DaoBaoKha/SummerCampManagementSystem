@@ -1,4 +1,4 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.Responses
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Responses.User
 {
     public class RegisterUserResponseDto
     {
