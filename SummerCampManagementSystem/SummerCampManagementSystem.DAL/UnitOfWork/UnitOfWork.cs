@@ -8,12 +8,16 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         private readonly CampEaseDatabaseContext _context;
         public IUserRepository Users { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
+        public IVehicleRepository Vehicles { get; }
 
-        public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository)
+        public IVehicleTypeRepository VehicleTypes { get; }
+        public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, IVehicleTypeRepository vehicleTypes)
         {
             _context = context;
             Users = userRepository;
             RefreshTokens = refreshTokenRepository;
+            Vehicles = vehicles;
+            VehicleTypes = vehicleTypes;
         }
 
         public async Task<int> CommitAsync()
