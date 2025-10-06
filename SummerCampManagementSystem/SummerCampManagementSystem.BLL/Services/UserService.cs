@@ -4,7 +4,6 @@ using SummerCampManagementSystem.BLL.DTOs.Requests.User;
 using SummerCampManagementSystem.BLL.DTOs.Responses;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -146,6 +145,38 @@ namespace SummerCampManagementSystem.BLL.Services
                 ExpiresAt = DateTime.UtcNow.AddMinutes(30),
                 Message = "Authentication successful!"
             };
+        }
+
+        public async Task<RegisterUserResponseDto?> RegisterAsync(RegisterUserRequestDto model)
+        {
+            var existingUser = await _unitOfWork.Users.GetUserByEmail(model.Email);
+            if (existingUser != null)
+            {
+                return null; 
+            }
+
+            var newUser = new UserAccount
+            {
+                firstName = model.FirstName,
+                lastName = model.LastName,
+                email = model.Email,
+                phoneNumber = model.PhoneNumber,
+                password = HashPassword(model.Password),
+                dob = model.Dob,
+                role = "User", // Default role
+                isActive = true,
+                createAt = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Users.CreateAsync(newUser);
+            await _unitOfWork.CommitAsync();
+
+            return new RegisterUserResponseDto
+            {
+                UserId = newUser.userId,
+                Message = "Registration successful!"
+            };
+
         }
     }
 }

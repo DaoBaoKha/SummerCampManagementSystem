@@ -8,5 +8,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<(AuthResponseDto? authResponse, string? errorMessage)> LoginAsync(LoginRequestDto model);
         Task<bool> LogoutAsync(int userId);
+
+        Task<RegisterUserResponseDto?> RegisterAsync(RegisterUserRequestDto model);
     }
 }
