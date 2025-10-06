@@ -39,5 +39,20 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(authResponse);
         }
+
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(RegisterUserRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var registerResponse = await _userService.RegisterAsync(model);
+            if (registerResponse == null)
+            {
+                return BadRequest(new { message = "Registration failed. Email might already be in use." });
+            }
+            return Ok(registerResponse);
+        }
     }
 }
