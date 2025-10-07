@@ -14,5 +14,9 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<RegisterUserResponseDto?> RegisterAsync(RegisterUserRequestDto model);
 
         Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model);
+
+        Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email);
+
+        Task<ForgotPasswordResponseDto?> ResetPasswordAsync(ResetPasswordRequestDto model);
     }
 }
