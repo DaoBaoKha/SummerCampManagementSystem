@@ -416,3 +416,12 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# === App settings (configuration secrets) ===
+# Ignore all environment-specific appsettings files to prevent exposing secrets
+**/appsettings.json
+**/appsettings.*.json
+
+# But allow safe template/example configuration files
+!**/appsettings.example.json
+!**/appsettings.template.json

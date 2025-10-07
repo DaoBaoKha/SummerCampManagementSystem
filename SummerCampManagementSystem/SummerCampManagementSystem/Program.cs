@@ -129,6 +129,12 @@ builder.Services.AddSwaggerGen(option =>
 
 var app = builder.Build();
 
+// cors
+app.UseCors(policy =>
+    policy.AllowAnyOrigin()
+          .AllowAnyMethod()
+          .AllowAnyHeader());
+
 // pipeline
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
