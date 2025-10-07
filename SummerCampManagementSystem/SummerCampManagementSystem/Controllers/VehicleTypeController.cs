@@ -6,7 +6,7 @@ using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/vehicletype")]
     [ApiController]
     public class VehicleTypeController : ControllerBase
     {

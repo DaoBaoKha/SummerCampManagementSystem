@@ -8,6 +8,10 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IRefreshTokenRepository RefreshTokens { get; }
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
+        
+        ICampRepository Camps { get; }
+
+        ICampTypeRepository CampTypes { get; }
         Task<int> CommitAsync();
     }
 }
