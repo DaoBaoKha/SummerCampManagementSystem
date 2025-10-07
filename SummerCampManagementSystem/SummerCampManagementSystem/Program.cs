@@ -52,6 +52,8 @@ else
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 
 // DI
+builder.Services.AddScoped<ICampService, CampService>();
+builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
