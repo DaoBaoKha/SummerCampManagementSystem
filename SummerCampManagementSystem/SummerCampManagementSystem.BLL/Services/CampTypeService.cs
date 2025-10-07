@@ -2,20 +2,17 @@
 using SummerCampManagementSystem.BLL.DTOs.Responses.CampType;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
     public class CampTypeService : ICampTypeService
     {
-        private readonly ICampTypeRepository _campTypeRepository;
         private readonly IUnitOfWork _unitOfWork;
 
-        public CampTypeService(IUnitOfWork unitOfWork, ICampTypeRepository campTypeRepository)
+        public CampTypeService(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
-            _campTypeRepository = campTypeRepository;
         }
 
         public async Task<CampTypeResponseDto> AddCampTypeAsync(CampTypeRequestDto campType)
@@ -27,7 +24,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 isActive = true
             };
 
-            await _campTypeRepository.CreateAsync(newCampType);
+            await _unitOfWork.CampTypes.CreateAsync(newCampType);
             await _unitOfWork.CommitAsync();
 
             return new CampTypeResponseDto
@@ -41,13 +38,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<bool> DeleteCampTypeAsync(int id)
         {
-            var existingCampType = await _campTypeRepository.GetCampTypeByIdAsync(id);
+            var existingCampType = await _unitOfWork.CampTypes.GetCampTypeByIdAsync(id);
             if (existingCampType == null)
             {
                 return false;
             }
 
-            await _campTypeRepository.RemoveAsync(existingCampType);
+            await _unitOfWork.CampTypes.RemoveAsync(existingCampType);
             await _unitOfWork.CommitAsync();
 
             return true;
@@ -55,17 +52,17 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<CampType>> GetAllCampTypesAsync()
         {
-            return await _campTypeRepository.GetAllAsync();
+            return await _unitOfWork.CampTypes.GetAllAsync();
         }
 
         public async Task<CampType?> GetCampTypeByIdAsync(int id)
         {
-            return await _campTypeRepository.GetCampTypeByIdAsync(id);
+            return await _unitOfWork.CampTypes.GetCampTypeByIdAsync(id);
         }
 
         public async Task<CampTypeResponseDto> UpdateCampTypeAsync(int id, CampTypeRequestDto campType)
         {
-            var existingCampType = await _campTypeRepository.GetCampTypeByIdAsync(id);
+            var existingCampType = await _unitOfWork.CampTypes.GetCampTypeByIdAsync(id);
 
             if (existingCampType == null)
             {
@@ -74,7 +71,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             existingCampType.name = campType.Name;
             existingCampType.description = campType.Description;
-            await _campTypeRepository.UpdateAsync(existingCampType);
+            await _unitOfWork.CampTypes.UpdateAsync(existingCampType);
             await _unitOfWork.CommitAsync();
 
             return new CampTypeResponseDto
