@@ -1,6 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services

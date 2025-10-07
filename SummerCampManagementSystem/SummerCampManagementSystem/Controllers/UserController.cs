@@ -9,7 +9,7 @@ using System.Security.Claims;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     [ApiController]
     public class UserController : ControllerBase
     {
