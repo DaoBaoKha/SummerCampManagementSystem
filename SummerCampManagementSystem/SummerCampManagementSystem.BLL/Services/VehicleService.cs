@@ -13,7 +13,7 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         public async Task<IEnumerable<Vehicle>> GetAllVehicles()
         {
-            return await _vehicleRepository.GetAllVehicles();
+            return await _vehicleRepository.GetAllAsync();
         }
         public async Task<Vehicle?> GetVehicleById(int id)
         {

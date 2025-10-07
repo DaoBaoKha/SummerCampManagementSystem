@@ -2,8 +2,8 @@
 
 namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
-    public interface IVehicleRepository : IGenericRepository<Vehicle>
+    public interface ICampTypeRepository : IGenericRepository<CampType>
     {
-        Task<Vehicle?> GetVehicleById(int id);
+        Task<CampType?> GetCampTypeByIdAsync(int id);
     }
 }
