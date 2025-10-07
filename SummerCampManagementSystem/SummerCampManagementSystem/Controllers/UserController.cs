@@ -84,5 +84,27 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(verifyResponse);
         }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromQuery] string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(new { message = "Email is required" });
+            var forgotPasswordResponse = await _userService.ForgotPasswordAsync(email);
+            if (forgotPasswordResponse == null)
+                return BadRequest(new { message = "Yêu cầu quên mật khẩu không thành công!" });
+            return Ok(forgotPasswordResponse);
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var resetResponse = await _userService.ResetPasswordAsync(model);
+            if (resetResponse == null)
+                return BadRequest(new { message = "Đặt lại mật khẩu không thành công!" });
+            return Ok(resetResponse);
+        }
     }
 }
