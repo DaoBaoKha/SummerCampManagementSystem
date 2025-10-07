@@ -7,6 +7,7 @@ using SummerCampManagementSystem.BLL.DTOs.Responses.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -182,7 +183,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var otp = new Random().Next(100000, 999999).ToString();
 
             // store otp in cache for 5 mins
-            _cache.Set($"OTP_{model.Email}", otp, TimeSpan.FromMinutes(5));
+            _cache.Set($"OTP_Activation_{model.Email}", otp, TimeSpan.FromMinutes(5));
 
             // send otp
             if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Contains("@"))
@@ -190,7 +191,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException($"Địa chỉ Email không chính xác: {model.Email}");
             }
 
-            await _emailService.SendOtpEmailAsync(model.Email, otp);
+            await _emailService.SendOtpEmailAsync(model.Email, otp, "Activation");
 
             return new RegisterUserResponseDto
             {
@@ -202,29 +203,94 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model)
         {
-            if(!_cache.TryGetValue($"OTP_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+            // Kiểm tra OTP trong cache
+            if (!_cache.TryGetValue($"OTP_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
             {
-                return new VerifyOtpResponseDto { IsSuccess = false, Message = "OTP Expired or Not Found!"};
+                return new VerifyOtpResponseDto { IsSuccess = false, Message = "OTP không hợp lệ hoặc đã hết hạn!" };
             }
 
-            if(cachedOtp != model.Otp)
-            {
-                return new VerifyOtpResponseDto { IsSuccess = false, Message = "Invalid OTP!"};
-            }
-
+            // Tìm user theo email
             var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
-            if(user == null)
+            if (user == null)
             {
-                return new VerifyOtpResponseDto { IsSuccess = false, Message = "User Not Found!"};
+                return new VerifyOtpResponseDto { IsSuccess = false, Message = "Không tìm thấy người dùng!" };
             }
 
+            // Kích hoạt tài khoản
             user.isActive = true;
             await _unitOfWork.Users.UpdateAsync(user);
             await _unitOfWork.CommitAsync();
 
+            // Xóa OTP khỏi cache
             _cache.Remove($"OTP_{model.Email}");
 
-            return new VerifyOtpResponseDto { IsSuccess = true, Message = "Tài Khoản Đã Được Xác Minh Thành Công" };
+            return new VerifyOtpResponseDto
+            {
+                IsSuccess = true,
+                Message = "Tài khoản đã được kích hoạt thành công!"
+            };
+        }
+
+        public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email)
+        {
+            var user = await _unitOfWork.Users.GetUserByEmail(email);
+            if (user == null)
+            {
+                return new ForgotPasswordResponseDto
+                {
+                    Email = email,
+                    Message = "Email không tồn tại trong hệ thống."
+                };
             }
+
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            _cache.Set($"OTP_ResetPassword_{email}", otp, TimeSpan.FromMinutes(5));
+
+            await _emailService.SendOtpEmailAsync(email, otp, "ResetPassword");
+
+            return new ForgotPasswordResponseDto
+            {
+                Email = email,
+                Message = "Mã OTP đặt lại mật khẩu đã được gửi tới email của bạn."
+            };
+        }
+
+        public async Task<ForgotPasswordResponseDto?> ResetPasswordAsync(ResetPasswordRequestDto model)
+        {
+            // Kiểm tra OTP trong cache
+            if (!_cache.TryGetValue($"OTP_ResetPassword_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+            {
+                return new ForgotPasswordResponseDto
+                {
+                    Email = model.Email,
+                    Message = "OTP không hợp lệ hoặc đã hết hạn."
+                };
+            }
+
+            var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
+            if (user == null)
+            {
+                return new ForgotPasswordResponseDto
+                {
+                    Email = model.Email,
+                    Message = "Email không tồn tại trong hệ thống."
+                };
+            }
+
+            // Cập nhật mật khẩu mới
+            user.password = HashPassword(model.NewPassword);
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            // Xóa OTP sau khi dùng
+            _cache.Remove($"OTP_ResetPassword_{model.Email}");
+
+            return new ForgotPasswordResponseDto
+            {
+                Email = model.Email,
+                Message = "Mật khẩu đã được đặt lại thành công."
+            };
+        }
     }
 }
