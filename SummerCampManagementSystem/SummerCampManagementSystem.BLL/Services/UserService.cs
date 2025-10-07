@@ -203,20 +203,30 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model)
         {
-            // Kiểm tra OTP trong cache
-            if (!_cache.TryGetValue($"OTP_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+            var cacheKey = $"OTP_Activation_{model.Email}";
+            
+            // try to get OTP from cache
+            var hasOtp = _cache.TryGetValue(cacheKey, out string? cachedOtp);
+            Console.WriteLine($"Verifying OTP for {model.Email}. OTP found in cache: {hasOtp}");
+            
+            if (!hasOtp || cachedOtp != model.Otp)
             {
-                return new VerifyOtpResponseDto { IsSuccess = false, Message = "OTP không hợp lệ hoặc đã hết hạn!" };
+                Console.WriteLine($"OTP verification failed. Cached OTP exists: {hasOtp}, OTP match: {cachedOtp == model.Otp}");
+                return new VerifyOtpResponseDto 
+                { 
+                    IsSuccess = false, 
+                    Message = "OTP không hợp lệ hoặc đã hết hạn!" 
+                };
             }
 
-            // Tìm user theo email
+            // find user by email
             var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
             if (user == null)
             {
                 return new VerifyOtpResponseDto { IsSuccess = false, Message = "Không tìm thấy người dùng!" };
             }
 
-            // Kích hoạt tài khoản
+            // activate user
             user.isActive = true;
             await _unitOfWork.Users.UpdateAsync(user);
             await _unitOfWork.CommitAsync();
