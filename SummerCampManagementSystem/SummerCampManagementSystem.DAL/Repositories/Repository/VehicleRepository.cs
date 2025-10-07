@@ -11,10 +11,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
-        public async Task<Vehicle?> GetVehicleById(int id)
-        {
-            var vehicle = await GetByIdAsync(id);
-            return vehicle;
-        }
+
     }
 }

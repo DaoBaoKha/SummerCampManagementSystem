@@ -4,6 +4,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IVehicleRepository : IGenericRepository<Vehicle>
     {
-        Task<Vehicle?> GetVehicleById(int id);
+        
     }
 }

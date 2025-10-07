@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
+using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -27,6 +29,53 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound((new { message = $"Vehicle with id {id} not found" }));
             }
             return Ok(vehicle);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody] Vehicle vehicle)
+        {
+            if (ModelState.IsValid)
+            {
+                await _vehicleService.CreateVehicleAsync(vehicle);
+                return Ok(new { message = "Vehicle added successfully" });
+            }
+            else
+            {
+                return BadRequest(ModelState);
+
+            }
+        }
+
+        // PUT api/<VehicleTypeController>/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Put(int id, [FromBody] Vehicle vehicle)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { message = "Input data is invalid" });
+            }
+
+            var existing = await _vehicleService.GetVehicleById(id);
+            if (existing == null)
+            {
+                return NotFound(new { message = "Vehicle not found" });
+            }
+
+            await _vehicleService.UpdateVehicleAsync(vehicle);
+            return Ok(new { message = "Vehicle updated successfully" });
+        }
+
+        // DELETE api/<VehicleTypeController>/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var existing = await _vehicleService.GetVehicleById(id);
+            if (existing == null)
+            {
+                return NotFound(new { message = "Vehicle not found" });
+            }
+            await _vehicleService.DeleteVehicleAsync(id);
+            return Ok(new { message = "Vehicle deleted successfully" });
         }
     }
 }
