@@ -21,29 +21,20 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
 });
 
-// add appsettings.json with optional: true
+// Add appsettings.json and environment variables
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-// google application credential for GCP Secret Manager
-builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-
-
-// local variables for secrets
+// Local variables
 string connectionString;
 string jwtKey;
 string jwtIssuer;
 string jwtAudience;
-string emailSmtp;
 int emailPort;
-string emailSenderName;
-string emailSenderEmail;
-string emailPass;
 
-// if its production, get from GCP Secret Manager
-// Load secrets from GCP if Production
+// Load secrets from GCP if production
 if (builder.Environment.IsProduction())
 {
     try
@@ -51,41 +42,27 @@ if (builder.Environment.IsProduction())
         var client = SecretManagerServiceClient.Create();
         string projectId = "campease-473401";
 
-        // DB
         connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
                                  .Payload.Data.ToStringUtf8();
 
-        // JWT
-        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
-                       .Payload.Data.ToStringUtf8();
-        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
-                          .Payload.Data.ToStringUtf8();
-        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
-                            .Payload.Data.ToStringUtf8();
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8();
 
-        // Email
-        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
-                          .Payload.Data.ToStringUtf8();
-        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
-                                     .Payload.Data.ToStringUtf8());
-        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
-                                .Payload.Data.ToStringUtf8();
-        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
-                                 .Payload.Data.ToStringUtf8();
-        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
-                          .Payload.Data.ToStringUtf8();
+        var emailPortString = client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
+                                     .Payload.Data.ToStringUtf8().Trim();
+        emailPort = int.Parse(emailPortString);
 
-        // Apply to configuration runtime
         builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
         builder.Configuration["Jwt:Key"] = jwtKey;
         builder.Configuration["Jwt:Issuer"] = jwtIssuer;
         builder.Configuration["Jwt:Audience"] = jwtAudience;
 
-        builder.Configuration["EmailSetting:SmtpServer"] = emailSmtp;
+        builder.Configuration["EmailSetting:SmtpServer"] = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest")).Payload.Data.ToStringUtf8();
         builder.Configuration["EmailSetting:Port"] = emailPort.ToString();
-        builder.Configuration["EmailSetting:SenderName"] = emailSenderName;
-        builder.Configuration["EmailSetting:SenderEmail"] = emailSenderEmail;
-        builder.Configuration["EmailSetting:Password"] = emailPass;
+        builder.Configuration["EmailSetting:SenderName"] = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest")).Payload.Data.ToStringUtf8();
+        builder.Configuration["EmailSetting:SenderEmail"] = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest")).Payload.Data.ToStringUtf8();
+        builder.Configuration["EmailSetting:Password"] = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest")).Payload.Data.ToStringUtf8();
 
         Console.WriteLine("Secrets loaded from GCP.");
     }
@@ -97,30 +74,21 @@ if (builder.Environment.IsProduction())
 }
 else
 {
-    // local development - get from appsettings.json
-    Console.WriteLine("Running in Development mode - using local connection string.");
+    // Development - load from appsettings.json
+    Console.WriteLine("Running in Development mode - using local settings.");
     connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 }
 
-// configure connection string for DbContext
+// Configure connection string
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 
-// DI
+// DI for services
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
-
-//builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
-//builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
-
-//builder.Services.AddScoped<ICamperRepository, CamperRepository>();
-//builder.Services.AddScoped<ICamperService, CamperService>();
-
-//builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianService>();
-//builder.Services.AddScoped<ICamperGuardianService, CamperGuardianService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -132,31 +100,26 @@ builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
 
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
-
-
-// Helper
+// Validation
 builder.Services.AddScoped<IValidationService, ValidationService>();
 
-// Email service
+// Email service (original style)
 builder.Services.Configure<EmailSetting>(builder.Configuration.GetSection("EmailSetting"));
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddMemoryCache();
 
+builder.Services.AddMemoryCache();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
 
-// database context
-builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
-    options.UseSqlServer(connectionString)
-           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
-// jwt auth
+// JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -168,12 +131,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
         };
     });
 
-// swagger
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -206,13 +168,10 @@ builder.Services.AddSwaggerGen(option =>
 
 var app = builder.Build();
 
-// cors
-app.UseCors(policy =>
-    policy.AllowAnyOrigin()
-          .AllowAnyMethod()
-          .AllowAnyHeader());
+// CORS
+app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
-// pipeline
+// Swagger
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
@@ -221,13 +180,12 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 
-// global error handler
+// Global error handler
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
         context.Response.ContentType = "application/json";
-
         var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
         var ex = exceptionFeature?.Error;
 
@@ -254,7 +212,6 @@ app.UseExceptionHandler(errorApp =>
         });
     });
 });
-
 
 app.UseAuthentication();
 app.UseAuthorization();
