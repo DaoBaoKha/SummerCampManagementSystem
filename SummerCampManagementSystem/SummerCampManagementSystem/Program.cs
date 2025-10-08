@@ -14,11 +14,18 @@ using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Text;
 using System.Text.Json.Serialization;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = Directory.GetCurrentDirectory(),
+    EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
+});
 
-// google application credential for GCP Secret Manager
-builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-
+// add appsettings.json with optional: true
+builder.Configuration
+    .SetBasePath(Directory.GetCurrentDirectory())
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 // take connection string
 string connectionString;
@@ -28,17 +35,28 @@ if (builder.Environment.IsProduction())
 {
     try
     {
-        Console.WriteLine("Loading connection string from GCP Secret Manager...");
+        Console.WriteLine("Loading secrets from GCP Secret Manager...");
         string projectId = "campease-473401";
-        string secretId = "db-connection-string";
-        string versionId = "1";
+        var client = SecretManagerServiceClient.Create();
 
-        SecretManagerServiceClient client = SecretManagerServiceClient.Create();
-        AccessSecretVersionResponse result = client.AccessSecretVersion(
-            new SecretVersionName(projectId, secretId, versionId));
+        // database connection string
+        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "1"))
+                                 .Payload.Data.ToStringUtf8();
 
-        connectionString = result.Payload.Data.ToStringUtf8();
-        Console.WriteLine("Loaded connection string from Secret Manager.");
+        // JWT key
+        var jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "1"))
+                            .Payload.Data.ToStringUtf8();
+
+        // email password
+        var emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "1"))
+                              .Payload.Data.ToStringUtf8();
+
+        // Gán vào cấu hình runtime
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+        builder.Configuration["Jwt:Key"] = jwtKey;
+        builder.Configuration["EmailSetting:Password"] = emailPass;
+
+        Console.WriteLine("Loaded secrets from GCP successfully.");
     }
     catch (Exception ex)
     {
