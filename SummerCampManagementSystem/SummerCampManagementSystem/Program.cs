@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
@@ -52,6 +53,8 @@ else
 builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
 
 // DI
+builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
+builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
@@ -67,6 +70,10 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+
+
+// Helper
+builder.Services.AddScoped<IValidationService, ValidationService>();
 
 // Email service
 builder.Services.Configure<EmailSetting>(builder.Configuration.GetSection("EmailSetting"));
@@ -143,6 +150,42 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 }
 
 app.UseHttpsRedirection();
+
+// global error handler
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var ex = exceptionFeature?.Error;
+
+        int statusCode = ex switch
+        {
+            KeyNotFoundException => StatusCodes.Status404NotFound,
+            ArgumentException => StatusCodes.Status400BadRequest,
+            _ => StatusCodes.Status500InternalServerError
+        };
+
+        context.Response.StatusCode = statusCode;
+
+        await context.Response.WriteAsJsonAsync(new
+        {
+            status = statusCode,
+            error = statusCode switch
+            {
+                404 => "Not Found",
+                400 => "Bad Request",
+                _ => "Internal Server Error"
+            },
+            message = ex?.Message,
+            path = context.Request.Path
+        });
+    });
+});
+
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
