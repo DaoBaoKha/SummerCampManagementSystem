@@ -31,7 +31,11 @@ steps:
       '--region', 'asia-southeast1',
       '--platform', 'managed',
       '--allow-unauthenticated',
-      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest'
+
+      # override secrets (key=value)
+      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
+      '--set-secrets', 'Jwt__Key=jwt-secret:latest',
+      '--set-secrets', 'EmailSetting__Password=email-pass:latest'
     ]
 
 images:
