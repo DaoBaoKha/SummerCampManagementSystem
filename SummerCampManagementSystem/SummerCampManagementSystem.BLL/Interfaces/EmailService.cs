@@ -99,22 +99,22 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
                 using var client = new SmtpClient();
 
-                Console.WriteLine($"🔌 Connecting to SMTP server: {_emailSetting.SmtpServer}:{_emailSetting.Port}");
+                Console.WriteLine($"Connecting to SMTP server: {_emailSetting.SmtpServer}:{_emailSetting.Port}");
                 await client.ConnectAsync(_emailSetting.SmtpServer, _emailSetting.Port, SecureSocketOptions.StartTls);
 
-                Console.WriteLine($"🔐 Authenticating with email: {_emailSetting.SenderEmail}");
+                Console.WriteLine($"Authenticating with email: {_emailSetting.SenderEmail}");
                 await client.AuthenticateAsync(_emailSetting.SenderEmail, _emailSetting.Password);
 
-                Console.WriteLine($"📤 Sending email...");
+                Console.WriteLine($"Sending email...");
                 await client.SendAsync(message);
 
                 await client.DisconnectAsync(true);
 
-                Console.WriteLine($"✓ Email sent successfully to: {to}");
+                Console.WriteLine($"Email sent successfully to: {to}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Failed to send email to {to}: {ex.Message}");
+                Console.WriteLine($"Failed to send email to {to}: {ex.Message}");
                 Console.WriteLine($"   Stack trace: {ex.StackTrace}");
                 throw new InvalidOperationException($"Failed to send email: {ex.Message}", ex);
             }
@@ -177,7 +177,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
                     </html>"
             };
 
-            Console.WriteLine($"📨 Sending OTP email for {purpose} to: {to}");
+            Console.WriteLine($"Sending OTP email for {purpose} to: {to}");
             await SendEmailAsync(to, subject, body);
         }
     }
