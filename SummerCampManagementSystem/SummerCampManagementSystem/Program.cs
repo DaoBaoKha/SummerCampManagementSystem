@@ -14,9 +14,6 @@ using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Text;
 using System.Text.Json.Serialization;
 
-
-// Build WebApplication
-
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -24,30 +21,24 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
 });
 
-
-// Load Configuration
-
+// Load configuration
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-
-// Default local variables
-
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
-string jwtKey = builder.Configuration["Jwt:Key"] ?? "";
-string jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "";
-string jwtAudience = builder.Configuration["Jwt:Audience"] ?? "";
-string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"] ?? "smtp.example.com";
+// Default local values
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")?.Trim() ?? "";
+string jwtKey = builder.Configuration["Jwt:Key"]?.Trim() ?? "";
+string jwtIssuer = builder.Configuration["Jwt:Issuer"]?.Trim() ?? "";
+string jwtAudience = builder.Configuration["Jwt:Audience"]?.Trim() ?? "";
+string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"]?.Trim() ?? "smtp.example.com";
 int emailPort = int.TryParse(builder.Configuration["EmailSetting:Port"], out var port) ? port : 587;
-string emailSenderName = builder.Configuration["EmailSetting:SenderName"] ?? "CampEase";
-string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"] ?? "no-reply@campease.com";
-string emailPass = builder.Configuration["EmailSetting:Password"] ?? "password123";
-
+string emailSenderName = builder.Configuration["EmailSetting:SenderName"]?.Trim() ?? "CampEase";
+string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"]?.Trim() ?? "no-reply@campease.com";
+string emailPass = builder.Configuration["EmailSetting:Password"]?.Trim() ?? "password123";
 
 // Load GCP secrets if Production
-
 if (builder.Environment.IsProduction())
 {
     try
@@ -56,19 +47,16 @@ if (builder.Environment.IsProduction())
         string projectId = "campease-473401";
 
         connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
-                                 .Payload.Data.ToStringUtf8();
+                                 .Payload.Data.ToStringUtf8().Trim();
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8().Trim();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8().Trim();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest")).Payload.Data.ToStringUtf8().Trim());
+        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest")).Payload.Data.ToStringUtf8().Trim();
 
-        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8();
-        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8();
-        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8();
-
-        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest")).Payload.Data.ToStringUtf8();
-        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest")).Payload.Data.ToStringUtf8());
-        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest")).Payload.Data.ToStringUtf8();
-        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest")).Payload.Data.ToStringUtf8();
-        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest")).Payload.Data.ToStringUtf8();
-
-        // Update runtime configuration
         var inMemorySettings = new Dictionary<string, string>
         {
             {"ConnectionStrings:DefaultConnection", connectionString},
@@ -96,13 +84,10 @@ else
     Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode - using local appsettings.json");
 }
 
-
 // Configure DbContext
-
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
 
 // Dependency Injection - Services & Repositories
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
@@ -121,10 +106,7 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 
-builder.Services.AddMemoryCache();
-
-// Configure Email Settings
-
+// Email Setting
 var emailSetting = new EmailSetting
 {
     SmtpServer = emailSmtp,
@@ -143,12 +125,7 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = emailSetting.Password;
 });
 
-// EmailService
-builder.Services.AddScoped<IEmailService, EmailService>();
-
-
 // JWT Authentication
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -164,18 +141,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
 // Controllers & JSON
-
 builder.Services.AddControllers().AddJsonOptions(opt =>
 {
     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     opt.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
 
-
 // Swagger
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -206,19 +179,15 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-// Build & Configure Middleware
+// Build App
 var app = builder.Build();
 
-// CORS
 app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
-
-// Swagger
 app.UseSwagger();
 app.UseSwaggerUI();
-
 app.UseHttpsRedirection();
 
-// Global error handler
+// Global Error Handler
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>

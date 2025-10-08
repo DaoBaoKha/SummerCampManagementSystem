@@ -16,7 +16,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public class EmailService : IEmailService
     {
         private readonly EmailSetting _emailSetting;
-
         private readonly ILogger<EmailService> _logger;
 
         public EmailService(IOptions<EmailSetting> emailSetting, ILogger<EmailService> logger)
@@ -24,7 +23,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             _emailSetting = emailSetting.Value;
             _logger = logger;
 
-            // **FIX: Validate email settings on initialization**
             ValidateEmailSettings();
         }
 
@@ -66,48 +64,20 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         {
             try
             {
-                // **FIX: Validate parameters**
-                if (string.IsNullOrWhiteSpace(to))
-                    throw new ArgumentNullException(nameof(to), "Recipient email cannot be null or empty");
-
-                if (string.IsNullOrWhiteSpace(subject))
-                    throw new ArgumentNullException(nameof(subject), "Email subject cannot be null or empty");
-
-                if (string.IsNullOrWhiteSpace(body))
-                    throw new ArgumentNullException(nameof(body), "Email body cannot be null or empty");
-
-                Console.WriteLine($"Preparing to send email to: {to}");
-                Console.WriteLine($"   Subject: {subject}");
+                if (string.IsNullOrWhiteSpace(to)) throw new ArgumentNullException(nameof(to), "Recipient email cannot be null or empty");
+                if (string.IsNullOrWhiteSpace(subject)) throw new ArgumentNullException(nameof(subject), "Email subject cannot be null or empty");
+                if (string.IsNullOrWhiteSpace(body)) throw new ArgumentNullException(nameof(body), "Email body cannot be null or empty");
 
                 var message = new MimeMessage();
-
-                // **FIX: Add sender with explicit validation**
-                message.From.Add(new MailboxAddress(_emailSetting.SenderName, _emailSetting.SenderEmail));
-                Console.WriteLine($"   From: {_emailSetting.SenderName} <{_emailSetting.SenderEmail}>");
-
-                // **FIX: Add recipient with explicit validation**
-                message.To.Add(MailboxAddress.Parse(to));
-                Console.WriteLine($"   To: {to}");
-
+                message.From.Add(new MailboxAddress(_emailSetting.SenderName.Trim(), _emailSetting.SenderEmail.Trim()));
+                message.To.Add(MailboxAddress.Parse(to.Trim()));
                 message.Subject = subject;
-
-                var bodyBuilder = new BodyBuilder
-                {
-                    HtmlBody = body
-                };
-                message.Body = bodyBuilder.ToMessageBody();
+                message.Body = new BodyBuilder { HtmlBody = body }.ToMessageBody();
 
                 using var client = new SmtpClient();
-
-                Console.WriteLine($"Connecting to SMTP server: {_emailSetting.SmtpServer}:{_emailSetting.Port}");
-                await client.ConnectAsync(_emailSetting.SmtpServer, _emailSetting.Port, SecureSocketOptions.StartTls);
-
-                Console.WriteLine($"Authenticating with email: {_emailSetting.SenderEmail}");
-                await client.AuthenticateAsync(_emailSetting.SenderEmail, _emailSetting.Password);
-
-                Console.WriteLine($"Sending email...");
+                await client.ConnectAsync(_emailSetting.SmtpServer.Trim(), _emailSetting.Port, SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_emailSetting.SenderEmail.Trim(), _emailSetting.Password.Trim());
                 await client.SendAsync(message);
-
                 await client.DisconnectAsync(true);
 
                 Console.WriteLine($"Email sent successfully to: {to}");
@@ -115,19 +85,14 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             catch (Exception ex)
             {
                 Console.WriteLine($"Failed to send email to {to}: {ex.Message}");
-                Console.WriteLine($"   Stack trace: {ex.StackTrace}");
                 throw new InvalidOperationException($"Failed to send email: {ex.Message}", ex);
             }
         }
 
         public async Task SendOtpEmailAsync(string to, string otp, string purpose)
         {
-            // **FIX: Validate inputs**
-            if (string.IsNullOrWhiteSpace(to))
-                throw new ArgumentNullException(nameof(to), "Recipient email cannot be null or empty");
-
-            if (string.IsNullOrWhiteSpace(otp))
-                throw new ArgumentNullException(nameof(otp), "OTP cannot be null or empty");
+            if (string.IsNullOrWhiteSpace(to)) throw new ArgumentNullException(nameof(to));
+            if (string.IsNullOrWhiteSpace(otp)) throw new ArgumentNullException(nameof(otp));
 
             string subject = purpose switch
             {
@@ -158,7 +123,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
                         <p>Bạn đã yêu cầu đặt lại mật khẩu. Mã OTP của bạn là:</p>
                         <h1 style='color: #FF5722; font-size: 32px;'>{otp}</h1>
                         <p>Mã này có hiệu lực trong 5 phút.</p>
-                        <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này và bảo mật tài khoản của bạn.</p>
+                        <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
                         <br>
                         <p>Trân trọng,<br>CampEase Team</p>
                     </body>
@@ -177,7 +142,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
                     </html>"
             };
 
-            Console.WriteLine($"Sending OTP email for {purpose} to: {to}");
             await SendEmailAsync(to, subject, body);
         }
     }
