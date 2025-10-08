@@ -21,78 +21,84 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
 });
 
-// add appsettings.json with optional: true
+// Load configuration
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
-// google application credential for GCP Secret Manager
-builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+// Default local values
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection")?.Trim() ?? "";
+string jwtKey = builder.Configuration["Jwt:Key"]?.Trim() ?? "";
+string jwtIssuer = builder.Configuration["Jwt:Issuer"]?.Trim() ?? "";
+string jwtAudience = builder.Configuration["Jwt:Audience"]?.Trim() ?? "";
+string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"]?.Trim() ?? "smtp.example.com";
+int emailPort = int.TryParse(builder.Configuration["EmailSetting:Port"], out var port) ? port : 587;
+string emailSenderName = builder.Configuration["EmailSetting:SenderName"]?.Trim() ?? "CampEase";
+string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"]?.Trim() ?? "no-reply@campease.com";
+string emailPass = builder.Configuration["EmailSetting:Password"]?.Trim() ?? "password123";
 
-
-// take connection string
-string connectionString;
-
-// take jwt config
-string jwtKey;
-string jwtIssuer;
-string jwtAudience;
-string emailPass;
-
-// if its production, get from GCP Secret Manager
+// Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
-    var client = SecretManagerServiceClient.Create();
-    string projectId = "campease-473401";
+    try
+    {
+        var client = SecretManagerServiceClient.Create();
+        string projectId = "campease-473401";
 
-    connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
-                             .Payload.Data.ToStringUtf8();
+        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
+                                 .Payload.Data.ToStringUtf8().Trim();
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8().Trim();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8().Trim();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
+                  .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
-    jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
-                   .Payload.Data.ToStringUtf8();
+        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
+                                       .Payload.Data.ToStringUtf8().Trim().Trim('"'));
 
-    jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
-                      .Payload.Data.ToStringUtf8();
+        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
+                                .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
-    jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
-                        .Payload.Data.ToStringUtf8();
+        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
+                                 .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
-    // load email config
-    var emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
-                          .Payload.Data.ToStringUtf8();
-    var emailPort = client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
-                          .Payload.Data.ToStringUtf8();
-    var emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
-                                .Payload.Data.ToStringUtf8();
-    var emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
-                                 .Payload.Data.ToStringUtf8();
-    emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
-                          .Payload.Data.ToStringUtf8();
+        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
+                          .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
-    // apply to configuration runtime
-    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
-    builder.Configuration["Jwt:Key"] = jwtKey;
-    builder.Configuration["Jwt:Issuer"] = jwtIssuer;
-    builder.Configuration["Jwt:Audience"] = jwtAudience;
 
-    builder.Configuration["EmailSetting:SmtpServer"] = emailSmtp;
-    builder.Configuration["EmailSetting:Port"] = emailPort;
-    builder.Configuration["EmailSetting:SenderName"] = emailSenderName;
-    builder.Configuration["EmailSetting:SenderEmail"] = emailSenderEmail;
-    builder.Configuration["EmailSetting:Password"] = emailPass;
+        var inMemorySettings = new Dictionary<string, string>
+        {
+            {"ConnectionStrings:DefaultConnection", connectionString},
+            {"Jwt:Key", jwtKey},
+            {"Jwt:Issuer", jwtIssuer},
+            {"Jwt:Audience", jwtAudience},
+            {"EmailSetting:SmtpServer", emailSmtp},
+            {"EmailSetting:Port", emailPort.ToString()},
+            {"EmailSetting:SenderName", emailSenderName},
+            {"EmailSetting:SenderEmail", emailSenderEmail},
+            {"EmailSetting:Password", emailPass}
+        };
+        builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
-    Console.WriteLine("Secrets loaded from GCP.");
+        Console.WriteLine("Secrets loaded from GCP successfully.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Cannot load secrets from GCP: {ex.Message}");
+        Console.WriteLine("Using local appsettings.json values.");
+    }
 }
 else
 {
-    // local development - get from appsettings.json
-    Console.WriteLine("Running in Development mode - using local connection string.");
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode - using local appsettings.json");
 }
 
-// configure connection string for DbContext
-builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+// Configure DbContext
+builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
+    options.UseSqlServer(connectionString)
+           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+
 
 // DI
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
@@ -130,9 +136,27 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 builder.Services.AddScoped<IValidationService, ValidationService>();
 
 // Email service
-builder.Services.Configure<EmailSetting>(builder.Configuration.GetSection("EmailSetting"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddMemoryCache();
+
+// Email Setting
+var emailSetting = new EmailSetting
+{
+    SmtpServer = emailSmtp,
+    Port = emailPort,
+    SenderName = emailSenderName,
+    SenderEmail = emailSenderEmail,
+    Password = emailPass
+};
+
+builder.Services.Configure<EmailSetting>(opts =>
+{
+    opts.SmtpServer = emailSetting.SmtpServer;
+    opts.Port = emailSetting.Port;
+    opts.SenderName = emailSetting.SenderName;
+    opts.SenderEmail = emailSetting.SenderEmail;
+    opts.Password = emailSetting.Password;
+});
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
