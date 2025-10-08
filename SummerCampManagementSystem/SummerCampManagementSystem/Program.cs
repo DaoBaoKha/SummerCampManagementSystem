@@ -106,6 +106,8 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 builder.Services.AddMemoryCache();
 
 // Email Setting
