@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
+
 namespace SummerCampManagementSystem.DAL.Models;
 
 public partial class CampEaseDatabaseContext : DbContext
@@ -120,11 +121,11 @@ public partial class CampEaseDatabaseContext : DbContext
     {
         var config = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true) // optional
+            .AddEnvironmentVariables() // cloud run
             .Build();
 
-        string connectionString = config.GetConnectionString(connectionStringName);
-        return connectionString;
+        return config.GetConnectionString(connectionStringName);
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
