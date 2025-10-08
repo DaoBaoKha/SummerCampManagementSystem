@@ -31,58 +31,69 @@ builder.Configuration
 builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
 
 
-// take connection string
+// local variables for secrets
 string connectionString;
-
-// take jwt config
 string jwtKey;
 string jwtIssuer;
 string jwtAudience;
+string emailSmtp;
+int emailPort;
+string emailSenderName;
+string emailSenderEmail;
 string emailPass;
 
 // if its production, get from GCP Secret Manager
+// Load secrets from GCP if Production
 if (builder.Environment.IsProduction())
 {
-    var client = SecretManagerServiceClient.Create();
-    string projectId = "campease-473401";
+    try
+    {
+        var client = SecretManagerServiceClient.Create();
+        string projectId = "campease-473401";
 
-    connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
-                             .Payload.Data.ToStringUtf8();
-
-    jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
-                   .Payload.Data.ToStringUtf8();
-
-    jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
-                      .Payload.Data.ToStringUtf8();
-
-    jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
-                        .Payload.Data.ToStringUtf8();
-
-    // load email config
-    var emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
-                          .Payload.Data.ToStringUtf8();
-    var emailPort = client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
-                          .Payload.Data.ToStringUtf8();
-    var emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
-                                .Payload.Data.ToStringUtf8();
-    var emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
+        // DB
+        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
                                  .Payload.Data.ToStringUtf8();
-    emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
+
+        // JWT
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
+                       .Payload.Data.ToStringUtf8();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
+                          .Payload.Data.ToStringUtf8();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
+                            .Payload.Data.ToStringUtf8();
+
+        // Email
+        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
+                          .Payload.Data.ToStringUtf8();
+        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
+                                     .Payload.Data.ToStringUtf8());
+        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
+                                .Payload.Data.ToStringUtf8();
+        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
+                                 .Payload.Data.ToStringUtf8();
+        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
                           .Payload.Data.ToStringUtf8();
 
-    // apply to configuration runtime
-    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
-    builder.Configuration["Jwt:Key"] = jwtKey;
-    builder.Configuration["Jwt:Issuer"] = jwtIssuer;
-    builder.Configuration["Jwt:Audience"] = jwtAudience;
+        // Apply to configuration runtime
+        builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+        builder.Configuration["Jwt:Key"] = jwtKey;
+        builder.Configuration["Jwt:Issuer"] = jwtIssuer;
+        builder.Configuration["Jwt:Audience"] = jwtAudience;
 
-    builder.Configuration["EmailSetting:SmtpServer"] = emailSmtp;
-    builder.Configuration["EmailSetting:Port"] = emailPort;
-    builder.Configuration["EmailSetting:SenderName"] = emailSenderName;
-    builder.Configuration["EmailSetting:SenderEmail"] = emailSenderEmail;
-    builder.Configuration["EmailSetting:Password"] = emailPass;
+        builder.Configuration["EmailSetting:SmtpServer"] = emailSmtp;
+        builder.Configuration["EmailSetting:Port"] = emailPort.ToString();
+        builder.Configuration["EmailSetting:SenderName"] = emailSenderName;
+        builder.Configuration["EmailSetting:SenderEmail"] = emailSenderEmail;
+        builder.Configuration["EmailSetting:Password"] = emailPass;
 
-    Console.WriteLine("Secrets loaded from GCP.");
+        Console.WriteLine("Secrets loaded from GCP.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Cannot load secrets from GCP: {ex.Message}");
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    }
 }
 else
 {
