@@ -73,6 +73,15 @@ if (builder.Environment.IsProduction())
                           .Payload.Data.ToStringUtf8();
 
         Console.WriteLine("✓ Secrets loaded from GCP successfully.");
+        Console.WriteLine($"   - Connection String: {connectionString?.Substring(0, Math.Min(30, connectionString.Length))}...");
+        Console.WriteLine($"   - JWT Key length: {jwtKey?.Length ?? 0}");
+        Console.WriteLine($"   - JWT Issuer: {jwtIssuer}");
+        Console.WriteLine($"   - JWT Audience: {jwtAudience}");
+        Console.WriteLine($"   - Email SMTP: {emailSmtp}");
+        Console.WriteLine($"   - Email Port: {emailPort}");
+        Console.WriteLine($"   - Email Sender Name: {emailSenderName}");
+        Console.WriteLine($"   - Email Sender Email: {emailSenderEmail}");
+        Console.WriteLine($"   - Email Password length: {emailPass?.Length ?? 0}");
 
         // **FIX: Update IConfiguration with GCP secrets**
         var inMemorySettings = new Dictionary<string, string>
@@ -128,7 +137,14 @@ builder.Services.AddScoped<IValidationService, ValidationService>();
 
 builder.Services.AddMemoryCache();
 
-// Configure EmailSetting
+// Configure EmailSetting - Log values before configuring
+Console.WriteLine("Configuring EmailSetting:");
+Console.WriteLine($"   - SmtpServer: {emailSmtp ?? "NULL"}");
+Console.WriteLine($"   - Port: {emailPort}");
+Console.WriteLine($"   - SenderName: {emailSenderName ?? "NULL"}");
+Console.WriteLine($"   - SenderEmail: {emailSenderEmail ?? "NULL"}");
+Console.WriteLine($"   - Password Length: {emailPass?.Length ?? 0}");
+
 var emailSetting = new EmailSetting
 {
     SmtpServer = emailSmtp,
@@ -146,6 +162,12 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.SenderEmail = emailSetting.SenderEmail;
     opts.Password = emailSetting.Password;
 });
+
+// Validate email settings
+if (string.IsNullOrEmpty(emailSmtp) || string.IsNullOrEmpty(emailSenderEmail) || string.IsNullOrEmpty(emailPass))
+{
+    Console.WriteLine("WARNING: Email settings are incomplete!");
+}
 
 // Email service
 builder.Services.AddScoped<IEmailService, EmailService>();
