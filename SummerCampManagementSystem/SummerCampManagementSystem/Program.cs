@@ -51,11 +51,21 @@ if (builder.Environment.IsProduction())
         jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8().Trim();
         jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8().Trim();
         jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8().Trim();
-        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest")).Payload.Data.ToStringUtf8().Trim();
-        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest")).Payload.Data.ToStringUtf8().Trim());
-        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest")).Payload.Data.ToStringUtf8().Trim();
-        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest")).Payload.Data.ToStringUtf8().Trim();
-        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest")).Payload.Data.ToStringUtf8().Trim();
+        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
+                  .Payload.Data.ToStringUtf8().Trim().Trim('"');
+
+        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
+                                       .Payload.Data.ToStringUtf8().Trim().Trim('"'));
+
+        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
+                                .Payload.Data.ToStringUtf8().Trim().Trim('"');
+
+        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
+                                 .Payload.Data.ToStringUtf8().Trim().Trim('"');
+
+        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
+                          .Payload.Data.ToStringUtf8().Trim().Trim('"');
+
 
         var inMemorySettings = new Dictionary<string, string>
         {
