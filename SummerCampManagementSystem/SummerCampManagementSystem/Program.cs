@@ -59,12 +59,24 @@ builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
+
+//builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
+//builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
+
+//builder.Services.AddScoped<ICamperRepository, CamperRepository>();
+//builder.Services.AddScoped<ICamperService, CamperService>();
+
+//builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianService>();
+//builder.Services.AddScoped<ICamperGuardianService, CamperGuardianService>();
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+
 builder.Services.AddScoped<IVehicleService, VehicleService>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IVehicleTypeService, VehicleTypeService>();
 builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
+
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
