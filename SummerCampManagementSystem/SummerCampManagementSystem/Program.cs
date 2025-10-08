@@ -44,7 +44,7 @@ if (builder.Environment.IsProduction())
         var client = SecretManagerServiceClient.Create();
 
         // database connection string
-        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "1"))
+        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
                                  .Payload.Data.ToStringUtf8();
 
         // JWT key
@@ -123,6 +123,11 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
+
+// database context
+builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
+    options.UseSqlServer(connectionString) // connection string from Secret Manager or appsettings.json
+           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
 // jwt auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
