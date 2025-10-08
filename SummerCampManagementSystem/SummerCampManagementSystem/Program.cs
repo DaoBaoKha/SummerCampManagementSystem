@@ -72,13 +72,33 @@ if (builder.Environment.IsProduction())
         emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
                           .Payload.Data.ToStringUtf8();
 
-        Console.WriteLine("Secrets loaded from GCP.");
+        Console.WriteLine("✓ Secrets loaded from GCP successfully.");
+
+        // **FIX: Update IConfiguration with GCP secrets**
+        var inMemorySettings = new Dictionary<string, string>
+        {
+            {"ConnectionStrings:DefaultConnection", connectionString},
+            {"Jwt:Key", jwtKey},
+            {"Jwt:Issuer", jwtIssuer},
+            {"Jwt:Audience", jwtAudience},
+            {"EmailSetting:SmtpServer", emailSmtp},
+            {"EmailSetting:Port", emailPort.ToString()},
+            {"EmailSetting:SenderName", emailSenderName},
+            {"EmailSetting:SenderEmail", emailSenderEmail},
+            {"EmailSetting:Password", emailPass}
+        };
+
+        builder.Configuration.AddInMemoryCollection(inMemorySettings);
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Cannot load secrets from GCP: {ex.Message}");
         Console.WriteLine("Using default settings from appsettings.json");
     }
+}
+else
+{
+    Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode - using appsettings.json");
 }
 
 
@@ -203,7 +223,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 
-// Global error handler
+// Global error handler with better logging
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -211,6 +231,10 @@ app.UseExceptionHandler(errorApp =>
         context.Response.ContentType = "application/json";
         var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
         var ex = exceptionFeature?.Error;
+
+        // **FIX: Log detailed error to console**
+        Console.WriteLine($"ERROR at {context.Request.Path}: {ex?.Message}");
+        Console.WriteLine($"Stack trace: {ex?.StackTrace}");
 
         int statusCode = ex switch
         {
