@@ -117,20 +117,6 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Visitation> Visitations { get; set; }
 
-    public static string GetConnectionString(string connectionStringName)
-    {
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true) // optional
-            .AddEnvironmentVariables() // cloud run
-            .Build();
-
-        return config.GetConnectionString(connectionStringName);
-    }
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-      => optionsBuilder.UseSqlServer(GetConnectionString("DefaultConnection")).UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Accommodation>(entity =>
