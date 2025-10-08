@@ -14,6 +14,9 @@ using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Text;
 using System.Text.Json.Serialization;
 
+
+// Build WebApplication
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
@@ -21,26 +24,30 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
     EnvironmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"
 });
 
-// add appsettings.json
+
+// Load Configuration
+
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
 
-// Local variables with defaults from appsettings
-string connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-string jwtKey = builder.Configuration["Jwt:Key"];
-string jwtIssuer = builder.Configuration["Jwt:Issuer"];
-string jwtAudience = builder.Configuration["Jwt:Audience"];
-string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"];
+// Default local variables
+
+string connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+string jwtKey = builder.Configuration["Jwt:Key"] ?? "";
+string jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "";
+string jwtAudience = builder.Configuration["Jwt:Audience"] ?? "";
+string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"] ?? "smtp.example.com";
 int emailPort = int.TryParse(builder.Configuration["EmailSetting:Port"], out var port) ? port : 587;
-string emailSenderName = builder.Configuration["EmailSetting:SenderName"];
-string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"];
-string emailPass = builder.Configuration["EmailSetting:Password"];
+string emailSenderName = builder.Configuration["EmailSetting:SenderName"] ?? "CampEase";
+string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"] ?? "no-reply@campease.com";
+string emailPass = builder.Configuration["EmailSetting:Password"] ?? "password123";
 
 
-// Load secrets from GCP if Production
+// Load GCP secrets if Production
+
 if (builder.Environment.IsProduction())
 {
     try
@@ -48,42 +55,20 @@ if (builder.Environment.IsProduction())
         var client = SecretManagerServiceClient.Create();
         string projectId = "campease-473401";
 
-        // DB
         connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
                                  .Payload.Data.ToStringUtf8();
 
-        // JWT
-        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
-                       .Payload.Data.ToStringUtf8();
-        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
-                          .Payload.Data.ToStringUtf8();
-        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
-                            .Payload.Data.ToStringUtf8();
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8();
 
-        // Email
-        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
-                          .Payload.Data.ToStringUtf8();
-        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
-                                     .Payload.Data.ToStringUtf8());
-        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
-                                .Payload.Data.ToStringUtf8();
-        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
-                                 .Payload.Data.ToStringUtf8();
-        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
-                          .Payload.Data.ToStringUtf8();
+        emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest")).Payload.Data.ToStringUtf8();
+        emailPort = int.Parse(client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest")).Payload.Data.ToStringUtf8());
+        emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest")).Payload.Data.ToStringUtf8();
+        emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest")).Payload.Data.ToStringUtf8();
+        emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest")).Payload.Data.ToStringUtf8();
 
-        Console.WriteLine("✓ Secrets loaded from GCP successfully.");
-        Console.WriteLine($"   - Connection String: {connectionString?.Substring(0, Math.Min(30, connectionString.Length))}...");
-        Console.WriteLine($"   - JWT Key length: {jwtKey?.Length ?? 0}");
-        Console.WriteLine($"   - JWT Issuer: {jwtIssuer}");
-        Console.WriteLine($"   - JWT Audience: {jwtAudience}");
-        Console.WriteLine($"   - Email SMTP: {emailSmtp}");
-        Console.WriteLine($"   - Email Port: {emailPort}");
-        Console.WriteLine($"   - Email Sender Name: {emailSenderName}");
-        Console.WriteLine($"   - Email Sender Email: {emailSenderEmail}");
-        Console.WriteLine($"   - Email Password length: {emailPass?.Length ?? 0}");
-
-        // **FIX: Update IConfiguration with GCP secrets**
+        // Update runtime configuration
         var inMemorySettings = new Dictionary<string, string>
         {
             {"ConnectionStrings:DefaultConnection", connectionString},
@@ -96,28 +81,30 @@ if (builder.Environment.IsProduction())
             {"EmailSetting:SenderEmail", emailSenderEmail},
             {"EmailSetting:Password", emailPass}
         };
-
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
+
+        Console.WriteLine("✓ Secrets loaded from GCP successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Cannot load secrets from GCP: {ex.Message}");
-        Console.WriteLine("Using default settings from appsettings.json");
+        Console.WriteLine($"⚠️ Cannot load secrets from GCP: {ex.Message}");
+        Console.WriteLine("Using local appsettings.json values.");
     }
 }
 else
 {
-    Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode - using appsettings.json");
+    Console.WriteLine($"Running in {builder.Environment.EnvironmentName} mode - using local appsettings.json");
 }
 
 
-// Apply connection string for DbContext
+// Configure DbContext
+
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
 
-// Dependency Injection for services & repositories
+// Dependency Injection - Services & Repositories
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
@@ -134,16 +121,9 @@ builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 
-
 builder.Services.AddMemoryCache();
 
-// Configure EmailSetting - Log values before configuring
-Console.WriteLine("Configuring EmailSetting:");
-Console.WriteLine($"   - SmtpServer: {emailSmtp ?? "NULL"}");
-Console.WriteLine($"   - Port: {emailPort}");
-Console.WriteLine($"   - SenderName: {emailSenderName ?? "NULL"}");
-Console.WriteLine($"   - SenderEmail: {emailSenderEmail ?? "NULL"}");
-Console.WriteLine($"   - Password Length: {emailPass?.Length ?? 0}");
+// Configure Email Settings
 
 var emailSetting = new EmailSetting
 {
@@ -163,17 +143,12 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = emailSetting.Password;
 });
 
-// Validate email settings
-if (string.IsNullOrEmpty(emailSmtp) || string.IsNullOrEmpty(emailSenderEmail) || string.IsNullOrEmpty(emailPass))
-{
-    Console.WriteLine("WARNING: Email settings are incomplete!");
-}
-
-// Email service
+// EmailService
 builder.Services.AddScoped<IEmailService, EmailService>();
 
 
 // JWT Authentication
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -190,7 +165,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 
-// Controllers & JSON options
+// Controllers & JSON
+
 builder.Services.AddControllers().AddJsonOptions(opt =>
 {
     opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -199,6 +175,7 @@ builder.Services.AddControllers().AddJsonOptions(opt =>
 
 
 // Swagger
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -229,32 +206,26 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-
-// Build app & middleware
+// Build & Configure Middleware
 var app = builder.Build();
 
 // CORS
 app.UseCors(policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 
 // Swagger
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-// Global error handler with better logging
+// Global error handler
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
     {
         context.Response.ContentType = "application/json";
-        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-        var ex = exceptionFeature?.Error;
+        var ex = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>()?.Error;
 
-        // **FIX: Log detailed error to console**
         Console.WriteLine($"ERROR at {context.Request.Path}: {ex?.Message}");
         Console.WriteLine($"Stack trace: {ex?.StackTrace}");
 
