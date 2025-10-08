@@ -7,7 +7,6 @@ using SummerCampManagementSystem.BLL.DTOs.Responses.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -35,14 +34,36 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             try
             {
+                Console.WriteLine($"Login attempt for email: {model.Email}");
+
                 var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
 
-                if (user == null || string.IsNullOrEmpty(user.password) || !VerifyPassword(model.Password, user.password))
+                if (user == null)
                 {
+                    Console.WriteLine($"User not found: {model.Email}");
                     return (null, "Invalid email or password.");
                 }
 
+                if (string.IsNullOrEmpty(user.password))
+                {
+                    Console.WriteLine($"User has no password set: {model.Email}");
+                    return (null, "Invalid email or password.");
+                }
 
+                if (!VerifyPassword(model.Password, user.password))
+                {
+                    Console.WriteLine($"Invalid password for: {model.Email}");
+                    return (null, "Invalid email or password.");
+                }
+
+                // **FIX: Check if user is active**
+                if (user.isActive == false)
+                {
+                    Console.WriteLine($"User not activated: {model.Email}");
+                    return (null, "Tài khoản chưa được kích hoạt. Vui lòng kiểm tra email để kích hoạt tài khoản.");
+                }
+
+                Console.WriteLine($"Login successful for: {model.Email}");
                 var authResponse = await CreateAuthResponseAsync(user);
                 authResponse.Message = "Login successful!";
 
@@ -50,7 +71,8 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Login failed: {ex.Message}");
+                Console.WriteLine($"Login exception: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 return (null, "Login failed. Please try again.");
             }
         }
@@ -90,9 +112,23 @@ namespace SummerCampManagementSystem.BLL.Services
             var jwtIssuer = _config["Jwt:Issuer"];
             var jwtAudience = _config["Jwt:Audience"];
 
-            if (string.IsNullOrEmpty(jwtKey) || string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
+            // **FIX: Better error logging**
+            if (string.IsNullOrEmpty(jwtKey))
             {
-                throw new InvalidOperationException("JWT configuration is incomplete.");
+                Console.WriteLine("JWT Key is null or empty!");
+                throw new InvalidOperationException("JWT Key configuration is missing.");
+            }
+
+            if (string.IsNullOrEmpty(jwtIssuer))
+            {
+                Console.WriteLine("JWT Issuer is null or empty!");
+                throw new InvalidOperationException("JWT Issuer configuration is missing.");
+            }
+
+            if (string.IsNullOrEmpty(jwtAudience))
+            {
+                Console.WriteLine("JWT Audience is null or empty!");
+                throw new InvalidOperationException("JWT Audience configuration is missing.");
             }
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -157,65 +193,77 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<RegisterUserResponseDto?> RegisterAsync(RegisterUserRequestDto model)
         {
-            var existingUser = await _unitOfWork.Users.GetUserByEmail(model.Email);
-            if (existingUser != null)
+            try
             {
-                return null;
+                Console.WriteLine($"Registration attempt for: {model.Email}");
+
+                var existingUser = await _unitOfWork.Users.GetUserByEmail(model.Email);
+                if (existingUser != null)
+                {
+                    Console.WriteLine($"User already exists: {model.Email}");
+                    return null;
+                }
+
+                var newUser = new UserAccount
+                {
+                    firstName = model.FirstName,
+                    lastName = model.LastName,
+                    email = model.Email,
+                    phoneNumber = model.PhoneNumber,
+                    password = HashPassword(model.Password),
+                    dob = model.Dob,
+                    role = "User", // Default role
+                    isActive = false,
+                    createAt = DateTime.UtcNow
+                };
+
+                await _unitOfWork.Users.CreateAsync(newUser);
+                await _unitOfWork.CommitAsync();
+
+                var otp = new Random().Next(100000, 999999).ToString();
+
+                // store otp in cache for 5 mins
+                _cache.Set($"OTP_Activation_{model.Email}", otp, TimeSpan.FromMinutes(5));
+                Console.WriteLine($"OTP generated and cached for: {model.Email}");
+
+                // **FIX: Validate email before sending**
+                if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Contains("@"))
+                {
+                    throw new ArgumentException($"Địa chỉ Email không chính xác: {model.Email}");
+                }
+
+                await _emailService.SendOtpEmailAsync(model.Email, otp, "Activation");
+                Console.WriteLine($"OTP email sent to: {model.Email}");
+
+                return new RegisterUserResponseDto
+                {
+                    UserId = newUser.userId,
+                    Message = "Đăng ký thành công! OTP đã được gửi tới email của bạn."
+                };
             }
-
-            var newUser = new UserAccount
+            catch (Exception ex)
             {
-                firstName = model.FirstName,
-                lastName = model.LastName,
-                email = model.Email,
-                phoneNumber = model.PhoneNumber,
-                password = HashPassword(model.Password),
-                dob = model.Dob,
-                role = "User", // Default role
-                isActive = false,
-                createAt = DateTime.UtcNow
-            };
-
-            await _unitOfWork.Users.CreateAsync(newUser);
-            await _unitOfWork.CommitAsync();
-
-
-            var otp = new Random().Next(100000, 999999).ToString();
-
-            // store otp in cache for 5 mins
-            _cache.Set($"OTP_Activation_{model.Email}", otp, TimeSpan.FromMinutes(5));
-
-            // send otp
-            if (string.IsNullOrWhiteSpace(model.Email) || !model.Email.Contains("@"))
-            {
-                throw new ArgumentException($"Địa chỉ Email không chính xác: {model.Email}");
+                Console.WriteLine($"Registration error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
             }
-
-            await _emailService.SendOtpEmailAsync(model.Email, otp, "Activation");
-
-            return new RegisterUserResponseDto
-            {
-                UserId = newUser.userId,
-                Message = "Đăng ký thành công! OTP đã được gửi tới email của bạn."
-            };
-
         }
 
         public async Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model)
         {
             var cacheKey = $"OTP_Activation_{model.Email}";
-            
+
             // try to get OTP from cache
             var hasOtp = _cache.TryGetValue(cacheKey, out string? cachedOtp);
             Console.WriteLine($"Verifying OTP for {model.Email}. OTP found in cache: {hasOtp}");
-            
+
             if (!hasOtp || cachedOtp != model.Otp)
             {
                 Console.WriteLine($"OTP verification failed. Cached OTP exists: {hasOtp}, OTP match: {cachedOtp == model.Otp}");
-                return new VerifyOtpResponseDto 
-                { 
-                    IsSuccess = false, 
-                    Message = "OTP không hợp lệ hoặc đã hết hạn!" 
+                return new VerifyOtpResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "OTP không hợp lệ hoặc đã hết hạn!"
                 };
             }
 
@@ -223,6 +271,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
             if (user == null)
             {
+                Console.WriteLine($"User not found: {model.Email}");
                 return new VerifyOtpResponseDto { IsSuccess = false, Message = "Không tìm thấy người dùng!" };
             }
 
@@ -231,8 +280,9 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Users.UpdateAsync(user);
             await _unitOfWork.CommitAsync();
 
-            // Xóa OTP khỏi cache
-            _cache.Remove($"OTP_{model.Email}");
+            // **FIX: Remove correct cache key**
+            _cache.Remove(cacheKey);
+            Console.WriteLine($"User activated: {model.Email}");
 
             return new VerifyOtpResponseDto
             {
@@ -243,64 +293,103 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email)
         {
-            var user = await _unitOfWork.Users.GetUserByEmail(email);
-            if (user == null)
+            try
             {
+                Console.WriteLine($"Forgot password request for: {email}");
+
+                // **FIX: Validate email first**
+                if (string.IsNullOrWhiteSpace(email) || !email.Contains("@"))
+                {
+                    Console.WriteLine($"Invalid email format: {email}");
+                    return new ForgotPasswordResponseDto
+                    {
+                        Email = email,
+                        Message = "Địa chỉ email không hợp lệ."
+                    };
+                }
+
+                var user = await _unitOfWork.Users.GetUserByEmail(email);
+                if (user == null)
+                {
+                    Console.WriteLine($"User not found: {email}");
+                    return new ForgotPasswordResponseDto
+                    {
+                        Email = email,
+                        Message = "Email không tồn tại trong hệ thống."
+                    };
+                }
+
+                var otp = new Random().Next(100000, 999999).ToString();
+
+                _cache.Set($"OTP_ResetPassword_{email}", otp, TimeSpan.FromMinutes(5));
+                Console.WriteLine($"OTP generated for password reset: {email}");
+
+                await _emailService.SendOtpEmailAsync(email, otp, "ResetPassword");
+                Console.WriteLine($"Password reset OTP sent to: {email}");
+
                 return new ForgotPasswordResponseDto
                 {
                     Email = email,
-                    Message = "Email không tồn tại trong hệ thống."
+                    Message = "Mã OTP đặt lại mật khẩu đã được gửi tới email của bạn."
                 };
             }
-
-            var otp = new Random().Next(100000, 999999).ToString();
-
-            _cache.Set($"OTP_ResetPassword_{email}", otp, TimeSpan.FromMinutes(5));
-
-            await _emailService.SendOtpEmailAsync(email, otp, "ResetPassword");
-
-            return new ForgotPasswordResponseDto
+            catch (Exception ex)
             {
-                Email = email,
-                Message = "Mã OTP đặt lại mật khẩu đã được gửi tới email của bạn."
-            };
+                Console.WriteLine($"Forgot password error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         public async Task<ForgotPasswordResponseDto?> ResetPasswordAsync(ResetPasswordRequestDto model)
         {
-            // Kiểm tra OTP trong cache
-            if (!_cache.TryGetValue($"OTP_ResetPassword_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+            try
             {
+                Console.WriteLine($"Reset password attempt for: {model.Email}");
+
+                // Kiểm tra OTP trong cache
+                if (!_cache.TryGetValue($"OTP_ResetPassword_{model.Email}", out string? cachedOtp) || cachedOtp != model.Otp)
+                {
+                    Console.WriteLine($"Invalid OTP for password reset: {model.Email}");
+                    return new ForgotPasswordResponseDto
+                    {
+                        Email = model.Email,
+                        Message = "OTP không hợp lệ hoặc đã hết hạn."
+                    };
+                }
+
+                var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
+                if (user == null)
+                {
+                    Console.WriteLine($"User not found: {model.Email}");
+                    return new ForgotPasswordResponseDto
+                    {
+                        Email = model.Email,
+                        Message = "Email không tồn tại trong hệ thống."
+                    };
+                }
+
+                // Cập nhật mật khẩu mới
+                user.password = HashPassword(model.NewPassword);
+                await _unitOfWork.Users.UpdateAsync(user);
+                await _unitOfWork.CommitAsync();
+
+                // Xóa OTP sau khi dùng
+                _cache.Remove($"OTP_ResetPassword_{model.Email}");
+                Console.WriteLine($"Password reset successful for: {model.Email}");
+
                 return new ForgotPasswordResponseDto
                 {
                     Email = model.Email,
-                    Message = "OTP không hợp lệ hoặc đã hết hạn."
+                    Message = "Mật khẩu đã được đặt lại thành công."
                 };
             }
-
-            var user = await _unitOfWork.Users.GetUserByEmail(model.Email);
-            if (user == null)
+            catch (Exception ex)
             {
-                return new ForgotPasswordResponseDto
-                {
-                    Email = model.Email,
-                    Message = "Email không tồn tại trong hệ thống."
-                };
+                Console.WriteLine($"Reset password error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
             }
-
-            // Cập nhật mật khẩu mới
-            user.password = HashPassword(model.NewPassword);
-            await _unitOfWork.Users.UpdateAsync(user);
-            await _unitOfWork.CommitAsync();
-
-            // Xóa OTP sau khi dùng
-            _cache.Remove($"OTP_ResetPassword_{model.Email}");
-
-            return new ForgotPasswordResponseDto
-            {
-                Email = model.Email,
-                Message = "Mật khẩu đã được đặt lại thành công."
-            };
         }
 
         public async Task<UserResponseDto?> GetUserByIdAsync(int id)
