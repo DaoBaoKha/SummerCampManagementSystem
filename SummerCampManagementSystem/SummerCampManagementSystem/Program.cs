@@ -16,6 +16,10 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// google application credential for GCP Secret Manager
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+
 // take connection string
 string connectionString;
 
