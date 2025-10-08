@@ -126,7 +126,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 // database context
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
-    options.UseSqlServer(connectionString) // connection string from Secret Manager or appsettings.json
+    options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
 // jwt auth
