@@ -41,8 +41,6 @@ string jwtAudience;
 string emailPass;
 
 // if its production, get from GCP Secret Manager
-
-
 if (builder.Environment.IsProduction())
 {
     var client = SecretManagerServiceClient.Create();
@@ -60,14 +58,28 @@ if (builder.Environment.IsProduction())
     jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
                         .Payload.Data.ToStringUtf8();
 
+    // load email config
+    var emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
+                          .Payload.Data.ToStringUtf8();
+    var emailPort = client.AccessSecretVersion(new SecretVersionName(projectId, "email-port", "latest"))
+                          .Payload.Data.ToStringUtf8();
+    var emailSenderName = client.AccessSecretVersion(new SecretVersionName(projectId, "email-sendername", "latest"))
+                                .Payload.Data.ToStringUtf8();
+    var emailSenderEmail = client.AccessSecretVersion(new SecretVersionName(projectId, "email-senderemail", "latest"))
+                                 .Payload.Data.ToStringUtf8();
     emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
-                      .Payload.Data.ToStringUtf8();
+                          .Payload.Data.ToStringUtf8();
 
     // apply to configuration runtime
     builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
     builder.Configuration["Jwt:Key"] = jwtKey;
     builder.Configuration["Jwt:Issuer"] = jwtIssuer;
     builder.Configuration["Jwt:Audience"] = jwtAudience;
+
+    builder.Configuration["EmailSetting:SmtpServer"] = emailSmtp;
+    builder.Configuration["EmailSetting:Port"] = emailPort;
+    builder.Configuration["EmailSetting:SenderName"] = emailSenderName;
+    builder.Configuration["EmailSetting:SenderEmail"] = emailSenderEmail;
     builder.Configuration["EmailSetting:Password"] = emailPass;
 
     Console.WriteLine("Secrets loaded from GCP.");
