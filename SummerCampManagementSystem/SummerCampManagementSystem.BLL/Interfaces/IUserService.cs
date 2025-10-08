@@ -18,5 +18,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email);
 
         Task<ForgotPasswordResponseDto?> ResetPasswordAsync(ResetPasswordRequestDto model);
+
+        Task<UserResponseDto?> GetUserByIdAsync(int id);
     }
 }

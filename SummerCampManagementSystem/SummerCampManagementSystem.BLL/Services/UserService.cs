@@ -302,5 +302,24 @@ namespace SummerCampManagementSystem.BLL.Services
                 Message = "Mật khẩu đã được đặt lại thành công."
             };
         }
+
+        public async Task<UserResponseDto?> GetUserByIdAsync(int id)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(id);
+            if (user == null) return null;
+
+            return new UserResponseDto
+            {
+                UserId = user.userId,
+                FirstName = user.firstName,
+                LastName = user.lastName,
+                Email = user.email,
+                PhoneNumber = user.phoneNumber,
+                DateOfBirth = (DateOnly)user.dob,
+                Role = user.role,
+                IsActive = (bool)user.isActive,
+
+            };
+        }
     }
 }
