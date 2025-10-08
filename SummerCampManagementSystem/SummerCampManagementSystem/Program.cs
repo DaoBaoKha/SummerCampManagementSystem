@@ -34,39 +34,43 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnCh
 // take connection string
 string connectionString;
 
+// take jwt config
+string jwtKey;
+string jwtIssuer;
+string jwtAudience;
+string emailPass;
+
 // if its production, get from GCP Secret Manager
+
+
 if (builder.Environment.IsProduction())
 {
-    try
-    {
-        Console.WriteLine("Loading secrets from GCP Secret Manager...");
-        string projectId = "campease-473401";
-        var client = SecretManagerServiceClient.Create();
+    var client = SecretManagerServiceClient.Create();
+    string projectId = "campease-473401";
 
-        // database connection string
-        connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
-                                 .Payload.Data.ToStringUtf8();
+    connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
+                             .Payload.Data.ToStringUtf8();
 
-        // JWT key
-        var jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "1"))
-                            .Payload.Data.ToStringUtf8();
+    jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
+                   .Payload.Data.ToStringUtf8();
 
-        // email password
-        var emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "1"))
-                              .Payload.Data.ToStringUtf8();
+    jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
+                      .Payload.Data.ToStringUtf8();
 
-        // Gán vào cấu hình runtime
-        builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
-        builder.Configuration["Jwt:Key"] = jwtKey;
-        builder.Configuration["EmailSetting:Password"] = emailPass;
+    jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
+                        .Payload.Data.ToStringUtf8();
 
-        Console.WriteLine("Loaded secrets from GCP successfully.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Cannot load secret from GCP: {ex.Message}");
-        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    }
+    emailPass = client.AccessSecretVersion(new SecretVersionName(projectId, "email-pass", "latest"))
+                      .Payload.Data.ToStringUtf8();
+
+    // apply to configuration runtime
+    builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+    builder.Configuration["Jwt:Key"] = jwtKey;
+    builder.Configuration["Jwt:Issuer"] = jwtIssuer;
+    builder.Configuration["Jwt:Audience"] = jwtAudience;
+    builder.Configuration["EmailSetting:Password"] = emailPass;
+
+    Console.WriteLine("Secrets loaded from GCP.");
 }
 else
 {
