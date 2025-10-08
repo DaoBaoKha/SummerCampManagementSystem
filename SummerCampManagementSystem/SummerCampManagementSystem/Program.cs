@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
@@ -89,10 +90,21 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
 // Dependency Injection - Services & Repositories
+builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
+builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
+builder.Services.AddScoped<ICampService, CampService>();
+builder.Services.AddScoped<ICampRepository, CampRepository>();
+builder.Services.AddScoped<ICampTypeService, CampTypeService>();
+builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
+builder.Services.AddScoped<IVehicleTypeService, VehicleTypeService>();
+builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
+builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
 
 // Email Setting
 var emailSetting = new EmailSetting
