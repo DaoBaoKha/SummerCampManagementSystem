@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using MimeKit;
 using MailKit.Net.Smtp;
-using MailKit.Security; 
+using MailKit.Security;
 using SummerCampManagementSystem.Core.Config;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
@@ -90,3 +90,4 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         }
     }
 }
+
