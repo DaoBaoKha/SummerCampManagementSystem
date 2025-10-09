@@ -39,9 +39,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (user == null || string.IsNullOrEmpty(user.password) || !VerifyPassword(model.Password, user.password))
                 {
-                    return (null, "Invalid email or password.");
+                    return (null, "Email hoặc mật khẩu không chính xác!");
                 }
-
+                
+                if(user.isActive == false)
+                {
+                    return (null, "Tài khoản chưa được xác thục. Vui lòng kiểm tra email để kích hoạt tài khoản.");
+                }
 
                 var authResponse = await CreateAuthResponseAsync(user);
                 authResponse.Message = "Login successful!";
