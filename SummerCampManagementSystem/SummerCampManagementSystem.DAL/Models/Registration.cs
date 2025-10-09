@@ -27,6 +27,8 @@ public partial class Registration
     [Unicode(false)]
     public string status { get; set; }
 
+    public int? appliedPromotionId { get; set; }
+
     [InverseProperty("registration")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
@@ -35,6 +37,10 @@ public partial class Registration
 
     [InverseProperty("registration")]
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();
+
+    [ForeignKey("appliedPromotionId")]
+    [InverseProperty("Registrations")]
+    public virtual Promotion appliedPromotion { get; set; }
 
     [ForeignKey("campId")]
     [InverseProperty("Registrations")]

@@ -6,6 +6,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     {
         IUserRepository Users { get; }
         IRefreshTokenRepository RefreshTokens { get; }
+        IRegistrationRepository Registrations { get; }
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
         ICamperGroupRepository CamperGroups { get; }

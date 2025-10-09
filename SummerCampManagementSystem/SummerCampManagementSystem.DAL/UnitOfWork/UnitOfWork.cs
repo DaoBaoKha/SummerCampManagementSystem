@@ -8,6 +8,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         private readonly CampEaseDatabaseContext _context;
         public IUserRepository Users { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
+        public IRegistrationRepository Registrations { get; }
         public IVehicleRepository Vehicles { get; }
         public IVehicleTypeRepository VehicleTypes { get; }
         public ICamperGroupRepository CamperGroups { get; }
@@ -16,7 +17,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
-            ,ICamperGroupRepository camperGroups)
+            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations)
         {
             _context = context;
             Users = userRepository;
@@ -26,6 +27,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Camps = campRepository;
             CampTypes = campTypes;
             CamperGroups = camperGroups;
+            Registrations = registrations;
         }
 
         public async Task<int> CommitAsync()
