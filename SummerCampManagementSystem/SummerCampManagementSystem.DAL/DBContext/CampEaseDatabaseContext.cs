@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 
-
 namespace SummerCampManagementSystem.DAL.Models;
 
 public partial class CampEaseDatabaseContext : DbContext
@@ -146,6 +145,7 @@ public partial class CampEaseDatabaseContext : DbContext
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Accommodation>(entity =>
@@ -462,6 +462,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<Registration>(entity =>
         {
             entity.HasKey(e => e.registrationId).HasName("PK__Registra__A3DB1435EB987530");
+
+            entity.HasOne(d => d.appliedPromotion).WithMany(p => p.Registrations).HasConstraintName("FK_Registration_AppliedPromotion");
 
             entity.HasOne(d => d.camp).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campI__6CD828CA");
 

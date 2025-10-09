@@ -49,6 +49,9 @@ public partial class Promotion
     [InverseProperty("promotion")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
+    [InverseProperty("appliedPromotion")]
+    public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+
     [ForeignKey("createBy")]
     [InverseProperty("Promotions")]
     public virtual UserAccount createByNavigation { get; set; }
