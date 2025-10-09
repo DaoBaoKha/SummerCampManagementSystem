@@ -6,6 +6,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly CampEaseDatabaseContext _context;
+
+        public IBlogRepository Blogs { get; }
         public IUserRepository Users { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRegistrationRepository Registrations { get; }
@@ -18,9 +20,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
-            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers)
+            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
+            IBlogRepository blogs)
         {
             _context = context;
+            Blogs = blogs;
             Users = userRepository;
             RefreshTokens = refreshTokenRepository;
             Vehicles = vehicles;
