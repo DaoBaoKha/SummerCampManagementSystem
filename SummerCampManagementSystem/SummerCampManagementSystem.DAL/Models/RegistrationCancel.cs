@@ -16,11 +16,9 @@ public partial class RegistrationCancel
 
     public int? registrationId { get; set; }
 
-    [Column(TypeName = "text")]
     public string reason { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string imageRefund { get; set; }
 
     [ForeignKey("registrationId")]

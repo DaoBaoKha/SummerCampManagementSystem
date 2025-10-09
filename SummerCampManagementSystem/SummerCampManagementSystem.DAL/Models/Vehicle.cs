@@ -17,7 +17,6 @@ public partial class Vehicle
     public int? vehicleType { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string vehicleName { get; set; }
 
     [StringLength(255)]
@@ -27,7 +26,6 @@ public partial class Vehicle
     public int? capacity { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [InverseProperty("vehicle")]

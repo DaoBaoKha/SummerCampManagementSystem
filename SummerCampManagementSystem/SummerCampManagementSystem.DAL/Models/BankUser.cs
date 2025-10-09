@@ -21,7 +21,6 @@ public partial class BankUser
     public string bankCode { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string bankName { get; set; }
 
     [StringLength(255)]

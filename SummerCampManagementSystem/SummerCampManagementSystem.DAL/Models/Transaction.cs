@@ -20,11 +20,9 @@ public partial class Transaction
     public decimal? amount { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string type { get; set; }
 
     [Column(TypeName = "datetime")]

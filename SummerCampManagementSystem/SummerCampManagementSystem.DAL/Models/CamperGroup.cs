@@ -15,10 +15,8 @@ public partial class CamperGroup
     public int camperGroupId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string groupName { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     public int? maxSize { get; set; }

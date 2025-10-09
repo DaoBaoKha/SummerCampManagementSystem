@@ -19,7 +19,6 @@ public partial class GroupActivity
     public int? activityId { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [Column(TypeName = "datetime")]

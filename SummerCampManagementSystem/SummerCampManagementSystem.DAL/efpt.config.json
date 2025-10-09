@@ -175,6 +175,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[RegistrationCamper]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[RegistrationCancel]",
          "ObjectType": 0
       },

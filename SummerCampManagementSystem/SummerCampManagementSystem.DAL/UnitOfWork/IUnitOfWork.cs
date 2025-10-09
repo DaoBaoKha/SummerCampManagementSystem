@@ -12,6 +12,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICamperGroupRepository CamperGroups { get; }
         ICampRepository Camps { get; }
         ICampTypeRepository CampTypes { get; }
+        ICamperRepository Campers { get; }
         Task<int> CommitAsync();
     }
 }

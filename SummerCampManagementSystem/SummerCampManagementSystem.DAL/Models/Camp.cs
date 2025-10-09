@@ -15,18 +15,14 @@ public partial class Camp
     public int campId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string place { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string address { get; set; }
 
     public int? minParticipants { get; set; }
@@ -41,13 +37,11 @@ public partial class Camp
     public decimal? price { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     public int? campTypeId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string image { get; set; }
 
     public int? createBy { get; set; }
@@ -55,6 +49,12 @@ public partial class Camp
     public int? locationId { get; set; }
 
     public int? promotionId { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? registrationStartDate { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? registrationEndDate { get; set; }
 
     [InverseProperty("camp")]
     public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();

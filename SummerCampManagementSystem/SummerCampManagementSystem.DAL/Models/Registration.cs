@@ -14,8 +14,6 @@ public partial class Registration
     [Key]
     public int registrationId { get; set; }
 
-    public int? camperId { get; set; }
-
     public int? campId { get; set; }
 
     public int? paymentId { get; set; }
@@ -24,7 +22,6 @@ public partial class Registration
     public DateTime? registrationCreateAt { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     public int? appliedPromotionId { get; set; }
@@ -46,11 +43,11 @@ public partial class Registration
     [InverseProperty("Registrations")]
     public virtual Camp camp { get; set; }
 
-    [ForeignKey("camperId")]
-    [InverseProperty("Registrations")]
-    public virtual Camper camper { get; set; }
-
     [ForeignKey("paymentId")]
     [InverseProperty("Registrations")]
     public virtual Payment payment { get; set; }
+
+    [ForeignKey("registrationId")]
+    [InverseProperty("registrations")]
+    public virtual ICollection<Camper> campers { get; set; } = new List<Camper>();
 }

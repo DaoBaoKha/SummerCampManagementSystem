@@ -15,11 +15,9 @@ public partial class UserAccount
     public int userId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string firstName { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string lastName { get; set; }
 
     [StringLength(255)]
@@ -31,11 +29,9 @@ public partial class UserAccount
     public string phoneNumber { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string password { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string role { get; set; }
 
     public bool? isActive { get; set; }
@@ -44,7 +40,6 @@ public partial class UserAccount
     public DateTime? createAt { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string avatar { get; set; }
 
     public DateOnly? dob { get; set; }

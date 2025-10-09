@@ -19,7 +19,6 @@ public partial class CamperActivity
     public int? activityId { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string participationStatus { get; set; }
 
     [Column(TypeName = "datetime")]

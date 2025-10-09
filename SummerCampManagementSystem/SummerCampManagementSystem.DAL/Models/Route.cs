@@ -17,11 +17,9 @@ public partial class Route
     public int? campId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string routeName { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [InverseProperty("route")]

@@ -19,10 +19,8 @@ public partial class Album
     public DateOnly? date { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string title { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     [InverseProperty("album")]

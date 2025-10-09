@@ -467,9 +467,22 @@ public partial class CampEaseDatabaseContext : DbContext
 
             entity.HasOne(d => d.camp).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campI__6CD828CA");
 
-            entity.HasOne(d => d.camper).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campe__6BE40491");
-
             entity.HasOne(d => d.payment).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__payme__6DCC4D03");
+
+            entity.HasMany(d => d.campers).WithMany(p => p.registrations)
+                .UsingEntity<Dictionary<string, object>>(
+                    "RegistrationCamper",
+                    r => r.HasOne<Camper>().WithMany()
+                        .HasForeignKey("camperId")
+                        .HasConstraintName("FK__Registrat__campe__308E3499"),
+                    l => l.HasOne<Registration>().WithMany()
+                        .HasForeignKey("registrationId")
+                        .HasConstraintName("FK__Registrat__regis__2F9A1060"),
+                    j =>
+                    {
+                        j.HasKey("registrationId", "camperId").HasName("PK__Registra__922EFE5614C859DF");
+                        j.ToTable("RegistrationCamper");
+                    });
         });
 
         modelBuilder.Entity<RegistrationCancel>(entity =>

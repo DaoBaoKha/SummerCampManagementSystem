@@ -19,18 +19,14 @@ public partial class Activity
     public int? staffId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string activityType { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string location { get; set; }
 
     [Column(TypeName = "datetime")]
@@ -40,7 +36,6 @@ public partial class Activity
     public DateTime? endTime { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     public bool? isLivestream { get; set; }

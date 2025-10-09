@@ -15,7 +15,6 @@ public partial class ChatRoom
     public int chatRoomId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
     [InverseProperty("chatRoom")]

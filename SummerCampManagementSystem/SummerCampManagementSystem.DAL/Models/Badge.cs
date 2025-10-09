@@ -15,11 +15,9 @@ public partial class Badge
     public int badgeId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string badgeName { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [InverseProperty("badge")]

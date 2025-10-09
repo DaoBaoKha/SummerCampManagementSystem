@@ -17,11 +17,9 @@ public partial class AlbumPhoto
     public int? albumId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string photo { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string caption { get; set; }
 
     [ForeignKey("albumId")]

@@ -111,8 +111,8 @@ builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 //builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
 //builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
 
-//builder.Services.AddScoped<ICamperRepository, CamperRepository>();
-//builder.Services.AddScoped<ICamperService, CamperService>();
+builder.Services.AddScoped<ICamperRepository, CamperRepository>();
+builder.Services.AddScoped<ICamperService, CamperService>();
 
 //builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianService>();
 //builder.Services.AddScoped<ICamperGuardianService, CamperGuardianService>();
