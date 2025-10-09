@@ -26,10 +26,13 @@ namespace SummerCampManagementSystem.API.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var (authResponse, errorMessage) = await _userService.LoginAsync(model);
+            var (authResponse, errorMessage, errorCode) = await _userService.LoginAsync(model);
+
+            if (errorCode == "ACCOUNT_NOT_ACTIVE")
+                return BadRequest(new { message = errorMessage, code = errorCode });
 
             if (errorMessage != null)
-                return Unauthorized(new { message = errorMessage });
+                return Unauthorized(new { message = errorMessage, code = errorCode });
 
             return Ok(authResponse);
         }
@@ -83,6 +86,20 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(new { message = "Gửi mã OTP không thành công!" });
 
             return Ok(verifyResponse);
+        }
+
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendActivationOtp(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return BadRequest(new { message = "Email không được để trống." });
+
+            var response = await _userService.ResendActivationOtpAsync(email);
+
+            if (!response.IsSuccess)
+                return BadRequest(response);
+
+            return Ok(response);
         }
 
         [HttpPost("forgot-password")]

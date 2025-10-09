@@ -31,7 +31,7 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
 
-        public async Task<(AuthResponseDto? authResponse, string? errorMessage)> LoginAsync(LoginRequestDto model)
+        public async Task<(AuthResponseDto? authResponse, string? errorMessage, string? errorCode)> LoginAsync(LoginRequestDto model)
         {
             try
             {
@@ -39,23 +39,23 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (user == null || string.IsNullOrEmpty(user.password) || !VerifyPassword(model.Password, user.password))
                 {
-                    return (null, "Email hoặc mật khẩu không chính xác!");
+                    return (null, "Email hoặc mật khẩu không chính xác!", "INVALID_CREDENTIALS");
                 }
                 
                 if(user.isActive == false)
                 {
-                    return (null, "Tài khoản chưa được xác thục. Vui lòng kiểm tra email để kích hoạt tài khoản.");
+                    return (null, "Tài khoản chưa được xác thục. Vui lòng kiểm tra email để kích hoạt tài khoản.", "ACCOUNT_NOT_ACTIVE");
                 }
 
                 var authResponse = await CreateAuthResponseAsync(user);
-                authResponse.Message = "Login successful!";
+                authResponse.Message = "Đăng nhập thành công!";
 
-                return (authResponse, null);
+                return (authResponse, null, null);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Login failed: {ex.Message}");
-                return (null, "Login failed. Please try again.");
+                return (null, "Đăng nhập thất bại. Vui lòng thử lại sau.", "INTERNAL_ERROR");
             }
         }
 
@@ -244,6 +244,41 @@ namespace SummerCampManagementSystem.BLL.Services
                 Message = "Tài khoản đã được kích hoạt thành công!"
             };
         }
+
+        public async Task<VerifyOtpResponseDto> ResendActivationOtpAsync(string email)
+        {
+            var user = await _unitOfWork.Users.GetUserByEmail(email);
+            if (user == null)
+            {
+                return new VerifyOtpResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Không tìm thấy người dùng!"
+                };
+            }
+
+            if (user.isActive == true)
+            {
+                return new VerifyOtpResponseDto
+                {
+                    IsSuccess = false,
+                    Message = "Tài khoản đã được kích hoạt, không cần gửi OTP."
+                };
+            }
+
+            var otp = new Random().Next(100000, 999999).ToString();
+
+            _cache.Set($"OTP_Activation_{email}", otp, TimeSpan.FromMinutes(5));
+
+            await _emailService.SendOtpEmailAsync(email, otp, "Activation");
+
+            return new VerifyOtpResponseDto
+            {
+                IsSuccess = true,
+                Message = "Mã OTP mới đã được gửi tới email của bạn."
+            };
+        }
+
 
         public async Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email)
         {
