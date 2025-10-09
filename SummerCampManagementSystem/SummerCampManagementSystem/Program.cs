@@ -101,6 +101,9 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 
 
 // DI
+builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
