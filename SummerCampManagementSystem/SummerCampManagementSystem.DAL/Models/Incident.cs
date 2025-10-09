@@ -14,16 +14,13 @@ public partial class Incident
     [Key]
     public int incidentId { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     public DateOnly? incidentDate { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
-    [Column(TypeName = "text")]
     public string note { get; set; }
 
     public int? camperId { get; set; }

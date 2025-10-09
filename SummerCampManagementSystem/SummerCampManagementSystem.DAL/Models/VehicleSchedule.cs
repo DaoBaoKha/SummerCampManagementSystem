@@ -21,7 +21,6 @@ public partial class VehicleSchedule
     public DateOnly? date { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [ForeignKey("routeId")]

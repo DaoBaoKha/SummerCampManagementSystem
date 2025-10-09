@@ -14,10 +14,8 @@ public partial class Notification
     public int notificationId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string title { get; set; }
 
-    [Column(TypeName = "text")]
     public string message { get; set; }
 
     [Column(TypeName = "datetime")]

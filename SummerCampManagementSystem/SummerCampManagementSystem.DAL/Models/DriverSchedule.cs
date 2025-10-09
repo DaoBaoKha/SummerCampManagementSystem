@@ -27,7 +27,6 @@ public partial class DriverSchedule
     public TimeOnly? endTime { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [ForeignKey("campId")]

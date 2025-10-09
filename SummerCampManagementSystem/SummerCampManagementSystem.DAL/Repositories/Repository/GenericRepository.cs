@@ -1,11 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
@@ -33,6 +28,11 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Set<T>().FindAsync(id);
         }
 
+        public IQueryable<T> GetQueryable()
+        {
+            return _context.Set<T>().AsQueryable();
+        }
+
         public Task RemoveAsync(T entity)
         {
             _context.Set<T>().Remove(entity);
@@ -43,6 +43,11 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context.Entry(entity).State = EntityState.Modified;
              return Task.CompletedTask;
+        }
+
+        public void Attach(T entity)
+        {
+            _context.Set<T>().Attach(entity);
         }
     }
 }

@@ -19,7 +19,6 @@ public partial class ParentCamper
     public int? camperId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string relationship { get; set; }
 
     [ForeignKey("camperId")]

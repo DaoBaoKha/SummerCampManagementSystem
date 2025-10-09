@@ -15,11 +15,9 @@ public partial class Camper
     public int camperId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string camperName { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string gender { get; set; }
 
     public int? groupId { get; set; }
@@ -45,9 +43,6 @@ public partial class Camper
     public virtual ICollection<ParentCamper> ParentCampers { get; set; } = new List<ParentCamper>();
 
     [InverseProperty("camper")]
-    public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
-
-    [InverseProperty("camper")]
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 
     [InverseProperty("camper")]
@@ -56,4 +51,8 @@ public partial class Camper
     [ForeignKey("groupId")]
     [InverseProperty("Campers")]
     public virtual CamperGroup group { get; set; }
+
+    [ForeignKey("camperId")]
+    [InverseProperty("campers")]
+    public virtual ICollection<Registration> registrations { get; set; } = new List<Registration>();
 }

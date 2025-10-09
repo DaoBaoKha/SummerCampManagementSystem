@@ -19,7 +19,6 @@ public partial class Livestream
     public string roomId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string title { get; set; }
 
     public int? hostId { get; set; }

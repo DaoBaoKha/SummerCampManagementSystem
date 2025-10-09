@@ -16,18 +16,15 @@ public partial class Report
 
     public int? camperId { get; set; }
 
-    [Column(TypeName = "text")]
     public string note { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string image { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime? createAt { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     public int? reportedBy { get; set; }
@@ -35,7 +32,6 @@ public partial class Report
     public int? activityId { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string level { get; set; }
 
     [ForeignKey("activityId")]

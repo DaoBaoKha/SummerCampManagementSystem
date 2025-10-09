@@ -17,11 +17,9 @@ public partial class Location
     public int? routeId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string locationType { get; set; }
 
     public bool? isActive { get; set; }

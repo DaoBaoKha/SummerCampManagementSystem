@@ -15,25 +15,20 @@ public partial class Guardian
     public int guardianId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string fullName { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string title { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string gender { get; set; }
 
     public DateOnly? dob { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string answer { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string category { get; set; }
 
     public bool? isActive { get; set; }

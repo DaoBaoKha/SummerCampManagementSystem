@@ -15,10 +15,8 @@ public partial class PromotionType
     public int promotionTypeId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     [Column(TypeName = "datetime")]
@@ -28,7 +26,6 @@ public partial class PromotionType
     public DateTime? updateAt { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [InverseProperty("promotionType")]

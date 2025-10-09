@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
+﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -18,36 +19,96 @@ namespace SummerCampManagementSystem.BLL.Services
             _validationService = validationService;
         }
 
-        public async Task<RegistrationResponseDto> CreateRegistrationAsync(RegistrationRequestDto registration)
+        public async Task<RegistrationResponseDto> CreateRegistrationAsync(RegistrationRequestDto request)
         {
-            await _validationService.ValidateEntityExistsAsync((int)registration.CamperId, _unitOfWork.CamperGroups.GetByIdAsync, "Camper");
-            await _validationService.ValidateEntityExistsAsync((int)registration.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
-            //await _validationService.ValidateEntityExistsAsync(registration.PaymentId, _unitOfWork.Payments.GetByIdAsync, "Payment");
-            //await _validationService.ValidateEntityExistsAsync(registration.AppliedPromotionId, _unitOfWork.Promotions.GetByIdAsync, "Promotion", true);
+            var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
+                ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
 
             var newRegistration = new Registration
             {
-                camperId = registration.CamperId,
-                campId = registration.CampId,
-                paymentId = registration.PaymentId,
+                campId = request.CampId,
+                paymentId = request.PaymentId,
+                appliedPromotionId = request.appliedPromotionId,
                 registrationCreateAt = DateTime.UtcNow,
-                status = "Active",
-                appliedPromotionId = registration.appliedPromotionId
+                status = "Active"
             };
+
+            foreach (var camperId in request.CamperIds)
+            {
+                var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                    ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
+
+                // attach the camper to avoid duplicate tracking issues
+                _unitOfWork.Campers.Attach(camper);
+
+                newRegistration.campers.Add(camper);
+            }
 
             await _unitOfWork.Registrations.CreateAsync(newRegistration);
             await _unitOfWork.CommitAsync();
 
-            return new RegistrationResponseDto
+            return MapToResponseDto(newRegistration, camp.name);
+        }
+
+        public async Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id)
+        {
+            var registration = await _unitOfWork.Registrations.GetQueryable()
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .FirstOrDefaultAsync(r => r.registrationId == id);
+
+            return registration == null ? null : MapToResponseDto(registration, registration.camp.name);
+        }
+
+        public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
+        {
+            var registrations = await _unitOfWork.Registrations.GetQueryable()
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .ToListAsync();
+
+            return registrations.Select(r => MapToResponseDto(r, r.camp.name));
+        }
+
+        public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, RegistrationRequestDto request)
+        {
+            var existingRegistration = await _unitOfWork.Registrations.GetQueryable()
+                .Include(r => r.campers)
+                .FirstOrDefaultAsync(r => r.registrationId == id);
+
+            if (existingRegistration == null) return null;
+
+            await _validationService.ValidateEntityExistsAsync(request.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
+            existingRegistration.campId = request.CampId;
+            existingRegistration.paymentId = request.PaymentId;
+            existingRegistration.appliedPromotionId = request.appliedPromotionId;
+            existingRegistration.status = "Active";
+
+            var existingCamperIds = existingRegistration.campers.Select(c => c.camperId).ToList();
+            var requestedCamperIds = request.CamperIds;
+
+            // find campers to remove
+            var campersToRemove = existingRegistration.campers
+                .Where(c => !requestedCamperIds.Contains(c.camperId)).ToList();
+            foreach (var camper in campersToRemove)
             {
-                registrationId = newRegistration.registrationId,
-                CamperId = (int)newRegistration.camperId,
-                CampId = (int)newRegistration.campId,
-                PaymentId = (int)newRegistration.paymentId,
-                appliedPromotionId = newRegistration.appliedPromotionId,
-                RegistrationCreateAt = (DateTime)newRegistration.registrationCreateAt,
-                Status = newRegistration.status
-            };
+                existingRegistration.campers.Remove(camper);
+            }
+
+            // find campers to add
+            var camperIdsToAdd = requestedCamperIds
+                .Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
+            foreach (var camperId in camperIdsToAdd)
+            {
+                var camperToAdd = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                    ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
+                existingRegistration.campers.Add(camperToAdd);
+            }
+
+            await _unitOfWork.Registrations.UpdateAsync(existingRegistration);
+            await _unitOfWork.CommitAsync();
+
+            return await GetRegistrationByIdAsync(id); 
         }
 
         public async Task<bool> DeleteRegistrationAsync(int id)
@@ -61,68 +122,21 @@ namespace SummerCampManagementSystem.BLL.Services
             return true;
         }
 
-        public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
+        // private helper to map Registration to RegistrationResponseDto
+        private RegistrationResponseDto MapToResponseDto(Registration registration, string campName)
         {
-            var registrations = await _unitOfWork.Registrations.GetAllAsync();
-
-            return registrations.Select(r => new RegistrationResponseDto
-            {
-                registrationId = r.registrationId,
-                CamperId = (int)r.camperId,
-                CampId = (int)r.campId,
-                PaymentId = (int)r.paymentId,
-                appliedPromotionId = r.appliedPromotionId,
-                RegistrationCreateAt = (DateTime)r.registrationCreateAt,
-                Status = r.status
-            });
-        }
-
-        public async Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id)
-        {
-            var registration = await _unitOfWork.Registrations.GetByIdAsync(id);
-            if (registration == null) return null;
-
             return new RegistrationResponseDto
             {
                 registrationId = registration.registrationId,
-                CamperId = (int)registration.camperId,
-                CampId = (int)registration.campId,
-                PaymentId = (int)registration.paymentId,
-                appliedPromotionId = registration.appliedPromotionId,
+                CampName = campName,
+                PaymentId = registration.paymentId,
                 RegistrationCreateAt = (DateTime)registration.registrationCreateAt,
-                Status = registration.status
-            };
-        }
-
-        public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, RegistrationRequestDto registration)
-        {
-            await _validationService.ValidateEntityExistsAsync((int)registration.CamperId, _unitOfWork.CamperGroups.GetByIdAsync, "Camper");
-            await _validationService.ValidateEntityExistsAsync((int)registration.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
-            //await _validationService.ValidateEntityExistsAsync(registration.PaymentId, _unitOfWork.Payments.GetByIdAsync, "Payment");
-            //await _validationService.ValidateEntityExistsAsync(registration.AppliedPromotionId, _unitOfWork.Promotions.GetByIdAsync, "Promotion", true);
-
-            var existingRegistration = await _unitOfWork.Registrations.GetByIdAsync(id);
-            if (existingRegistration == null) return null;
-
-            existingRegistration.camperId = registration.CamperId;
-            existingRegistration.campId = registration.CampId;
-            existingRegistration.paymentId = registration.PaymentId;
-            existingRegistration.appliedPromotionId = registration.appliedPromotionId;
-            existingRegistration.status = "Active";
-
-            //not updating registrationCreateAt to preserve original creation time
-            await _unitOfWork.Registrations.UpdateAsync(existingRegistration);
-            await _unitOfWork.CommitAsync();
-
-            return new RegistrationResponseDto
-            {
-                registrationId = existingRegistration.registrationId,
-                CamperId = (int)existingRegistration.camperId,
-                CampId = (int)existingRegistration.campId,
-                PaymentId = (int)existingRegistration.paymentId,
-                appliedPromotionId = existingRegistration.appliedPromotionId,
-                RegistrationCreateAt = (DateTime)existingRegistration.registrationCreateAt,
-                Status = existingRegistration.status
+                Status = registration.status,
+                Campers = registration.campers.Select(c => new CamperSummaryDto
+                {
+                    CamperId = c.camperId,
+                    CamperName = c.camperName
+                }).ToList()
             };
         }
     }

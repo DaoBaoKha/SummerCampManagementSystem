@@ -18,7 +18,6 @@ public partial class Message
 
     public int? senderId { get; set; }
 
-    [Column(TypeName = "text")]
     public string content { get; set; }
 
     public int? receiverId { get; set; }

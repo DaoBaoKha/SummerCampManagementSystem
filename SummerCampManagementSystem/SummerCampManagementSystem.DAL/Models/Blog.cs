@@ -15,10 +15,8 @@ public partial class Blog
     public int blogId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string title { get; set; }
 
-    [Column(TypeName = "text")]
     public string content { get; set; }
 
     public int? authorId { get; set; }

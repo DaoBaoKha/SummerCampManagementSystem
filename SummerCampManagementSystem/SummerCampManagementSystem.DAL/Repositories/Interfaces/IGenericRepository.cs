@@ -14,6 +14,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task UpdateAsync(T entity);
         Task RemoveAsync(T entity);
         Task<T?> GetByIdAsync(int id);
-
+        IQueryable<T> GetQueryable();
+        void Attach(T entity);
     }
 }

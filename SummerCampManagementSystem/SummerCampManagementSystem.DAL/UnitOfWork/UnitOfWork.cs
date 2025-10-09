@@ -14,10 +14,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICamperGroupRepository CamperGroups { get; }
         public ICampRepository Camps { get; }
         public ICampTypeRepository CampTypes { get; }
+        public ICamperRepository Campers { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
-            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations)
+            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers)
         {
             _context = context;
             Users = userRepository;
@@ -27,6 +28,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Camps = campRepository;
             CampTypes = campTypes;
             CamperGroups = camperGroups;
+            Campers = campers;
             Registrations = registrations;
         }
 

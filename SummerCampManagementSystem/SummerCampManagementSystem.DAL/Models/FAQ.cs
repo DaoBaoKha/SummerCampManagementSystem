@@ -15,9 +15,7 @@ public partial class FAQ
     public int faqId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string question { get; set; }
 
-    [Column(TypeName = "text")]
     public string answer { get; set; }
 }

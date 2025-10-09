@@ -15,10 +15,8 @@ public partial class AccommodationType
     public int accommodationTypeId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     public bool? isActive { get; set; }

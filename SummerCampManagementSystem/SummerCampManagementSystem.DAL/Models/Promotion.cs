@@ -15,10 +15,8 @@ public partial class Promotion
     public int promotionId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
-    [Column(TypeName = "text")]
     public string description { get; set; }
 
     public DateOnly? startDate { get; set; }
@@ -26,7 +24,6 @@ public partial class Promotion
     public DateOnly? endDate { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [Column(TypeName = "decimal(5, 2)")]

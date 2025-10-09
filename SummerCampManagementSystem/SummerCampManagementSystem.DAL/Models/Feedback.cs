@@ -20,7 +20,6 @@ public partial class Feedback
 
     public int? rating { get; set; }
 
-    [Column(TypeName = "text")]
     public string comment { get; set; }
 
     [Column(TypeName = "datetime")]

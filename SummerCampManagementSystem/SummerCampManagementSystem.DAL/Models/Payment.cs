@@ -21,15 +21,12 @@ public partial class Payment
     public DateTime? paymentDate { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string method { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string transactionCode { get; set; }
 
     [InverseProperty("payment")]

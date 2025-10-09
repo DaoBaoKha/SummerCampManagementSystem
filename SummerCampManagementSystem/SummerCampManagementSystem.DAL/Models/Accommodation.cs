@@ -21,7 +21,6 @@ public partial class Accommodation
     public int? camperGroupId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string name { get; set; }
 
     public int? capacity { get; set; }

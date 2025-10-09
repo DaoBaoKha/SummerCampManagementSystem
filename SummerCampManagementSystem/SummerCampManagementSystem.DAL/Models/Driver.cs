@@ -17,7 +17,6 @@ public partial class Driver
     public int? userId { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string driverName { get; set; }
 
     [StringLength(255)]
@@ -25,7 +24,6 @@ public partial class Driver
     public string driverPhoneNumber { get; set; }
 
     [StringLength(255)]
-    [Unicode(false)]
     public string driverAddress { get; set; }
 
     [StringLength(255)]

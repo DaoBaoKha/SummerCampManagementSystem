@@ -39,7 +39,6 @@ public partial class Visitation
     public DateTime? updateAt { get; set; }
 
     [StringLength(50)]
-    [Unicode(false)]
     public string status { get; set; }
 
     [ForeignKey("approvedBy")]

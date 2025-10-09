@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Internal;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.Interfaces;
 
@@ -33,21 +32,31 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        // THAY ĐỔI 1: Dùng CreateRegistrationRequestDto
         public async Task<IActionResult> CreateRegistration([FromBody] RegistrationRequestDto registration)
         {
+            if (registration == null || !registration.CamperIds.Any())
+            {
+                return BadRequest("Request body is empty or CamperIds list cannot be empty.");
+            }
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var newRegistration = await _registrationService.CreateRegistrationAsync(registration);
             return CreatedAtAction(nameof(GetRegistrationById),
                 new { id = newRegistration.registrationId }, newRegistration);
         }
 
         [HttpPut("{id}")]
+        // THAY ĐỔI 2: Dùng UpdateRegistrationRequestDto
         public async Task<IActionResult> UpdateRegistration(int id, [FromBody] RegistrationRequestDto registration)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
             var updatedRegistration = await _registrationService.UpdateRegistrationAsync(id, registration);
             if (updatedRegistration == null)
+            {
                 return NotFound(new { message = $"Registration with ID {id} not found" });
+            }
             return Ok(updatedRegistration);
         }
 

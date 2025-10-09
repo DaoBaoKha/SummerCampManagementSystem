@@ -16,10 +16,8 @@ public partial class ChatMessageAI
 
     public int? senderId { get; set; }
 
-    [Column(TypeName = "text")]
     public string message { get; set; }
 
-    [Column(TypeName = "text")]
     public string response { get; set; }
 
     [Column(TypeName = "datetime")]

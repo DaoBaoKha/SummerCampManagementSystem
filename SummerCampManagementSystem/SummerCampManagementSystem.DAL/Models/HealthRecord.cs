@@ -14,15 +14,12 @@ public partial class HealthRecord
     [Key]
     public int healthRecordId { get; set; }
 
-    [Column(TypeName = "text")]
     public string condition { get; set; }
 
-    [Column(TypeName = "text")]
     public string allergies { get; set; }
 
     public bool? isAllergy { get; set; }
 
-    [Column(TypeName = "text")]
     public string note { get; set; }
 
     [Column(TypeName = "datetime")]
