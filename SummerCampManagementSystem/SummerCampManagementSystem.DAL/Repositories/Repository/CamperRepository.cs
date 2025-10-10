@@ -12,6 +12,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
     {
         public CamperRepository(CampEaseDatabaseContext context) : base(context)
         {
+            _context = context;
         }
     }
 }

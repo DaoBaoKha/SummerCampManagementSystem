@@ -9,5 +9,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface ICamperRepository : IGenericRepository<Camper>
     {
+
     }
 }
