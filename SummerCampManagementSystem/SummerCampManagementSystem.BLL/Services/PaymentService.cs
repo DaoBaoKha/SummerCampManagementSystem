@@ -69,6 +69,9 @@ namespace SummerCampManagementSystem.BLL.Services
                         {
                             payment.status = "Completed";
                             registration.status = "Confirmed";
+                            
+                            await _unitOfWork.Payments.UpdateAsync(payment);
+                            await _unitOfWork.Registrations.UpdateAsync(registration);
                             await _unitOfWork.CommitAsync();
                         }
                     }

@@ -32,8 +32,8 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
-        // THAY ĐỔI 1: Dùng CreateRegistrationRequestDto
-        public async Task<IActionResult> CreateRegistration([FromBody] RegistrationRequestDto registration)
+        //use create registration dto
+        public async Task<IActionResult> CreateRegistration([FromBody] CreateRegistrationRequestDto registration)
         {
             if (registration == null || !registration.CamperIds.Any())
             {
@@ -41,13 +41,12 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var newRegistration = await _registrationService.CreateRegistrationAsync(registration);
-            return CreatedAtAction(nameof(GetRegistrationById),
-                new { id = newRegistration.registrationId }, newRegistration);
+            var reponse = await _registrationService.CreateRegistrationAsync(registration);
+
+            return Ok(reponse); //payment url return here
         }
 
         [HttpPut("{id}")]
-        // THAY ĐỔI 2: Dùng UpdateRegistrationRequestDto
         public async Task<IActionResult> UpdateRegistration(int id, [FromBody] RegistrationRequestDto registration)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
