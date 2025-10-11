@@ -26,6 +26,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 endDate = camp.EndDate,
                 campTypeId = camp.CampTypeId,
                 locationId = camp.LocationId,
+                minParticipants = camp.MinParticipants,
+                maxParticipants = camp.MaxParticipants,
                 price = camp.Price,
                 status = "Active"
             };
@@ -43,7 +45,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 StartDate = (DateOnly)newCamp.startDate,
                 EndDate = (DateOnly)newCamp.endDate,
                 CampTypeId = newCamp.campTypeId,
-                LocationId = newCamp.locationId, 
+                LocationId = newCamp.locationId,
+                MinParticipants = newCamp.minParticipants ?? 0,
+                MaxParticipants = newCamp.maxParticipants ?? 0,
                 Price = (decimal)newCamp.price,
                 Status = newCamp.status
             };
@@ -91,6 +95,8 @@ namespace SummerCampManagementSystem.BLL.Services
             existingCamp.endDate = camp.EndDate;
             existingCamp.campTypeId = camp.CampTypeId;
             existingCamp.locationId = camp.LocationId;
+            existingCamp.minParticipants = camp.MinParticipants;
+            existingCamp.maxParticipants = camp.MaxParticipants;
             existingCamp.price = camp.Price;
             existingCamp.status = "Active";
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
@@ -106,6 +112,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 StartDate = (DateOnly)existingCamp.startDate,
                 EndDate = (DateOnly)existingCamp.endDate,
                 CampTypeId = existingCamp.campTypeId,
+                MinParticipants = existingCamp.minParticipants ?? 0,
+                MaxParticipants = existingCamp.maxParticipants ?? 0,
                 LocationId = existingCamp.locationId,
                 Price = (decimal)existingCamp.price,
                 Status = existingCamp.status
