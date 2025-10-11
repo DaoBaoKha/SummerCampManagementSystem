@@ -1,4 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Net.payOS;
+using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
 using SummerCampManagementSystem.BLL.Helpers;
@@ -12,25 +14,45 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidationService _validationService;
+        private readonly PayOS _payOS;
 
-        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService)
+        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService, PayOS payOS)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
+            _payOS = payOS;
         }
 
-        public async Task<RegistrationResponseDto> CreateRegistrationAsync(RegistrationRequestDto request)
+        public async Task<CreateRegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request)
         {
+
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
                 ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
 
+            // calculate total amount
+            int amount = (int)camp.price * request.CamperIds.Count;
+
+            // new payment with pending status
+            var newPayment = new Payment
+            {
+                amount = amount,
+                paymentDate = DateTime.UtcNow,
+                status = "Pending",
+                method = "PayOS"
+            };
+
+            await _unitOfWork.Payments.CreateAsync(newPayment);
+            await _unitOfWork.CommitAsync(); //take paymentId from here
+
+
+            // new regis with pending payment status
             var newRegistration = new Registration
             {
                 campId = request.CampId,
-                paymentId = request.PaymentId,
+                paymentId = newPayment.paymentId, //take paymentId from here
                 appliedPromotionId = request.appliedPromotionId,
                 registrationCreateAt = DateTime.UtcNow,
-                status = "Active"
+                status = "PendingPayment"
             };
 
             foreach (var camperId in request.CamperIds)
@@ -38,7 +60,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
 
-                // attach the camper to avoid duplicate tracking issues
+
+                //attach camper to context to avoid duplicate entity error
                 _unitOfWork.Campers.Attach(camper);
 
                 newRegistration.campers.Add(camper);
@@ -47,9 +70,31 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Registrations.CreateAsync(newRegistration);
             await _unitOfWork.CommitAsync();
 
-            return MapToResponseDto(newRegistration, camp.name);
-        }
 
+            // create payment link with payOS
+            var item = new ItemData($"Đăng ký trại hè {camp.name}", request.CamperIds.Count, amount);
+            var items = new List<ItemData> { item };
+
+            var paymentData = new PaymentData(
+                orderCode: newPayment.paymentId,
+                amount: amount,
+                description: $"Thanh toán đơn hàng#{newRegistration.registrationId}",
+                items: items,
+                cancelUrl: "https://example.com/payment-cancelled",
+                returnUrl: "https://example.com/payment-success"
+            );
+
+            CreatePaymentResult createPaymentResult = await _payOS.createPaymentLink(paymentData);
+
+            // return url for client
+            return new CreateRegistrationResponseDto
+            {
+                RegistrationId = newRegistration.registrationId,
+                Status = newRegistration.status,
+                Amount = (decimal)newPayment.amount,
+                PaymentUrl = createPaymentResult.checkoutUrl
+            };
+        }
         public async Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id)
         {
             var registration = await _unitOfWork.Registrations.GetQueryable()

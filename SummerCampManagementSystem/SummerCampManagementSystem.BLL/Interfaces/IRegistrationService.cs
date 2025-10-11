@@ -9,7 +9,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id);
 
-        Task<RegistrationResponseDto> CreateRegistrationAsync(RegistrationRequestDto registration);
+        Task<CreateRegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request);
 
         Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, RegistrationRequestDto registration);
 
