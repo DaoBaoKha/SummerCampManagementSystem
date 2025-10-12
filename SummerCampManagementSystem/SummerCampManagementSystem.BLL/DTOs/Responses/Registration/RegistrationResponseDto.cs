@@ -3,7 +3,7 @@
     public class CamperSummaryDto
     {
         public int CamperId { get; set; }
-        public string CamperName { get; set; }
+        public string CamperName { get; set; } = string.Empty;
     }
 
     public class RegistrationResponseDto
