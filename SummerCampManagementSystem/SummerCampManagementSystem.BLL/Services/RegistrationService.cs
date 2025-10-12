@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Net.payOS;
 using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
@@ -15,12 +16,15 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidationService _validationService;
         private readonly PayOS _payOS;
+        private readonly IConfiguration _configuration;
 
-        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService, PayOS payOS)
+        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService,
+            PayOS payOS, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
             _payOS = payOS;
+            _configuration = configuration;
         }
 
         public async Task<CreateRegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request)
@@ -115,47 +119,101 @@ namespace SummerCampManagementSystem.BLL.Services
             return registrations.Select(r => MapToResponseDto(r, r.camp.name));
         }
 
-        public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, RegistrationRequestDto request)
+        public async Task<UpdateRegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request)
         {
             var existingRegistration = await _unitOfWork.Registrations.GetQueryable()
                 .Include(r => r.campers)
                 .FirstOrDefaultAsync(r => r.registrationId == id);
 
-            if (existingRegistration == null) return null;
+            if (existingRegistration == null)
+            {
+                throw new KeyNotFoundException($"Registration with ID {id} not found.");
+            }
 
-            await _validationService.ValidateEntityExistsAsync(request.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
-            existingRegistration.campId = request.CampId;
-            existingRegistration.paymentId = request.PaymentId;
-            existingRegistration.appliedPromotionId = request.appliedPromotionId;
-            existingRegistration.status = "Active";
+            // only allow updates if status is "PendingPayment"
+            if (existingRegistration.status != "PendingPayment")
+            {
+                throw new InvalidOperationException("Only registrations with 'PendingPayment' status can be updated.");
+            }
 
+            // cancel old payment link if exists
+            if (existingRegistration.paymentId.HasValue)
+            {
+                try
+                {
+                    await _payOS.cancelPaymentLink(existingRegistration.paymentId.Value);
+                }
+                catch (Exception ex)
+                {
+                    // log error but continue
+                    Console.WriteLine($"Could not cancel old payment link (ID: {existingRegistration.paymentId}). Error: {ex.Message}");
+                }
+            }
+
+            
             var existingCamperIds = existingRegistration.campers.Select(c => c.camperId).ToList();
-            var requestedCamperIds = request.CamperIds;
-
-            // find campers to remove
-            var campersToRemove = existingRegistration.campers
-                .Where(c => !requestedCamperIds.Contains(c.camperId)).ToList();
+            var campersToRemove = existingRegistration.campers.Where(c => !request.CamperIds.Contains(c.camperId)).ToList();
             foreach (var camper in campersToRemove)
             {
                 existingRegistration.campers.Remove(camper);
             }
 
-            // find campers to add
-            var camperIdsToAdd = requestedCamperIds
-                .Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
+
+            var camperIdsToAdd = request.CamperIds.Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
+
             foreach (var camperId in camperIdsToAdd)
             {
                 var camperToAdd = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
+
+                _unitOfWork.Campers.Attach(camperToAdd); 
                 existingRegistration.campers.Add(camperToAdd);
             }
+
+
+            // calculate new amount
+            var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
+                ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
+
+            int newAmount = (int)camp.price * request.CamperIds.Count;
+
+            var newPayment = new Payment
+            {
+                amount = newAmount,
+                paymentDate = DateTime.UtcNow,
+                status = "Pending",
+                method = "PayOS"
+            };
+            await _unitOfWork.Payments.CreateAsync(newPayment);
+            await _unitOfWork.CommitAsync();
+
+            // update registration
+            existingRegistration.campId = request.CampId;
+            existingRegistration.appliedPromotionId = request.appliedPromotionId;
+            existingRegistration.paymentId = newPayment.paymentId; // new paymentId
 
             await _unitOfWork.Registrations.UpdateAsync(existingRegistration);
             await _unitOfWork.CommitAsync();
 
-            return await GetRegistrationByIdAsync(id); 
-        }
+            // create new payment link with payOS
+            var paymentData = new PaymentData(
+                orderCode: newPayment.paymentId, // use new paymentId
+                amount: newAmount,
+                description: $"Cap nhat don hang #{id}",
+                items: new List<ItemData> { new ItemData($"Đăng ký trại hè {camp.name}", request.CamperIds.Count, newAmount) },
+                cancelUrl: _configuration["PayOS:CancelUrl"],
+                returnUrl: _configuration["PayOS:ReturnUrl"]
+            );
 
+            CreatePaymentResult newPaymentResult = await _payOS.createPaymentLink(paymentData);
+
+            return new UpdateRegistrationResponseDto
+            {
+                RegistrationId = id,
+                NewAmount = newAmount,
+                NewPaymentUrl = newPaymentResult.checkoutUrl
+            };
+        }
         public async Task<bool> DeleteRegistrationAsync(int id)
         {
             var existingRegistration = await _unitOfWork.Registrations.GetByIdAsync(id);

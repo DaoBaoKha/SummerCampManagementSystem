@@ -16,4 +16,11 @@
 
         public List<CamperSummaryDto> Campers { get; set; } = new List<CamperSummaryDto>();
     }
+
+    public class UpdateRegistrationResponseDto
+    {
+        public int RegistrationId { get; set; }
+        public decimal NewAmount { get; set; }
+        public string NewPaymentUrl { get; set; }
+    }
 }

@@ -47,7 +47,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] RegistrationRequestDto registration)
+        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto registration)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
