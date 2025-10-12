@@ -84,8 +84,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 amount: amount,
                 description: $"Thanh toán đơn hàng#{newRegistration.registrationId}",
                 items: items,
-                cancelUrl: "https://example.com/payment-cancelled",
-                returnUrl: "https://example.com/payment-success"
+                cancelUrl: _configuration["PayOS:CancelUrl"],
+                returnUrl: _configuration["PayOS:ReturnUrl"]
             );
 
             CreatePaymentResult createPaymentResult = await _payOS.createPaymentLink(paymentData);
