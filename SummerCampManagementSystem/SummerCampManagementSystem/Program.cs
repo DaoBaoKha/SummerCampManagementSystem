@@ -46,6 +46,8 @@ string emailPass = builder.Configuration["EmailSetting:Password"]?.Trim() ?? "pa
 string payosClientId = builder.Configuration["PayOS:ClientId"]?.Trim() ?? "";
 string payosApiKey = builder.Configuration["PayOS:ApiKey"]?.Trim() ?? "";
 string payosChecksumKey = builder.Configuration["PayOS:ChecksumKey"]?.Trim() ?? "";
+string payosReturnUrl = builder.Configuration["PayOS:ReturnUrl"]?.Trim() ?? "";
+string payosCancelUrl = builder.Configuration["PayOS:CancelUrl"]?.Trim() ?? "";
 
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
@@ -88,6 +90,10 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
         payosChecksumKey = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-checksum-key", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
+        payosReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
 
 
 
@@ -106,7 +112,9 @@ if (builder.Environment.IsProduction())
             // PayOS
             {"PayOS:ClientId", payosClientId},
             {"PayOS:ApiKey", payosApiKey},
-            {"PayOS:ChecksumKey", payosChecksumKey}
+            {"PayOS:ChecksumKey", payosChecksumKey},
+            {"PayOS:ReturnUrl", payosReturnUrl},
+            {"PayOS:CancelUrl", payosCancelUrl}
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
