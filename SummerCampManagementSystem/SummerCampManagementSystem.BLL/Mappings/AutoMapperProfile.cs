@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Requests.Activity;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Camper;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Guardian;
+using SummerCampManagementSystem.BLL.DTOs.Responses.Activity;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Camper;
 using SummerCampManagementSystem.BLL.DTOs.Responses.CampType;
@@ -58,7 +60,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
                 .ForMember(dest => dest.Promotion,
                            opt => opt.MapFrom(src => src.promotion));
-
+            //Activity mappings
+            CreateMap<Activity, ActivityResponseDto>();
+            CreateMap<ActivityCreateDto, Activity>();
         }
     }
 }
