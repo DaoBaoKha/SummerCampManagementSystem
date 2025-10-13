@@ -5,5 +5,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public interface IPaymentService 
     {
         Task HandlePayOSWebhook(PayOSWebhookRequestDto webhookRequest);
+        string ProcessPaymentMobileCallback(PayOSCallbackRequestDto callbackData);
+        string ProcessPaymentMobileCallbackRaw(string rawQueryString);
+
     }
 }
