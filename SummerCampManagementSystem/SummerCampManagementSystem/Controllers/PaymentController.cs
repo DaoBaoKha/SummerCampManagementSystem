@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 
@@ -33,6 +32,35 @@ namespace SummerCampManagementSystem.API.Controllers
 
                 // payos might retry sending the webhook if we return a failure status code
                 return BadRequest(new { message = "An error occurred while processing the webhook." });
+            }
+        }
+
+        [HttpGet("mobile-callback")]
+        public IActionResult PaymentMobileCallback()
+        {
+            try
+            {
+                // take all query string
+                string rawQueryString = Request.QueryString.Value ?? string.Empty;
+
+
+                string deepLinkUrl = _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
+
+                // do 302 redirect
+                return Redirect(deepLinkUrl);
+            }
+            catch (ArgumentException ex)
+            {
+                // validation errors
+                string errorReason = Uri.EscapeDataString(ex.Message);
+                return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
+            }
+            catch (Exception ex)
+            {
+                // exceptions
+                string errorReason = Uri.EscapeDataString(ex.Message);
+                const string fallbackDeepLink = "yourapp://payment/failure?reason=API_ERROR";
+                return Redirect(fallbackDeepLink + $"&details={errorReason}");
             }
         }
     }
