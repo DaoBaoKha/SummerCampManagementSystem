@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.Requests.Camp
+﻿using SummerCampManagementSystem.Core.Enums;
+
+namespace SummerCampManagementSystem.BLL.DTOs.Requests.Camp
 {
     public class CampRequestDto
     {
@@ -8,11 +10,23 @@
         public string Address { get; set; } = string.Empty; 
         public int MinParticipants { get; set; } = 0;
         public int MaxParticipants { get; set; } = 0;
-        public DateOnly StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-        public DateOnly EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-        public string image { get; set; } = string.Empty;
+        public DateOnly? StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public DateOnly? EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public decimal? Price { get; set; } = 0;
+        public string Status { get; set; } = string.Empty;
         public int? CampTypeId { get; set; }
+        public string? image { get; set; } = string.Empty;
+        public int? CreateBy { get; set; } = null;
         public int? LocationId { get; set; } = null;
-        public decimal Price { get; set; } = 0; 
+        public int? PromotionId { get; set; } = null;
+        public DateTime? RegistrationStartDate { get; set; } = DateTime.Now;
+        public DateTime? RegistrationEndDate { get; set; } = DateTime.Now;
+
     }
+
+    public class CampStatusUpdateRequestDto
+    {
+        public CampStatus Status { get; set; }
+    }
+
 }
