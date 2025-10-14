@@ -9,10 +9,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class PaymentController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
+        private readonly IConfiguration _configuration;
 
-        public PaymentController(IPaymentService paymentService)
+        public PaymentController(IPaymentService paymentService, IConfiguration configuration)
         {
             _paymentService = paymentService;
+            _configuration = configuration;
         }
 
         [HttpPost("payos-webhook")]
@@ -61,6 +63,35 @@ namespace SummerCampManagementSystem.API.Controllers
                 string errorReason = Uri.EscapeDataString(ex.Message);
                 const string fallbackDeepLink = "yourapp://payment/failure?reason=API_ERROR";
                 return Redirect(fallbackDeepLink + $"&details={errorReason}");
+            }
+        }
+
+        [HttpGet("confirm-urls")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> ConfirmPayOSUrls()
+        {
+            try
+            {
+                // take url callback from config on gg cloud
+                string returnUrl = _configuration["PayOS:ReturnUrl"] ??
+                                   throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
+
+                string result = await _paymentService.ConfirmUrlAsync(returnUrl);
+
+                // PayOS SDK return confirm result
+                return Ok(new
+                {
+                    message = "PayOS URL confirmed successfully.",
+                    urlConfirmed = returnUrl,
+                    payOSResult = result
+                });
+            }
+            catch (Exception ex)
+            {
+                // exception if payos deny (like not HTTPS)
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Error confirming PayOS URL. Check console log for detail.", detail = ex.Message });
             }
         }
     }

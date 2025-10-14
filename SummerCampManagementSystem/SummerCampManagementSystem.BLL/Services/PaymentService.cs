@@ -184,5 +184,24 @@ namespace SummerCampManagementSystem.BLL.Services
                 return $"{BaseDeepLink}/failure?reason=SystemError&details={errorReason}";
             }
         }
+
+        /// <summary>
+        /// send confirm url callback to payos server
+        /// </summary>
+        /// <param name="url">public url of callback api (like: https://yourdomain.com/api/payment/mobile-callback).</param>
+        /// <returns>payos return confirmation</returns>
+        public async Task<string> ConfirmUrlAsync(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url) || !url.StartsWith("https"))
+            {
+                throw new ArgumentException("URL must be a valid HTTPS address.");
+            }
+
+            // this method to confirm URL Notification/Callback
+            // return a string
+            string confirmationResult = await _payOS.confirmWebhook(url);
+
+            return confirmationResult;
+        }
     }
 }
