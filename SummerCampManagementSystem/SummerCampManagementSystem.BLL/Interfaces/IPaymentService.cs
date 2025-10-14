@@ -7,6 +7,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task HandlePayOSWebhook(PayOSWebhookRequestDto webhookRequest);
         string ProcessPaymentMobileCallback(PayOSCallbackRequestDto callbackData);
         string ProcessPaymentMobileCallbackRaw(string rawQueryString);
-
+        Task<string> ConfirmUrlAsync(string url);
     }
 }
