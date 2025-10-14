@@ -2,10 +2,12 @@
 using SummerCampManagementSystem.BLL.DTOs.Requests.Activity;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Camper;
+using SummerCampManagementSystem.BLL.DTOs.Requests.CamperActivity;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Activity;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Camper;
+using SummerCampManagementSystem.BLL.DTOs.Responses.CamperActivity;
 using SummerCampManagementSystem.BLL.DTOs.Responses.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Location;
@@ -63,6 +65,16 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();
             CreateMap<ActivityCreateDto, Activity>();
+
+            //CamperActivity mappings
+            CreateMap<CamperActivity, CamperActivityResponseDto>()
+                .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper))
+                .ForMember(dest => dest.Activity, opt => opt.MapFrom(src => src.activity));
+
+            CreateMap<Activity, ActivitySummaryDto>();
+
+            CreateMap<CamperActivityCreateDto, CamperActivity>();
+            CreateMap<CamperActivityUpdateDto, CamperActivity>();
         }
     }
 }
