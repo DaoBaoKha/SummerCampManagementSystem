@@ -1,5 +1,6 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -8,8 +9,10 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync();
 
         Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id);
+        Task<IEnumerable<RegistrationResponseDto>> GetRegistrationByStatusAsync(RegistrationStatus? status = null);
 
-        Task<CreateRegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request);
+        Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request);
+        Task<ApproveRegistrationResponseDto> ApproveRegistrationAsync(int registrationId);
 
         Task<UpdateRegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request);
 
