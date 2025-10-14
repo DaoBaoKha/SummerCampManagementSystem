@@ -23,4 +23,12 @@
         public decimal NewAmount { get; set; }
         public string NewPaymentUrl { get; set; }
     }
+
+    public class ApproveRegistrationResponseDto
+    {
+        public int RegistrationId { get; set; }
+        public string Status { get; set; } 
+        public decimal Amount { get; set; }
+        public string PaymentUrl { get; set; }
+    }
 }

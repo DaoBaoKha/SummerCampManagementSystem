@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -31,6 +31,13 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(registration);
         }
 
+        [HttpGet("status")] 
+        public async Task<IActionResult> GetRegistrationsByStatus([FromQuery] RegistrationStatus? status)
+        {
+            var registrations = await _registrationService.GetRegistrationByStatusAsync(status);
+            return Ok(registrations);
+        }
+
         [HttpPost]
         //use create registration dto
         public async Task<IActionResult> CreateRegistration([FromBody] CreateRegistrationRequestDto registration)
@@ -43,7 +50,8 @@ namespace SummerCampManagementSystem.API.Controllers
 
             var reponse = await _registrationService.CreateRegistrationAsync(registration);
 
-            return Ok(reponse); //payment url return here
+            return CreatedAtAction(nameof(GetRegistrationById),
+                new { id = reponse.registrationId }, reponse);
         }
 
         [HttpPut("{id}")]
@@ -57,6 +65,24 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = $"Registration with ID {id} not found" });
             }
             return Ok(updatedRegistration);
+        }
+
+        [HttpPut("{id}/approve")]
+        public async Task<IActionResult> ApproveRegistration(int id)
+        {
+            try
+            {
+                var response = await _registrationService.ApproveRegistrationAsync(id);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
