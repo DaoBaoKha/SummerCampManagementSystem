@@ -8,5 +8,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         string ProcessPaymentMobileCallback(PayOSCallbackRequestDto callbackData);
         string ProcessPaymentMobileCallbackRaw(string rawQueryString);
         Task<string> ConfirmUrlAsync(string url);
+        Task<WebCallbackResponseDto> ProcessPaymentWebsiteCallbackRaw(string rawQueryString);
+
     }
 }

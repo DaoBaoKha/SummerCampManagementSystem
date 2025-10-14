@@ -203,5 +203,49 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return confirmationResult;
         }
+
+        public async Task<WebCallbackResponseDto> ProcessPaymentWebsiteCallbackRaw(string rawQueryString)
+        {
+            var parsedQuery = HttpUtility.ParseQueryString(rawQueryString);
+
+            // just use ordercode for api
+            if (parsedQuery["orderCode"] == null)
+            {
+                throw new ArgumentException("Required callback parameter (orderCode) is missing from the URL.");
+            }
+
+            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            var response = new WebCallbackResponseDto { OrderCode = orderCode };
+
+            try
+            {
+                // use getpaymentLinkInformation
+                PaymentLinkInformation linkInfo = await _payOS.getPaymentLinkInformation(orderCode);
+
+                // check status of PayOS Server
+                if (linkInfo.status == "PAID" && linkInfo.amountPaid > 0)
+                {
+                    response.IsSuccess = true;
+                    response.Status = linkInfo.status;
+                    response.Message = "Thanh toán thành công.";
+                }
+                else
+                {
+                    response.IsSuccess = false;
+                    response.Status = linkInfo.status;
+                    response.Message = "Giao dịch đang chờ xử lý hoặc thất bại.";
+                    response.Detail = $"Trạng thái PayOS: {linkInfo.status}";
+                }
+            }
+            catch (Exception ex)
+            {
+                response.IsSuccess = false;
+                response.Status = "ERROR";
+                response.Message = "Lỗi hệ thống khi truy vấn trạng thái giao dịch.";
+                response.Detail = ex.Message;
+            }
+
+            return response;
+        }
     }
 }

@@ -67,8 +67,6 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("confirm-urls")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ConfirmPayOSUrls()
         {
             try
@@ -92,6 +90,28 @@ namespace SummerCampManagementSystem.API.Controllers
                 // exception if payos deny (like not HTTPS)
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Error confirming PayOS URL. Check console log for detail.", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("website-callback")]
+        public async Task<IActionResult> PaymentWebsiteCallback()
+        {
+            try
+            {
+                string rawQueryString = Request.QueryString.Value ?? string.Empty;
+
+                var resultDto = await _paymentService.ProcessPaymentWebsiteCallbackRaw(rawQueryString);
+
+                return Ok(resultDto);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
             }
         }
     }

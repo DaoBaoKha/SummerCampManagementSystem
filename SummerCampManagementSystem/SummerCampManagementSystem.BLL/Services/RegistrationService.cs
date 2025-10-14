@@ -195,6 +195,8 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Registrations.UpdateAsync(existingRegistration);
             await _unitOfWork.CommitAsync();
 
+            Console.WriteLine($"PayOS Return URL Sent: {_configuration["PayOS:ReturnUrl"]}");
+
             // create new payment link with payOS
             var paymentData = new PaymentData(
                 orderCode: newPayment.paymentId, // use new paymentId
