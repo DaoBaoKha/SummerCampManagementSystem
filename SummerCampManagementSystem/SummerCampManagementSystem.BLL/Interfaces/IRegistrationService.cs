@@ -12,11 +12,13 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<RegistrationResponseDto>> GetRegistrationByStatusAsync(RegistrationStatus? status = null);
 
         Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request);
-        Task<ApproveRegistrationResponseDto> ApproveRegistrationAsync(int registrationId);
+        Task<RegistrationResponseDto> ApproveRegistrationAsync(int registrationId);
 
-        Task<UpdateRegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request);
+        Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request);
 
         Task<bool> DeleteRegistrationAsync(int id);
+
+        Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId);
 
     }
 }
