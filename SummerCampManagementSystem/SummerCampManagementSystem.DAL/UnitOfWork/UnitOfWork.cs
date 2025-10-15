@@ -22,11 +22,12 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
         public IActivityRepository Activities { get; }
+        public ICamperActivityRepository CamperActivities { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
             ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
-            IBlogRepository blogs, IRouteRepository routes, IPaymentRepository payments, IPromotionTypeRepository promotionTypes, IGuardianRepository guardians, IActivityRepository activities)
+            IBlogRepository blogs, IRouteRepository routes, IPaymentRepository payments, IPromotionTypeRepository promotionTypes, IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities)
         {
             _context = context;
             Blogs = blogs;
@@ -44,6 +45,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             PromotionTypes = promotionTypes;
             Guardians = guardians;
             Activities = activities;
+            CamperActivities = camperActivities;
         }
 
         public async Task<int> CommitAsync()

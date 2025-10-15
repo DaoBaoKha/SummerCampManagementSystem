@@ -170,6 +170,9 @@ builder.Services.AddScoped<IGuardianService, GuardianService>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 
+builder.Services.AddScoped<ICamperActivityRepository, CamperActivityRepository>();
+builder.Services.AddScoped<ICamperActivityService, CamperActivityService>();
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
