@@ -8,4 +8,10 @@
 
         public bool IsActive { get; set; }
     }
+
+    public class CampTypeDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
 }

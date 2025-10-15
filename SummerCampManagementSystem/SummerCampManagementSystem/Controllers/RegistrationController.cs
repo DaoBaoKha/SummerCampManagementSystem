@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -31,9 +31,16 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(registration);
         }
 
+        [HttpGet("status")] 
+        public async Task<IActionResult> GetRegistrationsByStatus([FromQuery] RegistrationStatus? status)
+        {
+            var registrations = await _registrationService.GetRegistrationByStatusAsync(status);
+            return Ok(registrations);
+        }
+
         [HttpPost]
-        // THAY ĐỔI 1: Dùng CreateRegistrationRequestDto
-        public async Task<IActionResult> CreateRegistration([FromBody] RegistrationRequestDto registration)
+        //use create registration dto
+        public async Task<IActionResult> CreateRegistration([FromBody] CreateRegistrationRequestDto registration)
         {
             if (registration == null || !registration.CamperIds.Any())
             {
@@ -41,14 +48,32 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var newRegistration = await _registrationService.CreateRegistrationAsync(registration);
+            var reponse = await _registrationService.CreateRegistrationAsync(registration);
+
             return CreatedAtAction(nameof(GetRegistrationById),
-                new { id = newRegistration.registrationId }, newRegistration);
+                new { id = reponse.registrationId }, reponse);
+        }
+
+        [HttpPost("{id}/payment-link")]
+        public async Task<IActionResult> GeneratePaymentLink(int id)
+        {
+            try
+            {
+                var response = await _registrationService.GeneratePaymentLinkAsync(id);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
-        // THAY ĐỔI 2: Dùng UpdateRegistrationRequestDto
-        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] RegistrationRequestDto registration)
+        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto registration)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
@@ -58,6 +83,24 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = $"Registration with ID {id} not found" });
             }
             return Ok(updatedRegistration);
+        }
+
+        [HttpPut("{id}/approve")]
+        public async Task<IActionResult> ApproveRegistration(int id)
+        {
+            try
+            {
+                var response = await _registrationService.ApproveRegistrationAsync(id);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

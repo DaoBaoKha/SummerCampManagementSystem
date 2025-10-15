@@ -1,16 +1,18 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Responses.Camp;
-using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface ICampService
     {
-        Task<IEnumerable<Camp>> GetAllCampsAsync();
-        Task<Camp?> GetCampByIdAsync(int id);
-        Task<IEnumerable<Camp>> GetCampsByTypeAsync(int campTypeId);
+        Task<IEnumerable<CampResponseDto>> GetAllCampsAsync();
+        Task<CampResponseDto?> GetCampByIdAsync(int id);
+        Task<IEnumerable<CampResponseDto>> GetCampsByTypeAsync(int campTypeId);
+        Task<IEnumerable<CampResponseDto>> GetCampsByStatusAsync(CampStatus? status = null);
         Task<CampResponseDto> CreateCampAsync(CampRequestDto camp);
         Task<CampResponseDto> UpdateCampAsync(int campId, CampRequestDto camp);
+        Task<CampResponseDto> UpdateCampStatusAsync(int campId, CampStatusUpdateRequestDto statusUpdate);
         Task<bool> DeleteCampAsync(int id);
     }
 }

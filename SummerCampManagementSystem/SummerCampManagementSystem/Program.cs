@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Net.payOS;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Mappings;
@@ -33,11 +34,20 @@ string connectionString = builder.Configuration.GetConnectionString("DefaultConn
 string jwtKey = builder.Configuration["Jwt:Key"]?.Trim() ?? "";
 string jwtIssuer = builder.Configuration["Jwt:Issuer"]?.Trim() ?? "";
 string jwtAudience = builder.Configuration["Jwt:Audience"]?.Trim() ?? "";
+
+// Email settings
 string emailSmtp = builder.Configuration["EmailSetting:SmtpServer"]?.Trim() ?? "smtp.example.com";
 int emailPort = int.TryParse(builder.Configuration["EmailSetting:Port"], out var port) ? port : 587;
 string emailSenderName = builder.Configuration["EmailSetting:SenderName"]?.Trim() ?? "CampEase";
 string emailSenderEmail = builder.Configuration["EmailSetting:SenderEmail"]?.Trim() ?? "no-reply@campease.com";
 string emailPass = builder.Configuration["EmailSetting:Password"]?.Trim() ?? "password123";
+
+// PayOS settings
+string payosClientId = builder.Configuration["PayOS:ClientId"]?.Trim() ?? "";
+string payosApiKey = builder.Configuration["PayOS:ApiKey"]?.Trim() ?? "";
+string payosChecksumKey = builder.Configuration["PayOS:ChecksumKey"]?.Trim() ?? "";
+string payosReturnUrl = builder.Configuration["PayOS:ReturnUrl"]?.Trim() ?? "";
+string payosCancelUrl = builder.Configuration["PayOS:CancelUrl"]?.Trim() ?? "";
 
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
@@ -49,9 +59,14 @@ if (builder.Environment.IsProduction())
 
         connectionString = client.AccessSecretVersion(new SecretVersionName(projectId, "db-connection-string", "latest"))
                                  .Payload.Data.ToStringUtf8().Trim();
-        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest")).Payload.Data.ToStringUtf8().Trim();
-        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest")).Payload.Data.ToStringUtf8().Trim();
-        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest")).Payload.Data.ToStringUtf8().Trim();
+        jwtKey = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-secret", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        jwtIssuer = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-issuer", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        jwtAudience = client.AccessSecretVersion(new SecretVersionName(projectId, "jwt-audience", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
+        // email
         emailSmtp = client.AccessSecretVersion(new SecretVersionName(projectId, "email-smtpserver", "latest"))
                   .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
@@ -68,6 +83,20 @@ if (builder.Environment.IsProduction())
                           .Payload.Data.ToStringUtf8().Trim().Trim('"');
 
 
+        // payos
+        payosClientId = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-client-id", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-api-key", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosChecksumKey = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-checksum-key", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
+
+
         var inMemorySettings = new Dictionary<string, string>
         {
             {"ConnectionStrings:DefaultConnection", connectionString},
@@ -78,7 +107,14 @@ if (builder.Environment.IsProduction())
             {"EmailSetting:Port", emailPort.ToString()},
             {"EmailSetting:SenderName", emailSenderName},
             {"EmailSetting:SenderEmail", emailSenderEmail},
-            {"EmailSetting:Password", emailPass}
+            {"EmailSetting:Password", emailPass},
+
+            // PayOS
+            {"PayOS:ClientId", payosClientId},
+            {"PayOS:ApiKey", payosApiKey},
+            {"PayOS:ChecksumKey", payosChecksumKey},
+            {"PayOS:ReturnUrl", payosReturnUrl},
+            {"PayOS:CancelUrl", payosCancelUrl}
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
@@ -100,8 +136,14 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
+// singleton services
+builder.Services.AddSingleton(sp => new PayOS(payosClientId, payosApiKey, payosChecksumKey));
+
 
 // DI
+builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
@@ -111,12 +153,25 @@ builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 
 //builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
 //builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPromotionTypeRepository, PromotionTypeRepository>();
+builder.Services.AddScoped<IPromotionTypeService, PromotionTypeService>();
 
 builder.Services.AddScoped<ICamperRepository, CamperRepository>();
 builder.Services.AddScoped<ICamperService, CamperService>();
 
 //builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianService>();
 //builder.Services.AddScoped<ICamperGuardianService, CamperGuardianService>();
+
+builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
+builder.Services.AddScoped<IGuardianService, GuardianService>();
+
+builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
+builder.Services.AddScoped<IActivityService, ActivityService>();
+
+builder.Services.AddScoped<ICamperActivityRepository, CamperActivityRepository>();
+builder.Services.AddScoped<ICamperActivityService, CamperActivityService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -129,6 +184,8 @@ builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IRegistrationRepository, RegistrationRepository>();
+builder.Services.AddScoped<IRouteService, RouteService>();
+builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -171,11 +228,6 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
-
-// database context
-builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
-    options.UseSqlServer(connectionString)
-           .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
 // jwt auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
