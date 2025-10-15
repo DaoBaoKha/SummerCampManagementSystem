@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Camp;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Camp;
+﻿using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces

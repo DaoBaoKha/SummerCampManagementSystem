@@ -161,11 +161,13 @@ builder.Services.AddScoped<IPromotionTypeService, PromotionTypeService>();
 builder.Services.AddScoped<ICamperRepository, CamperRepository>();
 builder.Services.AddScoped<ICamperService, CamperService>();
 
-//builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianService>();
-//builder.Services.AddScoped<ICamperGuardianService, CamperGuardianService>();
+
 
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
+
+builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
+
 
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityService, ActivityService>();

@@ -1,6 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.User;
-using SummerCampManagementSystem.BLL.DTOs.Responses;
-using SummerCampManagementSystem.BLL.DTOs.Responses.User;
+﻿using SummerCampManagementSystem.BLL.DTOs.User;
 
 
 

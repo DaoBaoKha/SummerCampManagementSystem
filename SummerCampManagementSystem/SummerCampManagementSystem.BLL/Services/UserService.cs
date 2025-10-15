@@ -1,9 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using SummerCampManagementSystem.BLL.DTOs.Requests.User;
-using SummerCampManagementSystem.BLL.DTOs.Responses;
-using SummerCampManagementSystem.BLL.DTOs.Responses.User;
+using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;

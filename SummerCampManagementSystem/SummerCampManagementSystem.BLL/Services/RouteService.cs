@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Route;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Route;
+using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;

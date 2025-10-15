@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Route;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Route;
+﻿using SummerCampManagementSystem.BLL.DTOs.Route;
 using System;
 using System.Collections.Generic;
 using System.Linq;

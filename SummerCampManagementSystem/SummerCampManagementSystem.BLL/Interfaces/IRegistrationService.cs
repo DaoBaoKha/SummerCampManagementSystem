@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
+﻿using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces

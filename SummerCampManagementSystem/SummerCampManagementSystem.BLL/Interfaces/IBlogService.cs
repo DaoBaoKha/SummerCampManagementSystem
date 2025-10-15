@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Blog;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Blog;
+﻿using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Interfaces

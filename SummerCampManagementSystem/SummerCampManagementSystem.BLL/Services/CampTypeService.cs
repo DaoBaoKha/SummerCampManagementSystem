@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.CampType;
-using SummerCampManagementSystem.BLL.DTOs.Responses.CampType;
+﻿using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Camper;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -19,35 +20,54 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
-      => Ok(await _camperService.GetAllCampersAsync());
+        {
+            var campers = await _camperService.GetAllCampersAsync();
+            return Ok(campers);
+        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
             var camper = await _camperService.GetCamperByIdAsync(id);
-            return camper == null ? NotFound() : Ok(camper);
+            if (camper == null)
+                return NotFound(new { message = $"Camper with id {id} not found." });
+
+            return Ok(camper);
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CamperCreateDto dto)
+        public async Task<IActionResult> Create(CamperRequestDto dto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
             var created = await _camperService.CreateCamperAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = created.CamperId }, created);
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, CamperUpdateDto dto)
+        public async Task<IActionResult> Update(int id, CamperRequestDto dto)
         {
-            if (id != dto.CamperId) return BadRequest();
-            var updated = await _camperService.UpdateCamperAsync(dto);
-            return updated ? NoContent() : NotFound();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var updated = await _camperService.UpdateCamperAsync(id, dto);
+            if (!updated)
+                return NotFound(new { message = $"Camper with id {id} not found." });
+
+            return NoContent();
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var deleted = await _camperService.DeleteCamperAsync(id);
-            return deleted ? NoContent() : NotFound();
+            if (!deleted)
+                return NotFound(new { message = $"Camper with id {id} not found." });
+
+            return NoContent();
         }
     }
 }
