@@ -4,8 +4,10 @@
     {
         PendingApproval = 1,
 
-        PendingPayment = 2,
+        Approved = 2,
 
-        Confirmed = 3,
+        PendingPayment = 3,
+
+        Confirmed = 4,
     }
 }

@@ -54,6 +54,24 @@ namespace SummerCampManagementSystem.API.Controllers
                 new { id = reponse.registrationId }, reponse);
         }
 
+        [HttpPost("{id}/payment-link")]
+        public async Task<IActionResult> GeneratePaymentLink(int id)
+        {
+            try
+            {
+                var response = await _registrationService.GeneratePaymentLinkAsync(id);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto registration)
         {

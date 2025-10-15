@@ -24,7 +24,7 @@
         public string NewPaymentUrl { get; set; }
     }
 
-    public class ApproveRegistrationResponseDto
+    public class GeneratePaymentLinkResponseDto
     {
         public int RegistrationId { get; set; }
         public string Status { get; set; } 
