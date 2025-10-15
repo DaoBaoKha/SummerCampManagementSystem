@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Route;
+using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers

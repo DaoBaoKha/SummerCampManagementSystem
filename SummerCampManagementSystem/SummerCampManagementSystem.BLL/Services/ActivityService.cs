@@ -1,6 +1,5 @@
 ﻿using AutoMapper;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Activity;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Activity;
+using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;

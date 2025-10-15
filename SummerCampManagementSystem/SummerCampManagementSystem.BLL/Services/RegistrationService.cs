@@ -2,8 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Net.payOS;
 using Net.payOS.Types;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Registration;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
+using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;

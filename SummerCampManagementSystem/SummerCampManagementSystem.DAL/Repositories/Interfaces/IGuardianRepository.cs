@@ -9,7 +9,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IGuardianRepository : IGenericRepository<Guardian>
     {
-        Task<IEnumerable<Guardian>> GetAllAsync();
-        Task<Guardian?> GetByIdAsync(int id);
+        new Task<IEnumerable<Guardian>> GetAllAsync();
+        new Task<Guardian?> GetByIdAsync(int id);
     }
 }

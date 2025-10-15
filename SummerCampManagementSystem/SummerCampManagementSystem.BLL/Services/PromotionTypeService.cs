@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.PromotionType;
-using SummerCampManagementSystem.BLL.DTOs.Responses.PromotionType;
+﻿using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;

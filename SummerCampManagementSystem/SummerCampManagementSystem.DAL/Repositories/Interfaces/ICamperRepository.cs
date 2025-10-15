@@ -9,6 +9,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface ICamperRepository : IGenericRepository<Camper>
     {
-
+        new Task<IEnumerable<Camper>> GetAllAsync();
+        new Task<Camper?> GetByIdAsync(int id);
     }
 }

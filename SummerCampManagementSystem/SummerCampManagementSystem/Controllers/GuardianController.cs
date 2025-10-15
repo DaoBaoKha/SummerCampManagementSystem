@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Guardian;
+using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860

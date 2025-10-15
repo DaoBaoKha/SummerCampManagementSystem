@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers

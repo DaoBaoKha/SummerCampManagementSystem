@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.CampType;
+using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 

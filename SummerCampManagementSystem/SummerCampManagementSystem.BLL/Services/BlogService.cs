@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Blog;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Blog;
+using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;

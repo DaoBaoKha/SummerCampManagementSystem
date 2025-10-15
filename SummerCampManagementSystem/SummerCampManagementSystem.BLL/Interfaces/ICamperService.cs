@@ -1,6 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.Camper;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Camper;
-using SummerCampManagementSystem.BLL.DTOs.Responses.CamperGroup;
+﻿using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.DAL.Models;
 using System;
 using System.Collections.Generic;
@@ -14,8 +12,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<CamperResponseDto>> GetAllCampersAsync();
         Task<CamperResponseDto?> GetCamperByIdAsync(int id);
-        Task<CamperResponseDto> CreateCamperAsync(CamperCreateDto camper);
-        Task<bool> UpdateCamperAsync(CamperUpdateDto camper);
+        Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto camper);
+        Task<bool> UpdateCamperAsync(int id, CamperRequestDto camper);
         Task<bool> DeleteCamperAsync(int id);
     }
 }

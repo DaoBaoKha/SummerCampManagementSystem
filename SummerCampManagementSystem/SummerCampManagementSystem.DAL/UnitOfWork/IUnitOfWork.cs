@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IGuardianRepository Guardians { get; }
         IActivityRepository Activities { get; }
         ICamperActivityRepository CamperActivities { get; }
+        IHealthRecordRepository HealthRecords { get; }
         Task<int> CommitAsync();
     }
 }

@@ -1,18 +1,14 @@
 ﻿using AutoMapper;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Activity;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Camp;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Camper;
-using SummerCampManagementSystem.BLL.DTOs.Requests.CamperActivity;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Guardian;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Activity;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Camp;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Camper;
-using SummerCampManagementSystem.BLL.DTOs.Responses.CamperActivity;
-using SummerCampManagementSystem.BLL.DTOs.Responses.CampType;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Guardian;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Location;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Promotion;
-using SummerCampManagementSystem.BLL.DTOs.Responses.Registration;
+using SummerCampManagementSystem.BLL.DTOs.Activity;
+using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
+using SummerCampManagementSystem.BLL.DTOs.CampType;
+using SummerCampManagementSystem.BLL.DTOs.Guardian;
+using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
+using SummerCampManagementSystem.BLL.DTOs.Location;
+using SummerCampManagementSystem.BLL.DTOs.Promotion;
+using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Mappings
@@ -22,9 +18,22 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             // Camper mappings
-            CreateMap<Camper, CamperResponseDto>();
-            CreateMap<CamperCreateDto, Camper>();
-            CreateMap<CamperUpdateDto, Camper>();
+
+
+            CreateMap<CamperRequestDto, Camper>();
+           
+
+            CreateMap<Camper, CamperResponseDto>()
+               .ForMember(dest => dest.HealthRecord,
+                   opt => opt.MapFrom(src => src.HealthRecords.FirstOrDefault()));
+
+
+            //CreateMap<Camper, CamperResponseDto>();
+
+            // HealthRecord mappings
+            CreateMap<HealthRecordCreateDto, HealthRecord>();
+            CreateMap<HealthRecord, HealthRecordResponseDto>();
+
 
             //Guardian mappings
             CreateMap<Guardian, GuardianResponseDto>()

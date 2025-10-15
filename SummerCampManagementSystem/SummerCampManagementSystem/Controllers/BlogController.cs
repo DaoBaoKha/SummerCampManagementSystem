@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Requests.Blog;
+using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers

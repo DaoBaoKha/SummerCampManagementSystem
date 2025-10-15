@@ -1,5 +1,4 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Requests.CamperGroup;
-using SummerCampManagementSystem.BLL.DTOs.Responses.CamperGroup;
+﻿using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
