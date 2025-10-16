@@ -4,7 +4,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/promotionType")]
     [ApiController]
     public class PromotionTypeController : ControllerBase
     {
