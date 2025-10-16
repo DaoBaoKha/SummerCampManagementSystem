@@ -21,12 +21,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Camper mappings
 
             CreateMap<CamperRequestDto, Camper>();
-
-            CreateMap<Camper, CamperResponseDto>()
-                       .ForMember(dest => dest.HealthRecord,
-                           opt => opt.MapFrom(src => src.HealthRecord));
-
-            //CreateMap<Camper, CamperResponseDto>();
+            CreateMap<Camper, CamperResponseDto>();
 
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();

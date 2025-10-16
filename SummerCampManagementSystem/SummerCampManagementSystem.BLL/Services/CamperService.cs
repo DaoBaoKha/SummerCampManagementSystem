@@ -29,15 +29,13 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Campers.CreateAsync(camper);
             await _unitOfWork.CommitAsync();
 
-            if (dto.HealthRecords != null)
+            if (dto.HealthRecord != null)
             {
-                var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecords);
+                var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                 healthRecord.camperId = camper.camperId;
                 healthRecord.createAt = DateTime.UtcNow;
                 await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
                 await _unitOfWork.CommitAsync();
-
-                //camper.HealthRecords = healthRecord;
 
                 camper.HealthRecord = healthRecord;
             }
@@ -77,24 +75,21 @@ namespace SummerCampManagementSystem.BLL.Services
            
             await _unitOfWork.Campers.UpdateAsync(existingCamper);
 
-            if (dto.HealthRecords != null)
+            if (dto.HealthRecord != null)
             {
-                //sửa db
                 var existingHealthRecord = existingCamper.HealthRecord;
 
                 if (existingHealthRecord == null)
                 {
                     // Thêm mới nếu chưa có
-                    var newRecord = _mapper.Map<HealthRecord>(dto.HealthRecords);
+                    var newRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                     newRecord.camperId = existingCamper.camperId;
                     await _unitOfWork.HealthRecords.CreateAsync(newRecord);
                 }
                 else
                 {
                     // Cập nhật nếu đã có
-                    _mapper.Map(dto.HealthRecords, existingHealthRecord);
-                    //await _unitOfWork.HealthRecords.UpdateAsync(existingCamper.HealthRecord);
-
+                    _mapper.Map(dto.HealthRecord, existingHealthRecord);
                     await _unitOfWork.HealthRecords.UpdateAsync(existingHealthRecord);
                 }
             }
