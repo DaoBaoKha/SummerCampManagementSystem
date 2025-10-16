@@ -18,20 +18,20 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICampRepository Camps { get; }
         public ICampTypeRepository CampTypes { get; }
         public ICamperRepository Campers { get; }
-        public IPaymentRepository Payments { get; }
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
         public IActivityRepository Activities { get; }
         public ICamperActivityRepository CamperActivities { get; }
         public IHealthRecordRepository HealthRecords { get; }
+        public ITransactionRepository Transactions { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
             ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
-            IBlogRepository blogs, IRouteRepository routes, IPaymentRepository payments, IPromotionTypeRepository promotionTypes,
+            IBlogRepository blogs, IRouteRepository routes, IPromotionTypeRepository promotionTypes,
             IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities,
-            IHealthRecordRepository healthRecords, IPromotionRepository promotions)
+            IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions)
         {
             _context = context;
             Blogs = blogs;
@@ -45,13 +45,13 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Campers = campers;
             Registrations = registrations;
             Routes = routes;
-            Payments = payments;
             Promotions = promotions;
             PromotionTypes = promotionTypes;
             Guardians = guardians;
             Activities = activities;
             CamperActivities = camperActivities;
             HealthRecords = healthRecords;
+            Transactions = transactions;
         }
 
         public async Task<int> CommitAsync()

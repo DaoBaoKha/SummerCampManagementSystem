@@ -8,6 +8,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using Transaction = SummerCampManagementSystem.DAL.Models.Transaction;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -35,6 +36,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 campId = request.CampId,
                 appliedPromotionId = request.appliedPromotionId,
+                userId = request.userId,
                 registrationCreateAt = DateTime.UtcNow,
                 note = request.Note,
                 status = RegistrationStatus.PendingApproval.ToString()
@@ -197,17 +199,19 @@ namespace SummerCampManagementSystem.BLL.Services
 
             int amount = (int)registration.camp.price * registration.campers.Count;
 
-            // create new payment
-            var newPayment = new Payment
+
+            var newTransaction = new Transaction
             {
                 amount = amount,
-                paymentDate = DateTime.UtcNow,
-                status = "Pending",
+                transactionTime = DateTime.UtcNow,
+                status = "Pending", 
                 method = "PayOS",
-                registrationId = registration.registrationId 
+                type = "Payment",
+                registrationId = registration.registrationId
             };
-            await _unitOfWork.Payments.CreateAsync(newPayment);
-            await _unitOfWork.CommitAsync(); 
+
+            await _unitOfWork.Transactions.CreateAsync(newTransaction);
+            await _unitOfWork.CommitAsync();
 
             // update registration status
             registration.status = RegistrationStatus.PendingPayment.ToString();

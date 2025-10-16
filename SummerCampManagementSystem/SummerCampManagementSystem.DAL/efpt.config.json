@@ -83,6 +83,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[CampStaffAssignment]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[CampType]",
          "ObjectType": 0
       },
@@ -147,10 +151,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ManagerAssignment]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Message]",
          "ObjectType": 0
       },
@@ -160,10 +160,6 @@
       },
       {
          "Name": "[dbo].[ParentCamper]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Payment]",
          "ObjectType": 0
       },
       {

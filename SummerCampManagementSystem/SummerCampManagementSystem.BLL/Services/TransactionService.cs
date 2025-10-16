@@ -10,14 +10,14 @@ using System.Web;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
-    public class PaymentService : IPaymentService
+    public class TransactionService : ITransactionService
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly PayOS _payOS;
         private readonly IConfiguration _configuration;
         private readonly string _checksumKey;
 
-        public PaymentService(IUnitOfWork unitOfWork, PayOS payOS, IConfiguration configuration)
+        public TransactionService(IUnitOfWork unitOfWork, PayOS payOS, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _payOS = payOS;
@@ -75,19 +75,19 @@ namespace SummerCampManagementSystem.BLL.Services
                         return;
                     }
 
-                    // find payment related to this regis
-                    var payment = await _unitOfWork.Payments.GetQueryable()
+                    // find transaction related to this regis
+                    var transaction = await _unitOfWork.Transactions.GetQueryable()
                         .Where(p => p.registrationId == registrationId && p.status == "Pending")
-                        .OrderByDescending(p => p.paymentDate) // take recent payment
+                        .OrderByDescending(t => t.transactionTime) // take recent transaction
                         .FirstOrDefaultAsync();
 
-                    if (payment != null)
+                    if (transaction != null)
                     {
                         //update status
-                        payment.status = "Completed";
+                        transaction.status = "Completed";
                         registration.status = "Confirmed";
 
-                        await _unitOfWork.Payments.UpdateAsync(payment);
+                        await _unitOfWork.Transactions.UpdateAsync(transaction);
                         await _unitOfWork.Registrations.UpdateAsync(registration);
                         await _unitOfWork.CommitAsync();
                     }

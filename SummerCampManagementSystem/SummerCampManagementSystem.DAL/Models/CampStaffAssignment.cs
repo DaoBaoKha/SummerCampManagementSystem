@@ -8,21 +8,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("ManagerAssignment")]
-public partial class ManagerAssignment
+[Table("CampStaffAssignment")]
+public partial class CampStaffAssignment
 {
     [Key]
-    public int managerAssignmentId { get; set; }
+    public int campStaffAssignmentId { get; set; }
 
-    public int? managerId { get; set; }
+    public int? staffId { get; set; }
 
     public int? campId { get; set; }
 
     [ForeignKey("campId")]
-    [InverseProperty("ManagerAssignments")]
+    [InverseProperty("CampStaffAssignments")]
     public virtual Camp camp { get; set; }
 
-    [ForeignKey("managerId")]
-    [InverseProperty("ManagerAssignments")]
-    public virtual UserAccount manager { get; set; }
+    [ForeignKey("staffId")]
+    [InverseProperty("CampStaffAssignments")]
+    public virtual UserAccount staff { get; set; }
 }
