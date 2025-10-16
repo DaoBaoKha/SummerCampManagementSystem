@@ -25,9 +25,6 @@ public partial class CamperGroup
 
     public int? campId { get; set; }
 
-    [InverseProperty("camperGroup")]
-    public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();
-
     [InverseProperty("group")]
     public virtual ICollection<Camper> Campers { get; set; } = new List<Camper>();
 

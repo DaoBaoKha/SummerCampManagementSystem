@@ -45,6 +45,9 @@ public partial class Activity
     public string roomId { get; set; }
 
     [InverseProperty("activity")]
+    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
+    [InverseProperty("activity")]
     public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
 
     [InverseProperty("activity")]

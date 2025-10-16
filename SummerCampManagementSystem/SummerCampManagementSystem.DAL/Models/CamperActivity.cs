@@ -21,12 +21,6 @@ public partial class CamperActivity
     [StringLength(50)]
     public string participationStatus { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime? checkInTime { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? checkOutTime { get; set; }
-
     [ForeignKey("activityId")]
     [InverseProperty("CamperActivities")]
     public virtual Activity activity { get; set; }

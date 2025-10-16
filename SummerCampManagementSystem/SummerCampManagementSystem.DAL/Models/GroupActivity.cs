@@ -21,12 +21,6 @@ public partial class GroupActivity
     [StringLength(50)]
     public string status { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime? checkInTime { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? checkOutTime { get; set; }
-
     [ForeignKey("activityId")]
     [InverseProperty("GroupActivities")]
     public virtual Activity activity { get; set; }

@@ -18,14 +18,15 @@ public partial class Accommodation
 
     public int? accommodationTypeId { get; set; }
 
-    public int? camperGroupId { get; set; }
-
     [StringLength(255)]
     public string name { get; set; }
 
     public int? capacity { get; set; }
 
     public bool? isActive { get; set; }
+
+    [InverseProperty("accommodation")]
+    public virtual ICollection<CamperAccommodation> CamperAccommodations { get; set; } = new List<CamperAccommodation>();
 
     [ForeignKey("accommodationTypeId")]
     [InverseProperty("Accommodations")]
@@ -34,8 +35,4 @@ public partial class Accommodation
     [ForeignKey("campId")]
     [InverseProperty("Accommodations")]
     public virtual Camp camp { get; set; }
-
-    [ForeignKey("camperGroupId")]
-    [InverseProperty("Accommodations")]
-    public virtual CamperGroup camperGroup { get; set; }
 }

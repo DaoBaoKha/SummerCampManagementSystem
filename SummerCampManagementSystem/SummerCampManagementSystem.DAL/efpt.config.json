@@ -35,6 +35,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[AttendanceLog]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Badge]",
          "ObjectType": 0
       },
@@ -56,6 +60,10 @@
       },
       {
          "Name": "[dbo].[Camper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperAccommodation]",
          "ObjectType": 0
       },
       {
