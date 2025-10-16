@@ -19,14 +19,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public new async Task<IEnumerable<Camper>> GetAllAsync()
         {
             return await _context.Campers
-                .Include(c => c.HealthRecords)
+                .Include(c => c.HealthRecord) 
                 .ToListAsync();
         }
 
         public new async Task<Camper?> GetByIdAsync(int id)
         {
             return await _context.Campers
-                .Include(c => c.HealthRecords)
+                .Include(c => c.HealthRecord) 
                 .FirstOrDefaultAsync(c => c.camperId == id);
         }
     }

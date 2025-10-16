@@ -39,7 +39,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 //camper.HealthRecords = healthRecord;
 
-                camper.HealthRecords = new List<HealthRecord> { healthRecord };
+                camper.HealthRecord = healthRecord;
             }
 
             return _mapper.Map<CamperResponseDto>(camper);
@@ -80,9 +80,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.HealthRecords != null)
             {
                 //sửa db
-                var existingHealthRecord = existingCamper.HealthRecords.FirstOrDefault();
+                var existingHealthRecord = existingCamper.HealthRecord;
 
-                if (existingCamper.HealthRecords == null)
+                if (existingHealthRecord == null)
                 {
                     // Thêm mới nếu chưa có
                     var newRecord = _mapper.Map<HealthRecord>(dto.HealthRecords);
@@ -92,7 +92,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 else
                 {
                     // Cập nhật nếu đã có
-                    _mapper.Map(dto.HealthRecords, existingCamper.HealthRecords);
+                    _mapper.Map(dto.HealthRecords, existingHealthRecord);
                     //await _unitOfWork.HealthRecords.UpdateAsync(existingCamper.HealthRecord);
 
                     await _unitOfWork.HealthRecords.UpdateAsync(existingHealthRecord);

@@ -4,6 +4,7 @@ using Net.payOS;
 using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -66,23 +67,29 @@ namespace SummerCampManagementSystem.BLL.Services
                 // respond to the webhook based on the verification result
                 if (verifiedData.code == "00")
                 {
-                    long paymentId = verifiedData.orderCode;
-                    var payment = await _unitOfWork.Payments.GetByIdAsync((int)paymentId);
+                    long registrationId = verifiedData.orderCode;
+                    var registration = await _unitOfWork.Registrations.GetByIdAsync((int)registrationId);
 
-                    if (payment != null && payment.status == "Pending")
+                    if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
                     {
-                        var registration = await _unitOfWork.Registrations.GetQueryable()
-                            .FirstOrDefaultAsync(r => r.paymentId == paymentId);
+                        return;
+                    }
 
-                        if (registration != null)
-                        {
-                            payment.status = "Completed";
-                            registration.status = "Confirmed";
-                            
-                            await _unitOfWork.Payments.UpdateAsync(payment);
-                            await _unitOfWork.Registrations.UpdateAsync(registration);
-                            await _unitOfWork.CommitAsync();
-                        }
+                    // find payment related to this regis
+                    var payment = await _unitOfWork.Payments.GetQueryable()
+                        .Where(p => p.registrationId == registrationId && p.status == "Pending")
+                        .OrderByDescending(p => p.paymentDate) // take recent payment
+                        .FirstOrDefaultAsync();
+
+                    if (payment != null)
+                    {
+                        //update status
+                        payment.status = "Completed";
+                        registration.status = "Confirmed";
+
+                        await _unitOfWork.Payments.UpdateAsync(payment);
+                        await _unitOfWork.Registrations.UpdateAsync(registration);
+                        await _unitOfWork.CommitAsync();
                     }
                 }
             }
