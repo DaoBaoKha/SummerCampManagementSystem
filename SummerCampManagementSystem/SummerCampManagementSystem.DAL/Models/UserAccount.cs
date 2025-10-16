@@ -47,6 +47,9 @@ public partial class UserAccount
     [InverseProperty("staff")]
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 
+    [InverseProperty("staff")]
+    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
     [InverseProperty("user")]
     public virtual ICollection<BankUser> BankUsers { get; set; } = new List<BankUser>();
 

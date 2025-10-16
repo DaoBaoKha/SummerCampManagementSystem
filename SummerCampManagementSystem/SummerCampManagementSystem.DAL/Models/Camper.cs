@@ -25,6 +25,12 @@ public partial class Camper
     public DateOnly? dob { get; set; }
 
     [InverseProperty("camper")]
+    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
+    [InverseProperty("camper")]
+    public virtual ICollection<CamperAccommodation> CamperAccommodations { get; set; } = new List<CamperAccommodation>();
+
+    [InverseProperty("camper")]
     public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
 
     [InverseProperty("camper")]
@@ -34,7 +40,7 @@ public partial class Camper
     public virtual ICollection<CamperGuardian> CamperGuardians { get; set; } = new List<CamperGuardian>();
 
     [InverseProperty("camper")]
-    public virtual ICollection<HealthRecord> HealthRecords { get; set; } = new List<HealthRecord>();
+    public virtual HealthRecord HealthRecord { get; set; }
 
     [InverseProperty("camper")]
     public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();

@@ -16,8 +16,6 @@ public partial class Registration
 
     public int? campId { get; set; }
 
-    public int? paymentId { get; set; }
-
     [Column(TypeName = "datetime")]
     public DateTime? registrationCreateAt { get; set; }
 
@@ -26,8 +24,13 @@ public partial class Registration
 
     public int? appliedPromotionId { get; set; }
 
+    public string note { get; set; }
+
     [InverseProperty("registration")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+
+    [InverseProperty("registration")]
+    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
 
     [InverseProperty("registration")]
     public virtual ICollection<RegistrationCancel> RegistrationCancels { get; set; } = new List<RegistrationCancel>();
@@ -42,10 +45,6 @@ public partial class Registration
     [ForeignKey("campId")]
     [InverseProperty("Registrations")]
     public virtual Camp camp { get; set; }
-
-    [ForeignKey("paymentId")]
-    [InverseProperty("Registrations")]
-    public virtual Payment payment { get; set; }
 
     [ForeignKey("registrationId")]
     [InverseProperty("registrations")]

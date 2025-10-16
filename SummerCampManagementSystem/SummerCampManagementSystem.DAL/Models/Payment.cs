@@ -29,6 +29,9 @@ public partial class Payment
     [StringLength(255)]
     public string transactionCode { get; set; }
 
-    [InverseProperty("payment")]
-    public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
+    public int? registrationId { get; set; }
+
+    [ForeignKey("registrationId")]
+    [InverseProperty("Payments")]
+    public virtual Registration registration { get; set; }
 }

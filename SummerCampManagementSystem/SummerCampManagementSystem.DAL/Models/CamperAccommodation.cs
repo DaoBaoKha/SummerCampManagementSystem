@@ -8,27 +8,24 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("HealthRecord")]
-[Index("camperId", Name = "UQ_HealthRecord_CamperId", IsUnique = true)]
-public partial class HealthRecord
+[Table("CamperAccommodation")]
+public partial class CamperAccommodation
 {
     [Key]
-    public int healthRecordId { get; set; }
+    public int camperAccommodationId { get; set; }
 
-    public string condition { get; set; }
+    public int camperId { get; set; }
 
-    public string allergies { get; set; }
-
-    public bool? isAllergy { get; set; }
-
-    public string note { get; set; }
+    public int accommodationId { get; set; }
 
     [Column(TypeName = "datetime")]
-    public DateTime? createAt { get; set; }
+    public DateTime? assignedAt { get; set; }
 
-    public int? camperId { get; set; }
+    [ForeignKey("accommodationId")]
+    [InverseProperty("CamperAccommodations")]
+    public virtual Accommodation accommodation { get; set; }
 
     [ForeignKey("camperId")]
-    [InverseProperty("HealthRecord")]
+    [InverseProperty("CamperAccommodations")]
     public virtual Camper camper { get; set; }
 }

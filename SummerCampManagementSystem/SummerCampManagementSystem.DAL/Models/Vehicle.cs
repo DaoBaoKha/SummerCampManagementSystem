@@ -29,6 +29,9 @@ public partial class Vehicle
     public string status { get; set; }
 
     [InverseProperty("vehicle")]
+    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
+    [InverseProperty("vehicle")]
     public virtual ICollection<DriverSchedule> DriverSchedules { get; set; } = new List<DriverSchedule>();
 
     [InverseProperty("vehicle")]
