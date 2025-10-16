@@ -36,6 +36,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 campId = request.CampId,
                 appliedPromotionId = request.appliedPromotionId,
                 registrationCreateAt = DateTime.UtcNow,
+                note = request.Note,
                 status = RegistrationStatus.PendingApproval.ToString()
             };
 
@@ -61,7 +62,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (registration.status != RegistrationStatus.PendingApproval.ToString())
             {
-                throw new InvalidOperationException("Only registrations with 'PendingApproval' status can be approved.");
+                throw new InvalidOperationException("Only 'PendingApproval' registrations can be approved.");
             }
 
             registration.status = RegistrationStatus.Approved.ToString();
@@ -84,11 +85,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Cannot update a confirmed registration.");
             }
 
-            // Ghi nhận trạng thái cũ
             var wasApprovedOrPendingPayment = existingRegistration.status == RegistrationStatus.Approved.ToString() ||
+                                              existingRegistration.status == RegistrationStatus.PendingApproval.ToString() ||
                                               existingRegistration.status == RegistrationStatus.PendingPayment.ToString();
 
-            // Đồng bộ hóa camper list
+            // update campers
             var campersToRemove = existingRegistration.campers.Where(c => !request.CamperIds.Contains(c.camperId)).ToList();
             foreach (var camper in campersToRemove) { existingRegistration.campers.Remove(camper); }
 
@@ -105,8 +106,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             existingRegistration.campId = request.CampId;
             existingRegistration.appliedPromotionId = request.appliedPromotionId;
+            existingRegistration.note = request.Note;
 
-            // Nếu đơn hàng đã được duyệt, chuyển về trạng thái chờ duyệt lại
             if (wasApprovedOrPendingPayment)
             {
                 existingRegistration.status = RegistrationStatus.PendingApproval.ToString();
@@ -150,9 +151,9 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 registrationId = registration.registrationId,
                 CampName = registration.camp?.name ?? "N/A",
-                PaymentId = registration.paymentId,
                 RegistrationCreateAt = (DateTime)registration.registrationCreateAt,
                 Status = registration.status,
+                Note = registration.note,
                 Campers = registration.campers.Select(c => new CamperSummaryDto
                 {
                     CamperId = c.camperId,
@@ -196,23 +197,25 @@ namespace SummerCampManagementSystem.BLL.Services
 
             int amount = (int)registration.camp.price * registration.campers.Count;
 
+            // create new payment
             var newPayment = new Payment
             {
                 amount = amount,
                 paymentDate = DateTime.UtcNow,
                 status = "Pending",
-                method = "PayOS"
+                method = "PayOS",
+                registrationId = registration.registrationId 
             };
             await _unitOfWork.Payments.CreateAsync(newPayment);
-            await _unitOfWork.CommitAsync();
+            await _unitOfWork.CommitAsync(); 
 
-            registration.paymentId = newPayment.paymentId;
+            // update registration status
             registration.status = RegistrationStatus.PendingPayment.ToString();
             await _unitOfWork.Registrations.UpdateAsync(registration);
             await _unitOfWork.CommitAsync();
 
             var paymentData = new PaymentData(
-                orderCode: newPayment.paymentId,
+                orderCode: registration.registrationId,
                 amount: amount,
                 description: $"Thanh toan don hang #{registration.registrationId}",
                 items: new List<ItemData> { new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.campers.Count, amount) },
