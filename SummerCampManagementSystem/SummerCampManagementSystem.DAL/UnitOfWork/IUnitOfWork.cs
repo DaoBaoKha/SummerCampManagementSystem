@@ -15,13 +15,13 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICampRepository Camps { get; }
         ICampTypeRepository CampTypes { get; }
         ICamperRepository Campers { get; }
-        IPaymentRepository Payments { get; }
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }
         IActivityRepository Activities { get; }
         ICamperActivityRepository CamperActivities { get; }
         IHealthRecordRepository HealthRecords { get; }
+        ITransactionRepository Transactions { get; }
         Task<int> CommitAsync();
     }
 }

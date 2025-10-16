@@ -8,10 +8,10 @@ namespace SummerCampManagementSystem.API.Controllers
     [ApiController]
     public class PaymentController : ControllerBase
     {
-        private readonly IPaymentService _paymentService;
+        private readonly ITransactionService _paymentService;
         private readonly IConfiguration _configuration;
 
-        public PaymentController(IPaymentService paymentService, IConfiguration configuration)
+        public PaymentController(ITransactionService paymentService, IConfiguration configuration)
         {
             _paymentService = paymentService;
             _configuration = configuration;

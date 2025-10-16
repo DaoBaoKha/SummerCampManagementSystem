@@ -69,6 +69,9 @@ public partial class Camp
     public virtual ICollection<CampBadge> CampBadges { get; set; } = new List<CampBadge>();
 
     [InverseProperty("camp")]
+    public virtual ICollection<CampStaffAssignment> CampStaffAssignments { get; set; } = new List<CampStaffAssignment>();
+
+    [InverseProperty("camp")]
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 
     [InverseProperty("camp")]
@@ -79,9 +82,6 @@ public partial class Camp
 
     [InverseProperty("camp")]
     public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();
-
-    [InverseProperty("camp")]
-    public virtual ICollection<ManagerAssignment> ManagerAssignments { get; set; } = new List<ManagerAssignment>();
 
     [InverseProperty("camp")]
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();

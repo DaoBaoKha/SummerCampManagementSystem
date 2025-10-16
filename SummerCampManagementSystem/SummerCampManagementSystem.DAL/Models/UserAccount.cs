@@ -56,6 +56,9 @@ public partial class UserAccount
     [InverseProperty("author")]
     public virtual ICollection<Blog> Blogs { get; set; } = new List<Blog>();
 
+    [InverseProperty("staff")]
+    public virtual ICollection<CampStaffAssignment> CampStaffAssignments { get; set; } = new List<CampStaffAssignment>();
+
     [InverseProperty("supervisor")]
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 
@@ -83,9 +86,6 @@ public partial class UserAccount
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
-    [InverseProperty("manager")]
-    public virtual ICollection<ManagerAssignment> ManagerAssignments { get; set; } = new List<ManagerAssignment>();
-
     [InverseProperty("receiver")]
     public virtual ICollection<Message> Messagereceivers { get; set; } = new List<Message>();
 
@@ -103,6 +103,9 @@ public partial class UserAccount
 
     [InverseProperty("user")]
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+
+    [InverseProperty("user")]
+    public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
 
     [InverseProperty("reportedByNavigation")]
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();

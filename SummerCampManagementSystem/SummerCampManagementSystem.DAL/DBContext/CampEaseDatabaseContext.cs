@@ -40,6 +40,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<CampBadge> CampBadges { get; set; }
 
+    public virtual DbSet<CampStaffAssignment> CampStaffAssignments { get; set; }
+
     public virtual DbSet<CampType> CampTypes { get; set; }
 
     public virtual DbSet<Camper> Campers { get; set; }
@@ -84,15 +86,11 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Location> Locations { get; set; }
 
-    public virtual DbSet<ManagerAssignment> ManagerAssignments { get; set; }
-
     public virtual DbSet<Message> Messages { get; set; }
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
     public virtual DbSet<ParentCamper> ParentCampers { get; set; }
-
-    public virtual DbSet<Payment> Payments { get; set; }
 
     public virtual DbSet<Promotion> Promotions { get; set; }
 
@@ -243,6 +241,15 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.badge).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__badge__208CD6FA");
 
             entity.HasOne(d => d.camp).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__campI__2180FB33");
+        });
+
+        modelBuilder.Entity<CampStaffAssignment>(entity =>
+        {
+            entity.HasKey(e => e.campStaffAssignmentId).HasName("PK__ManagerA__703B219833FB8987");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.CampStaffAssignments).HasConstraintName("FK__ManagerAs__campI__151B244E");
+
+            entity.HasOne(d => d.staff).WithMany(p => p.CampStaffAssignments).HasConstraintName("FK__ManagerAs__manag__14270015");
         });
 
         modelBuilder.Entity<CampType>(entity =>
@@ -427,15 +434,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.route).WithMany(p => p.Locations).HasConstraintName("FK__Location__routeI__0B91BA14");
         });
 
-        modelBuilder.Entity<ManagerAssignment>(entity =>
-        {
-            entity.HasKey(e => e.managerAssignmentId).HasName("PK__ManagerA__703B219833FB8987");
-
-            entity.HasOne(d => d.camp).WithMany(p => p.ManagerAssignments).HasConstraintName("FK__ManagerAs__campI__151B244E");
-
-            entity.HasOne(d => d.manager).WithMany(p => p.ManagerAssignments).HasConstraintName("FK__ManagerAs__manag__14270015");
-        });
-
         modelBuilder.Entity<Message>(entity =>
         {
             entity.HasKey(e => e.messageId).HasName("PK__Message__4808B9934C3F9FF7");
@@ -461,13 +459,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.camper).WithMany(p => p.ParentCampers).HasConstraintName("FK__ParentCam__campe__2BFE89A6");
 
             entity.HasOne(d => d.parent).WithMany(p => p.ParentCampers).HasConstraintName("FK__ParentCam__paren__2B0A656D");
-        });
-
-        modelBuilder.Entity<Payment>(entity =>
-        {
-            entity.HasKey(e => e.paymentId).HasName("PK__Payment__A0D9EFC6D162629F");
-
-            entity.HasOne(d => d.registration).WithMany(p => p.Payments).HasConstraintName("FK_Payment_Registration");
         });
 
         modelBuilder.Entity<Promotion>(entity =>
@@ -500,6 +491,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.appliedPromotion).WithMany(p => p.Registrations).HasConstraintName("FK_Registration_AppliedPromotion");
 
             entity.HasOne(d => d.camp).WithMany(p => p.Registrations).HasConstraintName("FK__Registrat__campI__6CD828CA");
+
+            entity.HasOne(d => d.user).WithMany(p => p.Registrations).HasConstraintName("FK_Registration_UserAccount");
 
             entity.HasMany(d => d.campers).WithMany(p => p.registrations)
                 .UsingEntity<Dictionary<string, object>>(

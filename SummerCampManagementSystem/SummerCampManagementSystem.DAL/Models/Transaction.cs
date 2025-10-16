@@ -28,6 +28,12 @@ public partial class Transaction
     [Column(TypeName = "datetime")]
     public DateTime? transactionTime { get; set; }
 
+    [StringLength(50)]
+    public string method { get; set; }
+
+    [StringLength(255)]
+    public string transactionCode { get; set; }
+
     [ForeignKey("registrationId")]
     [InverseProperty("Transactions")]
     public virtual Registration registration { get; set; }

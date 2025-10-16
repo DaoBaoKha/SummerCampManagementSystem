@@ -26,11 +26,10 @@ public partial class Registration
 
     public string note { get; set; }
 
-    [InverseProperty("registration")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    public int? userId { get; set; }
 
     [InverseProperty("registration")]
-    public virtual ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
     [InverseProperty("registration")]
     public virtual ICollection<RegistrationCancel> RegistrationCancels { get; set; } = new List<RegistrationCancel>();
@@ -45,6 +44,10 @@ public partial class Registration
     [ForeignKey("campId")]
     [InverseProperty("Registrations")]
     public virtual Camp camp { get; set; }
+
+    [ForeignKey("userId")]
+    [InverseProperty("Registrations")]
+    public virtual UserAccount user { get; set; }
 
     [ForeignKey("registrationId")]
     [InverseProperty("registrations")]
