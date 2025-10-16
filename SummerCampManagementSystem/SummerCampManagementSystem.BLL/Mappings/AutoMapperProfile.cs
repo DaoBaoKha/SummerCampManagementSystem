@@ -8,6 +8,7 @@ using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
+using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.DAL.Models;
 
@@ -18,7 +19,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             // Camper mappings
-
 
             CreateMap<CamperRequestDto, Camper>();
 
@@ -31,7 +31,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();
             CreateMap<HealthRecord, HealthRecordResponseDto>();
-
 
             //Guardian mappings
             CreateMap<Guardian, GuardianResponseDto>()
@@ -52,13 +51,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Location mappings
             CreateMap<Location, LocationDto>()
                 .ForMember(dest => dest.Id,
-                           opt => opt.MapFrom(src => src.locationId)); 
+                           opt => opt.MapFrom(src => src.locationId));
 
             // Promotion mappings
             CreateMap<Promotion, PromotionDto>()
                 .ForMember(dest => dest.Id,
                            opt => opt.MapFrom(src => src.promotionId));
-
 
             CreateMap<Camp, CampResponseDto>()
                 .ForMember(dest => dest.CampType,
@@ -82,6 +80,18 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<CamperActivityCreateDto, CamperActivity>();
             CreateMap<CamperActivityUpdateDto, CamperActivity>();
+
+            //Promotion mappings
+            CreateMap<Promotion, PromotionResponseDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionId));
+
+            // Map request DTO to entity with conversions for date and naming differences
+            CreateMap<PromotionRequestDto, Promotion>()
+                .ForMember(dest => dest.promotionTypeId, opt => opt.MapFrom(src => src.PromotionTypeId));
+
+
+            CreateMap<PromotionType, PromotionTypeNameResponseDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionTypeId));
         }
     }
 }

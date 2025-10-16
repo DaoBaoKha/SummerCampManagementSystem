@@ -1,12 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SummerCampManagementSystem.BLL.DTOs.Promotion
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Promotion
 {
-    internal class PromotionRequestDto
+    public class PromotionRequestDto
     {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public DateOnly? startDate { get; set; }
+        public DateOnly? endDate { get; set; }
+        public string Status { get; set; }
+        public decimal? Percent { get; set; }
+        public decimal? MaxDiscountAmount { get; set; }
+        public int? createBy { get; set; }
+        public DateTime? createAt { get; set; }
+        public int? PromotionTypeId { get; set; }
+        public string Code { get; set; }
     }
 }

@@ -19,6 +19,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICampTypeRepository CampTypes { get; }
         public ICamperRepository Campers { get; }
         public IPaymentRepository Payments { get; }
+        public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
         public IActivityRepository Activities { get; }
@@ -28,7 +29,9 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
             ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
-            IBlogRepository blogs, IRouteRepository routes, IPaymentRepository payments, IPromotionTypeRepository promotionTypes, IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities, IHealthRecordRepository healthRecords)
+            IBlogRepository blogs, IRouteRepository routes, IPaymentRepository payments, IPromotionTypeRepository promotionTypes,
+            IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities,
+            IHealthRecordRepository healthRecords, IPromotionRepository promotions)
         {
             _context = context;
             Blogs = blogs;
@@ -43,6 +46,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Registrations = registrations;
             Routes = routes;
             Payments = payments;
+            Promotions = promotions;
             PromotionTypes = promotionTypes;
             Guardians = guardians;
             Activities = activities;

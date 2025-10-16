@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SummerCampManagementSystem.BLL.DTOs.PromotionType;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,18 @@ namespace SummerCampManagementSystem.BLL.DTOs.Promotion
 {
     public class PromotionResponseDto
     {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateOnly? startDate { get; set; }
+        public DateOnly? endDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal? Percent { get; set; }
+        public decimal? MaxDiscountAmount { get; set; }
+        public int? createBy { get; set; }
+        public DateTime? createAt { get; set; }
+        public PromotionTypeNameResponseDto? PromotionType { get; set; }
+        public string Code { get; set; } = string.Empty;
     }
 
     public class PromotionDto

@@ -155,6 +155,8 @@ builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 //builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
 builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
+builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPromotionTypeRepository, PromotionTypeRepository>();
 builder.Services.AddScoped<IPromotionTypeService, PromotionTypeService>();
 
