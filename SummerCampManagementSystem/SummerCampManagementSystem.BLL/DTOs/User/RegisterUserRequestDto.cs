@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using SummerCampManagementSystem.Core.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace SummerCampManagementSystem.BLL.DTOs.User
 {
@@ -20,5 +21,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.User
         public string Password { get; set; } = null!;
 
         public DateOnly? Dob { get; set; }
+    }
+
+    public class RegisterStaffRequestDto : RegisterUserRequestDto
+    {
+        public UserRole role { get; set; }
+
     }
 }

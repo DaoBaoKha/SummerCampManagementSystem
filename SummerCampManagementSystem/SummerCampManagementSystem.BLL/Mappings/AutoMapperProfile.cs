@@ -10,6 +10,7 @@ using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Mappings
@@ -87,6 +88,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<PromotionType, PromotionTypeNameResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionTypeId));
+
+            // Registration mappings
+            CreateMap<RegisterStaffRequestDto, UserAccount>()
+           .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
+           .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+           .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
         }
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.User
+﻿using SummerCampManagementSystem.Core.Enums;
+
+namespace SummerCampManagementSystem.BLL.DTOs.User
 {
     public class UserResponseDto
     {
@@ -8,7 +10,7 @@
         public string Email { get; set; } = string.Empty;
         public string PhoneNumber { get; set; } = string.Empty;
         public DateOnly DateOfBirth { get; set; }
-        public string Role { get; set; } = string.Empty;
+        public UserRole Role { get; set; } 
         public bool IsActive { get; set; }
     }
 }

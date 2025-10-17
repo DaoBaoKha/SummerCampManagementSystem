@@ -136,6 +136,10 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
+
+
+
+
 // singleton services
 builder.Services.AddSingleton(sp => new PayOS(payosClientId, payosApiKey, payosChecksumKey));
 
@@ -229,9 +233,13 @@ builder.Services.Configure<EmailSetting>(opts =>
 
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
 });
+
+
 
 // jwt auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

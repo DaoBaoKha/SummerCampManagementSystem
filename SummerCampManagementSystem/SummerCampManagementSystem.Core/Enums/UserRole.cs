@@ -5,8 +5,7 @@
         Admin = 1,
         Manager = 2,
         Staff = 3,
-        Parent = 4,
-        Camper = 5,
-        Driver = 6,
+        User = 4,
+        Driver = 5
     }
 }
