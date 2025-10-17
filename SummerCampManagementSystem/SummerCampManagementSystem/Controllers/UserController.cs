@@ -74,6 +74,22 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(registerResponse);
         }
 
+        [HttpPost("create-staff")]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateStaff([FromBody] RegisterStaffRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+          
+            var result = await _userService.CreateStaffAccountAsync(dto);
+
+            if (result == null)
+                return BadRequest(new { message = "Tạo tài khoản nhân viên không thành công. Email này đã được sử dụng!" });
+
+            return Ok(result);
+            
+        }
+
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp(VerifyOtpRequestDto model)
         {

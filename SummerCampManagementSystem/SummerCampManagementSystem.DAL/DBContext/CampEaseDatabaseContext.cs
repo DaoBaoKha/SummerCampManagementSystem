@@ -545,6 +545,9 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<UserAccount>(entity =>
         {
             entity.HasKey(e => e.userId).HasName("PK__UserAcco__CB9A1CFF87D326B1");
+            entity.Property(e => e.role)
+              .HasConversion<string>()
+              .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

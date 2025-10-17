@@ -12,6 +12,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task SendEmailAsync(string to, string subject, string body);
 
         Task SendOtpEmailAsync(string to, string otp, string purpose);
+
+        Task SendAccountCreatedEmailAsync(string toEmail, string role);
     }
 
     public class EmailService : IEmailService
@@ -51,6 +53,13 @@ namespace SummerCampManagementSystem.BLL.Interfaces
                 _logger?.LogError(ex, "Error sending email to {Recipient}", to);
                 throw;
             }
+        }
+
+        public async Task SendAccountCreatedEmailAsync(string toEmail, string role)
+        {
+            var subject = "Tài khoản CampEase đã được tạo";
+            var body = $"Xin chào,\n\nTài khoản {role} của bạn đã được tạo trong hệ thống CampEase.\nVui lòng đăng nhập và đổi mật khẩu.\n\nTrân trọng,\nĐội ngũ CampEase";
+            await SendEmailAsync(toEmail, subject, body);
         }
 
         public async Task SendOtpEmailAsync(string to, string otp, string purpose)

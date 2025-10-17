@@ -1,8 +1,10 @@
-﻿using Microsoft.Extensions.Caching.Memory;
+﻿using AutoMapper;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
@@ -19,13 +21,15 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IConfiguration _config;
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
+        private readonly IMapper _mapper;
 
-        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache, IEmailService emailService)
+        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache, IEmailService emailService, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _config = config;
             _cache = memoryCache;
             _emailService = emailService;
+            _mapper = mapper;
         }
 
 
@@ -173,7 +177,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
                 dob = model.Dob,
-                role = "User", // Default role
+                role = UserRole.User, // Default role
                 isActive = false,
                 createAt = DateTime.UtcNow
             };
@@ -201,6 +205,28 @@ namespace SummerCampManagementSystem.BLL.Services
                 Message = "Đăng ký thành công! OTP đã được gửi tới email của bạn."
             };
 
+        }
+
+        public async Task<RegisterUserResponseDto?> CreateStaffAccountAsync(RegisterStaffRequestDto model)
+        {
+            if (await _unitOfWork.Users.GetUserByEmail(model.Email) != null)
+                return null;
+
+            var newUser = _mapper.Map<UserAccount>(model);
+            newUser.password = HashPassword(model.Password);
+            newUser.isActive = true; // Admin tạo → active sẵn
+            newUser.createAt = DateTime.UtcNow;
+
+            await _unitOfWork.Users.CreateAsync(newUser);
+            await _unitOfWork.CommitAsync();
+
+            await _emailService.SendAccountCreatedEmailAsync(newUser.email, newUser.role.ToString());
+
+            return new RegisterUserResponseDto
+            {
+                UserId = newUser.userId,
+                Message = $"Tài khoản {newUser.role} tạo thành công!"
+            };
         }
 
         public async Task<VerifyOtpResponseDto?> VerifyOtpAsync(VerifyOtpRequestDto model)
