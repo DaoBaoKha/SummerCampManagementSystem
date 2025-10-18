@@ -177,7 +177,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
                 dob = model.Dob,
-                role = UserRole.User, // Default role
+                role = UserRole.User.ToString(), // Default role
                 isActive = false,
                 createAt = DateTime.UtcNow
             };
@@ -379,7 +379,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 Email = user.email,
                 PhoneNumber = user.phoneNumber,
                 DateOfBirth = (DateOnly)user.dob,
-                Role = user.role,
+                Role = Enum.TryParse<UserRole>(user.role, out var parsedRole) ? parsedRole : UserRole.User,
                 IsActive = (bool)user.isActive,
 
             };

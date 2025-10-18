@@ -24,6 +24,10 @@ public partial class Camper
 
     public DateOnly? dob { get; set; }
 
+    public byte[] faceTemplate { get; set; }
+
+    public string avatar { get; set; }
+
     [InverseProperty("camper")]
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 

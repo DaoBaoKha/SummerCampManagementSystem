@@ -14,10 +14,6 @@ public partial class Activity
     [Key]
     public int activityId { get; set; }
 
-    public int? campId { get; set; }
-
-    public int? staffId { get; set; }
-
     [StringLength(255)]
     public string activityType { get; set; }
 
@@ -26,23 +22,9 @@ public partial class Activity
 
     public string description { get; set; }
 
-    [StringLength(255)]
-    public string location { get; set; }
+    public int? campId { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime? startTime { get; set; }
-
-    [Column(TypeName = "datetime")]
-    public DateTime? endTime { get; set; }
-
-    [StringLength(50)]
-    public string status { get; set; }
-
-    public bool? isLivestream { get; set; }
-
-    [StringLength(255)]
-    [Unicode(false)]
-    public string roomId { get; set; }
+    public int? locationId { get; set; }
 
     [InverseProperty("activity")]
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
@@ -60,7 +42,7 @@ public partial class Activity
     [InverseProperty("Activities")]
     public virtual Camp camp { get; set; }
 
-    [ForeignKey("staffId")]
+    [ForeignKey("locationId")]
     [InverseProperty("Activities")]
-    public virtual UserAccount staff { get; set; }
+    public virtual Location location { get; set; }
 }

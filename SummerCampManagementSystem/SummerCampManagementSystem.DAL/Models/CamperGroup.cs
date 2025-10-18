@@ -25,6 +25,10 @@ public partial class CamperGroup
 
     public int? campId { get; set; }
 
+    public int? minAge { get; set; }
+
+    public int? maxAge { get; set; }
+
     [InverseProperty("group")]
     public virtual ICollection<Camper> Campers { get; set; } = new List<Camper>();
 
