@@ -24,9 +24,13 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Activity> Activities { get; set; }
 
+    public virtual DbSet<ActivitySchedule> ActivitySchedules { get; set; }
+
     public virtual DbSet<Album> Albums { get; set; }
 
     public virtual DbSet<AlbumPhoto> AlbumPhotos { get; set; }
+
+    public virtual DbSet<AlbumPhotoFace> AlbumPhotoFaces { get; set; }
 
     public virtual DbSet<AttendanceLog> AttendanceLogs { get; set; }
 
@@ -117,7 +121,6 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -168,9 +171,14 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.activityId).HasName("PK__Activity__0FC9CBEC92704BD9");
 
-            entity.HasOne(d => d.camp).WithMany(p => p.Activities).HasConstraintName("FK__Activity__campId__3587F3E0");
+            entity.HasOne(d => d.camp).WithMany(p => p.Activities).HasConstraintName("FK_Activity_Camp");
 
-            entity.HasOne(d => d.staff).WithMany(p => p.Activities).HasConstraintName("FK__Activity__staffI__367C1819");
+            entity.HasOne(d => d.location).WithMany(p => p.Activities).HasConstraintName("FK_Activity_Location");
+        });
+
+        modelBuilder.Entity<ActivitySchedule>(entity =>
+        {
+            entity.HasKey(e => e.activityScheduleId).HasName("PK__Activity__32136F49C26ADD1F");
         });
 
         modelBuilder.Entity<Album>(entity =>
@@ -185,6 +193,15 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasKey(e => e.albumPhotoId).HasName("PK__AlbumPho__695404581FC4A374");
 
             entity.HasOne(d => d.album).WithMany(p => p.AlbumPhotos).HasConstraintName("FK__AlbumPhot__album__00DF2177");
+        });
+
+        modelBuilder.Entity<AlbumPhotoFace>(entity =>
+        {
+            entity.HasKey(e => e.albumPhotoFaceId).HasName("PK__AlbumPho__CCCCD35F5649B2BA");
+
+            entity.HasOne(d => d.albumPhoto).WithMany(p => p.AlbumPhotoFaces)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_AlbumPhotoFace_AlbumPhoto");
         });
 
         modelBuilder.Entity<AttendanceLog>(entity =>
@@ -545,9 +562,6 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<UserAccount>(entity =>
         {
             entity.HasKey(e => e.userId).HasName("PK__UserAcco__CB9A1CFF87D326B1");
-            entity.Property(e => e.role)
-              .HasConversion<string>()
-              .HasMaxLength(50);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

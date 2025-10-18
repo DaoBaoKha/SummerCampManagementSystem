@@ -56,6 +56,10 @@ public partial class Camp
     [Column(TypeName = "datetime")]
     public DateTime? registrationEndDate { get; set; }
 
+    public int? minAge { get; set; }
+
+    public int? maxAge { get; set; }
+
     [InverseProperty("camp")]
     public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();
 

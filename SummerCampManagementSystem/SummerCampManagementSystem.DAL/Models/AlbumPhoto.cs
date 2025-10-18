@@ -22,6 +22,9 @@ public partial class AlbumPhoto
     [StringLength(255)]
     public string caption { get; set; }
 
+    [InverseProperty("albumPhoto")]
+    public virtual ICollection<AlbumPhotoFace> AlbumPhotoFaces { get; set; } = new List<AlbumPhotoFace>();
+
     [ForeignKey("albumId")]
     [InverseProperty("AlbumPhotos")]
     public virtual Album album { get; set; }

@@ -27,11 +27,19 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[ActivitySchedule]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Album]",
          "ObjectType": 0
       },
       {
          "Name": "[dbo].[AlbumPhoto]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AlbumPhotoFace]",
          "ObjectType": 0
       },
       {

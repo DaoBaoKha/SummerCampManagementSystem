@@ -25,6 +25,9 @@ public partial class Location
     public bool? isActive { get; set; }
 
     [InverseProperty("location")]
+    public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
+    [InverseProperty("location")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
     [ForeignKey("routeId")]
