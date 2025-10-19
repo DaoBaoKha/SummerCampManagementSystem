@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.Registration
+﻿using SummerCampManagementSystem.BLL.DTOs.Promotion;
+
+namespace SummerCampManagementSystem.BLL.DTOs.Registration
 {
     public class CamperSummaryDto
     {
@@ -13,6 +15,7 @@
         public DateTime RegistrationCreateAt { get; set; }
         public string Note { get; set; }
         public string Status { get; set; }
+        public PromotionSummaryDto AppliedPromotion { get; set; }
 
         public List<CamperSummaryDto> Campers { get; set; } = new List<CamperSummaryDto>();
     }
