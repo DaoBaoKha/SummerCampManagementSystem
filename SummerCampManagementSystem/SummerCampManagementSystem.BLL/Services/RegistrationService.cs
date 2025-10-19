@@ -171,7 +171,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             var registrations = await query
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) // Dùng AutoMapper
+                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
                 .ToListAsync();
 
             return registrations;
@@ -200,13 +200,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (existingPendingTransaction != null)
             {
-                // Trả về payment link cũ nếu có transaction pending
                 return new GeneratePaymentLinkResponseDto
                 {
                     RegistrationId = registration.registrationId,
                     Status = registration.status,
                     Amount = (decimal)existingPendingTransaction.amount,
-                    PaymentUrl = $"{_configuration["PayOS:RedirectUrl"]}?orderCode={registrationId}" // URL thanh toán cũ
+                    PaymentUrl = $"{_configuration["PayOS:RedirectUrl"]}?orderCode={registrationId}" // old url
                 };
             }
 
@@ -242,21 +241,22 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 amount = finalAmount,
                 transactionTime = DateTime.UtcNow,
-                status = "Pending", 
+                status = "Pending",
                 method = "PayOS",
                 type = "Payment",
                 registrationId = registration.registrationId
             };
-
             await _unitOfWork.Transactions.CreateAsync(newTransaction);
             await _unitOfWork.CommitAsync();
 
-            // update registration status
+            long uniqueOrderCode = long.Parse($"{newTransaction.transactionId}{DateTime.Now:fff}");
+            newTransaction.transactionCode = uniqueOrderCode.ToString();
+            await _unitOfWork.Transactions.UpdateAsync(newTransaction);
+
             registration.status = RegistrationStatus.PendingPayment.ToString();
             await _unitOfWork.Registrations.UpdateAsync(registration);
-            await _unitOfWork.CommitAsync();
 
-            long uniqueOrderCode = long.Parse($"{newTransaction.transactionId}{DateTime.Now:fff}");
+            await _unitOfWork.CommitAsync();    
 
             var paymentData = new PaymentData(
                 orderCode: uniqueOrderCode,
