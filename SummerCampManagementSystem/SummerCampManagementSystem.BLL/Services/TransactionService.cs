@@ -67,15 +67,21 @@ namespace SummerCampManagementSystem.BLL.Services
                 // respond to the webhook based on the verification result
                 if (verifiedData.code == "00")
                 {
-                    long transactionId = verifiedData.orderCode;
+                    long uniqueOrderCode = verifiedData.orderCode;
 
-                    var transaction = await _unitOfWork.Transactions.GetByIdAsync((int)transactionId);
+                    // find transaction by using transactionCode column
+                    string orderCodeString = uniqueOrderCode.ToString();
+                    var transaction = await _unitOfWork.Transactions.GetQueryable()
+                        .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
+
                     if (transaction == null || transaction.status != "Pending")
                     {
-                        return;
+                        return; 
                     }
 
+                    if (!transaction.registrationId.HasValue) return;
                     var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
+
                     if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
                     {
                         return;
