@@ -63,6 +63,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
                 .ForMember(dest => dest.Promotion,
                            opt => opt.MapFrom(src => src.promotion));
+
+            CreateMap<Promotion, PromotionSummaryDto>()
+                .ForMember(dest => dest.PromotionId, opt => opt.MapFrom(src => src.promotionId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
+                .ForMember(dest => dest.Percent, opt => opt.MapFrom(src => src.percent));
+
+
+            //Registration mapping
+            CreateMap<Registration, RegistrationResponseDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
+                .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.campers))
+                .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion));
+
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();
             CreateMap<ActivityCreateDto, Activity>();
@@ -94,6 +107,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
            .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
            .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
            .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
+
         }
     }
 }

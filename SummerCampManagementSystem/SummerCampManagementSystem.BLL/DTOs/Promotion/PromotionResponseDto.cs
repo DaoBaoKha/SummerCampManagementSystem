@@ -28,4 +28,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.Promotion
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty; 
     }
+
+    public class PromotionSummaryDto
+    {
+        public int PromotionId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public decimal? Percent { get; set; }
+    }
 }

@@ -32,4 +32,6 @@ public partial class ActivitySchedule
     [StringLength(255)]
     [Unicode(false)]
     public string roomId { get; set; }
+
+    public int? maxCapacity { get; set; }
 }

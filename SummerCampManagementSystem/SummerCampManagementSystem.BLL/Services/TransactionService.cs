@@ -67,30 +67,26 @@ namespace SummerCampManagementSystem.BLL.Services
                 // respond to the webhook based on the verification result
                 if (verifiedData.code == "00")
                 {
-                    long registrationId = verifiedData.orderCode;
-                    var registration = await _unitOfWork.Registrations.GetByIdAsync((int)registrationId);
+                    long transactionId = verifiedData.orderCode;
 
+                    var transaction = await _unitOfWork.Transactions.GetByIdAsync((int)transactionId);
+                    if (transaction == null || transaction.status != "Pending")
+                    {
+                        return;
+                    }
+
+                    var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
                     if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
                     {
                         return;
                     }
 
-                    // find transaction related to this regis
-                    var transaction = await _unitOfWork.Transactions.GetQueryable()
-                        .Where(p => p.registrationId == registrationId && p.status == "Pending")
-                        .OrderByDescending(t => t.transactionTime) // take recent transaction
-                        .FirstOrDefaultAsync();
+                    transaction.status = "Completed";
+                    registration.status = RegistrationStatus.PendingCompletion.ToString();
 
-                    if (transaction != null)
-                    {
-                        //update status
-                        transaction.status = "Completed";
-                        registration.status = "Confirmed";
-
-                        await _unitOfWork.Transactions.UpdateAsync(transaction);
-                        await _unitOfWork.Registrations.UpdateAsync(registration);
-                        await _unitOfWork.CommitAsync();
-                    }
+                    await _unitOfWork.Transactions.UpdateAsync(transaction);
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
+                    await _unitOfWork.CommitAsync();
                 }
             }
             catch (Exception ex)

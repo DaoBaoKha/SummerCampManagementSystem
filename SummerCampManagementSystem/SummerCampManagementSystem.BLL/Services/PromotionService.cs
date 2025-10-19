@@ -23,6 +23,8 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var newPromotion = _mapper.Map<Promotion>(promotion);
 
+            newPromotion.status = "Active";
+
             await _unitOfWork.Promotions.CreateAsync(newPromotion);
             await _unitOfWork.CommitAsync();
 

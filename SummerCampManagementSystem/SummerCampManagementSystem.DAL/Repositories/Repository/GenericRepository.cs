@@ -42,7 +42,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public Task UpdateAsync(T entity)
         {
             _context.Entry(entity).State = EntityState.Modified;
-             return Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public void Attach(T entity)
