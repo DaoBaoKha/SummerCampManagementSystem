@@ -12,8 +12,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperActivity
     {
         public int CamperActivityId { get; set; }
         public string? ParticipationStatus { get; set; }
-        public DateTime? CheckInTime { get; set; }
-        public DateTime? CheckOutTime { get; set; }
 
         public CamperSummaryDto? Camper { get; set; }
         public ActivitySummaryDto? Activity { get; set; }
