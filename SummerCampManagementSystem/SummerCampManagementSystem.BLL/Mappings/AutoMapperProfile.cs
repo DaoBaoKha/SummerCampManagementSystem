@@ -87,7 +87,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<Activity, ActivitySummaryDto>();
 
-            CreateMap<CamperActivityCreateDto, CamperActivity>();
+            CreateMap<CamperActivityCreateDto, CamperActivity>()
+                .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
             CreateMap<CamperActivityUpdateDto, CamperActivity>();
 
             //Promotion mappings
