@@ -13,7 +13,9 @@ using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using System.Net.Mime;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
@@ -207,6 +209,8 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 
 // Helper
 builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserContextService, UserContextService>();
 
 // Email service
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -255,6 +259,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnChallenge = async context =>
+            {
+                context.HandleResponse();
+
+                // set response
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                context.Response.ContentType = MediaTypeNames.Application.Json;
+
+                var responseBody = new
+                {
+                    status = 401,
+                    error = "Unauthorized",
+                    message = "Bạn cần đăng nhập để thực hiện hành động này. Vui lòng cung cấp token hợp lệ."
+                };
+
+                await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+            }
         };
     });
 

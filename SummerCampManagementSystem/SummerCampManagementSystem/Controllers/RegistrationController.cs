@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -7,6 +8,7 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/registration")]
     [ApiController]
+    [Authorize]
     public class RegistrationController : ControllerBase
     {
         private readonly IRegistrationService _registrationService;
