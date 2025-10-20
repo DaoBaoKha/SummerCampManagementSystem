@@ -21,15 +21,17 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly PayOS _payOS;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
+        private readonly IUserContextService _userContextService;
 
         public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService, 
-            PayOS payOS, IConfiguration configuration, IMapper mapper)
+            PayOS payOS, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
             _payOS = payOS;
             _configuration = configuration;
             _mapper = mapper;
+            _userContextService = userContextService;
         }
 
         public async Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request)
@@ -37,11 +39,17 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
                 ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
 
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                throw new UnauthorizedAccessException("Cannot get user ID from token. Please login again.");
+            }
+
             var newRegistration = new Registration
             {
                 campId = request.CampId,
                 appliedPromotionId = request.appliedPromotionId,
-                userId = request.userId,
+                userId = currentUserId.Value,
                 registrationCreateAt = DateTime.UtcNow,
                 note = request.Note,
                 status = RegistrationStatus.PendingApproval.ToString()
