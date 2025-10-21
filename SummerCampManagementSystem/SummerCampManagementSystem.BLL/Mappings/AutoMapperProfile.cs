@@ -11,6 +11,8 @@ using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.User;
+using SummerCampManagementSystem.BLL.DTOs.Vehicle;
+using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Mappings
@@ -105,9 +107,20 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // Registration mappings
             CreateMap<RegisterStaffRequestDto, UserAccount>()
-           .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
-           .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
-           .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+                .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
+                .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
+            //Vehicle mappings
+            CreateMap<VehicleRequestDto, Vehicle>();
+            CreateMap<Vehicle, VehicleResponseDto>();
+
+            //VehicleType mappings
+            CreateMap<VehicleTypeRequestDto, VehicleType>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
+
+            CreateMap<VehicleType, VehicleTypeResponseDto>();
 
 
         }

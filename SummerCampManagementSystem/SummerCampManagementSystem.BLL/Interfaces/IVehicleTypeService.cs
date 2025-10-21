@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using SummerCampManagementSystem.BLL.DTOs.VehicleType;
+using SummerCampManagementSystem.DAL.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,12 +10,12 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IVehicleTypeService
     {
-        Task<List<VehicleType>> GetAllVehicleTypesAsync();
-        Task<List<VehicleType>> GetActiveVehicleAsync();
-        Task<VehicleType?> GetVehicleTypeByIdAsync(int id);
-        Task CreateVehicleTypeAsync(VehicleType type);
-        Task UpdateVehicleTypeAsync(VehicleType type);
-        Task DeleteVehicleTypeAsync(int id);
+        Task<List<VehicleTypeResponseDto>> GetAllVehicleTypesAsync();
+        Task<List<VehicleTypeResponseDto>> GetActiveVehicleAsync();
+        Task<VehicleTypeResponseDto?> GetVehicleTypeByIdAsync(int id);
+        Task<VehicleTypeResponseDto> CreateVehicleTypeAsync(VehicleTypeRequestDto type);
+        Task<bool> UpdateVehicleTypeAsync(int id, VehicleTypeUpdateDto type);
+        Task<bool> DeleteVehicleTypeAsync(int id);
 
     }
 }
