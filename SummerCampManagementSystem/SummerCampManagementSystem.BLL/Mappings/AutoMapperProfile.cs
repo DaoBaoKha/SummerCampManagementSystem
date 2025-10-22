@@ -122,7 +122,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<VehicleType, VehicleTypeResponseDto>();
 
-
+            //Location mappings
+            CreateMap<LocationRequestDto, Location>();
+            CreateMap<Location, LocationResponseDto>();
         }
     }
 }

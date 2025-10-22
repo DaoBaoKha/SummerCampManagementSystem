@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SummerCampManagementSystem.BLL.DTOs.Location
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Location
 {
-    internal class LocationRequestDto
+    public class LocationRequestDto
     {
+        public int routeId { get; set; }
+        public string? Name { get; set; }
+        public string? locationType { get; set; }
     }
 }
