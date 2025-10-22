@@ -106,6 +106,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<RegistrationCancel> RegistrationCancels { get; set; }
 
+    public virtual DbSet<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; }
+
     public virtual DbSet<Report> Reports { get; set; }
 
     public virtual DbSet<Route> Routes { get; set; }
@@ -121,6 +123,7 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -172,13 +175,19 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasKey(e => e.activityId).HasName("PK__Activity__0FC9CBEC92704BD9");
 
             entity.HasOne(d => d.camp).WithMany(p => p.Activities).HasConstraintName("FK_Activity_Camp");
-
-            entity.HasOne(d => d.location).WithMany(p => p.Activities).HasConstraintName("FK_Activity_Location");
         });
 
         modelBuilder.Entity<ActivitySchedule>(entity =>
         {
             entity.HasKey(e => e.activityScheduleId).HasName("PK__Activity__32136F49C26ADD1F");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.ActivitySchedules)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ActivitySchedule_Activity");
+
+            entity.HasOne(d => d.location).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Location");
+
+            entity.HasOne(d => d.staff).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Staff");
         });
 
         modelBuilder.Entity<Album>(entity =>
@@ -208,7 +217,7 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.attendanceLogId).HasName("PK__Attendan__F147FFAE82437F18");
 
-            entity.HasOne(d => d.activity).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Activity");
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_ActivitySchedule");
 
             entity.HasOne(d => d.camper).WithMany(p => p.AttendanceLogs)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -300,7 +309,7 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.camperActivityId).HasName("PK__CamperAc__B77C246F3CB74DB4");
 
-            entity.HasOne(d => d.activity).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__activ__3A4CA8FD");
+            entity.HasOne(d => d.activity).WithMany(p => p.CamperActivities).HasConstraintName("FK_CamperActivity_Activity");
 
             entity.HasOne(d => d.camper).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__campe__395884C4");
         });
@@ -400,8 +409,6 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.groupActivityId).HasName("PK__GroupAct__4CEA4BBCEF38C6BA");
 
-            entity.HasOne(d => d.activity).WithMany(p => p.GroupActivities).HasConstraintName("FK__GroupActi__activ__3E1D39E1");
-
             entity.HasOne(d => d.camperGroup).WithMany(p => p.GroupActivities).HasConstraintName("FK__GroupActi__campe__3D2915A8");
         });
 
@@ -413,6 +420,10 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<HealthRecord>(entity =>
         {
             entity.HasKey(e => e.healthRecordId).HasName("PK__HealthRe__59B2D406F4033F3E");
+
+            entity.HasIndex(e => e.camperId, "UQ_HealthRecord_CamperId")
+                .IsUnique()
+                .HasFilter("([camperId] IS NOT NULL)");
 
             entity.HasOne(d => d.camper).WithOne(p => p.HealthRecord).HasConstraintName("FK__HealthRec__campe__2EDAF651");
         });
@@ -524,6 +535,7 @@ public partial class CampEaseDatabaseContext : DbContext
                     {
                         j.HasKey("registrationId", "camperId").HasName("PK__Registra__922EFE5614C859DF");
                         j.ToTable("RegistrationCamper");
+                        j.HasIndex(new[] { "camperId" }, "IX_RegistrationCamper_camperId");
                     });
         });
 
@@ -534,11 +546,26 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.registration).WithMany(p => p.RegistrationCancels).HasConstraintName("FK__Registrat__regis__73852659");
         });
 
+        modelBuilder.Entity<RegistrationOptionalActivity>(entity =>
+        {
+            entity.HasKey(e => e.registrationOptionalActivityId).HasName("PK__Registra__B2A97D0B42129393");
+
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.RegistrationOptionalActivities)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RegOptionalActivity_ActivitySchedule");
+
+            entity.HasOne(d => d.camper).WithMany(p => p.RegistrationOptionalActivities)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RegOptionalActivity_Camper");
+
+            entity.HasOne(d => d.registration).WithMany(p => p.RegistrationOptionalActivities)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RegOptionalActivity_Registration");
+        });
+
         modelBuilder.Entity<Report>(entity =>
         {
             entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
-
-            entity.HasOne(d => d.activity).WithMany(p => p.Reports).HasConstraintName("FK__Report__activity__42E1EEFE");
 
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 

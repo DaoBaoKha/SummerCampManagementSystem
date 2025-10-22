@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("RegistrationCancel")]
+[Index("registrationId", Name = "IX_RegistrationCancel_registrationId")]
 public partial class RegistrationCancel
 {
     [Key]

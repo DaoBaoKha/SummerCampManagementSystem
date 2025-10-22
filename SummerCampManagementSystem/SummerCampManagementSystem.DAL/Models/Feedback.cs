@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Feedback")]
+[Index("campId", Name = "IX_Feedback_campId")]
+[Index("registrationId", Name = "IX_Feedback_registrationId")]
+[Index("userId", Name = "IX_Feedback_userId")]
 public partial class Feedback
 {
     [Key]

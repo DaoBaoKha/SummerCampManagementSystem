@@ -45,6 +45,9 @@ public partial class UserAccount
     public DateOnly? dob { get; set; }
 
     [InverseProperty("staff")]
+    public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
+
+    [InverseProperty("staff")]
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     [InverseProperty("user")]
