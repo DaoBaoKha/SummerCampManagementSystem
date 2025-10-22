@@ -8,4 +8,10 @@
         public string routeName { get; set; } = string.Empty;
         public string status { get; set; } = string.Empty;
     }
+
+    public class RouteNameDto
+    {
+        public int routeId { get; set; }
+        public string routeName { get; set;} = string.Empty;
+    }
 }

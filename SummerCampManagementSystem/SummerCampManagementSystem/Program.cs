@@ -197,6 +197,9 @@ builder.Services.AddScoped<IRegistrationRepository, RegistrationRepository>();
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 
+builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
