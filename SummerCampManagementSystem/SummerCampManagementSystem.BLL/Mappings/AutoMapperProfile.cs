@@ -76,7 +76,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Registration, RegistrationResponseDto>()
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
                 .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.campers))
-                .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion));
+                .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion))
+                .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities)); 
+
+            CreateMap<RegistrationOptionalActivity, OptionalActivityChoiceSummaryDto>()
+                .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activitySchedule.activity.name)); 
 
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();

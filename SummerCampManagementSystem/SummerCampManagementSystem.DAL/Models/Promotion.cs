@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Promotion")]
+[Index("createBy", Name = "IX_Promotion_createBy")]
+[Index("promotionTypeId", Name = "IX_Promotion_promotionTypeId")]
 public partial class Promotion
 {
     [Key]

@@ -18,6 +18,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         public PromotionSummaryDto AppliedPromotion { get; set; }
 
         public List<CamperSummaryDto> Campers { get; set; } = new List<CamperSummaryDto>();
+        public List<OptionalActivityChoiceSummaryDto> OptionalChoices { get; set; } = new List<OptionalActivityChoiceSummaryDto>();
     }
 
     public class UpdateRegistrationResponseDto
@@ -33,5 +34,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         public string Status { get; set; } 
         public decimal Amount { get; set; }
         public string PaymentUrl { get; set; }
+    }
+
+    public class OptionalActivityChoiceSummaryDto
+    {
+        public int CamperId { get; set; }
+        public string ActivityName { get; set; }
+        public string Status { get; set; } 
     }
 }

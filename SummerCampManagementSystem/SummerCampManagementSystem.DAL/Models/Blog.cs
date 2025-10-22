@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Blog")]
+[Index("authorId", Name = "IX_Blog_authorId")]
 public partial class Blog
 {
     [Key]

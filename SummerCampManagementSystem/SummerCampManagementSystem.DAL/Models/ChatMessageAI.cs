@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("ChatMessageAI")]
+[Index("senderId", Name = "IX_ChatMessageAI_senderId")]
 public partial class ChatMessageAI
 {
     [Key]

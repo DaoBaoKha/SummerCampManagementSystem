@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("ChatRoomUser")]
+[Index("chatRoomId", Name = "IX_ChatRoomUser_chatRoomId")]
+[Index("userId", Name = "IX_ChatRoomUser_userId")]
 public partial class ChatRoomUser
 {
     [Key]

@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("BankUser")]
+[Index("userId", Name = "IX_BankUser_userId")]
 public partial class BankUser
 {
     [Key]

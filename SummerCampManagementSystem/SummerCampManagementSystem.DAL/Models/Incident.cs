@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Incident")]
+[Index("campId", Name = "IX_Incident_campId")]
+[Index("campStaffId", Name = "IX_Incident_campStaffId")]
+[Index("camperId", Name = "IX_Incident_camperId")]
 public partial class Incident
 {
     [Key]

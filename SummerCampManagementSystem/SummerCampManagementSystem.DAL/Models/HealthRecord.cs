@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("HealthRecord")]
-[Index("camperId", Name = "UQ_HealthRecord_CamperId", IsUnique = true)]
 public partial class HealthRecord
 {
     [Key]

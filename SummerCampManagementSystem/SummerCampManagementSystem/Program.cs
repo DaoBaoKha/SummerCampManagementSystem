@@ -180,6 +180,9 @@ builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
 
+builder.Services.AddScoped<IActivityScheduleRepository, ActivityScheduleRepository>();
+builder.Services.AddScoped<IActivityScheduleService, ActivityScheduleService>();
+
 builder.Services.AddScoped<ICamperActivityRepository, CamperActivityRepository>();
 builder.Services.AddScoped<ICamperActivityService, CamperActivityService>();
 
@@ -194,6 +197,10 @@ builder.Services.AddScoped<IVehicleTypeRepository, VehicleTypeRepository>();
 builder.Services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 builder.Services.AddScoped<IRegistrationService, RegistrationService>();
 builder.Services.AddScoped<IRegistrationRepository, RegistrationRepository>();
+
+builder.Services.AddScoped<IRegistrationOptionalActivityService, RegistrationOptionalActivityService>();
+builder.Services.AddScoped<IRegistrationOptionalActivityRepository, RegistrationOptionalActivityRepository>();
+
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 

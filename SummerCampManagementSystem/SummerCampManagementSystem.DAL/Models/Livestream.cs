@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Livestream")]
+[Index("hostId", Name = "IX_Livestream_hostId")]
 public partial class Livestream
 {
     [Key]
