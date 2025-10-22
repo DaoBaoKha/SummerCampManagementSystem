@@ -8,6 +8,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IUserRepository Users { get; }
         IRefreshTokenRepository RefreshTokens { get; }
         IRegistrationRepository Registrations { get; }
+        IRegistrationOptionalActivityRepository RegistrationsOptionalActivities { get; }
         IRouteRepository Routes { get; }
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
@@ -19,9 +20,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }
         IActivityRepository Activities { get; }
+        IActivityScheduleRepository ActivitySchedules { get; }
         ICamperActivityRepository CamperActivities { get; }
         IHealthRecordRepository HealthRecords { get; }
         ITransactionRepository Transactions { get; }
+        ILocationRepository Locations { get; }
         Task<int> CommitAsync();
     }
 }

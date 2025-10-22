@@ -34,4 +34,26 @@ public partial class ActivitySchedule
     public string roomId { get; set; }
 
     public int? maxCapacity { get; set; }
+
+    public bool isOptional { get; set; }
+
+    public int? locationId { get; set; }
+
+    [InverseProperty("activitySchedule")]
+    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
+    [InverseProperty("activitySchedule")]
+    public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();
+
+    [ForeignKey("activityId")]
+    [InverseProperty("ActivitySchedules")]
+    public virtual Activity activity { get; set; }
+
+    [ForeignKey("locationId")]
+    [InverseProperty("ActivitySchedules")]
+    public virtual Location location { get; set; }
+
+    [ForeignKey("staffId")]
+    [InverseProperty("ActivitySchedules")]
+    public virtual UserAccount staff { get; set; }
 }

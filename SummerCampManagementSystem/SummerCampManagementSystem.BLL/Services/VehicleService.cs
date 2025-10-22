@@ -1,4 +1,6 @@
-﻿using SummerCampManagementSystem.BLL.Interfaces;
+﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Vehicle;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
@@ -7,39 +9,50 @@ namespace SummerCampManagementSystem.BLL.Services
     public class VehicleService : IVehicleService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public VehicleService(IUnitOfWork unitOfWork)
+        private readonly IMapper _mapper;
+        public VehicleService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
-        public async Task CreateVehicleAsync(Vehicle vehicle)
+        public async Task<VehicleResponseDto> CreateVehicleAsync(VehicleRequestDto dto)
         {
+            var vehicle = _mapper.Map<Vehicle>(dto);
             await _unitOfWork.Vehicles.CreateAsync(vehicle);
             await _unitOfWork.CommitAsync();
+            return _mapper.Map<VehicleResponseDto>(vehicle);
         }
 
-        public async Task DeleteVehicleAsync(int id)
+        public async Task<bool> DeleteVehicleAsync(int id)
         {
             var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(id);
-            if (vehicle == null) return;
+            if (vehicle == null) return false;
 
             await _unitOfWork.Vehicles.RemoveAsync(vehicle);
             await _unitOfWork.CommitAsync();
+            return true;
         }
 
-        public async Task<IEnumerable<Vehicle>> GetAllVehicles()
+        public async Task<IEnumerable<VehicleResponseDto>> GetAllVehicles()
         {
-            return await _unitOfWork.Vehicles.GetAllAsync();
+            var vehicles =  await _unitOfWork.Vehicles.GetAllAsync();
+            return _mapper.Map<IEnumerable<VehicleResponseDto>>(vehicles);
         }
-        public async Task<Vehicle?> GetVehicleById(int id)
+        public async Task<VehicleResponseDto?> GetVehicleById(int id)
         {
-            return await _unitOfWork.Vehicles.GetByIdAsync(id);
+            var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(id);
+            return vehicle == null ? null : _mapper.Map<VehicleResponseDto>(vehicle);
         }
 
-        public async Task UpdateVehicleAsync(Vehicle vehicle)
+        public async Task<bool> UpdateVehicleAsync(int id, VehicleRequestDto vehicle)
         {
-            await _unitOfWork.Vehicles.UpdateAsync(vehicle);
+            var existingVehicle = await _unitOfWork.Vehicles.GetByIdAsync(id);
+            if (existingVehicle == null) return false;
+            _mapper.Map(vehicle, existingVehicle);
+            await _unitOfWork.Vehicles.UpdateAsync(existingVehicle);
             await _unitOfWork.CommitAsync();
+            return true;
         }
     }
 }

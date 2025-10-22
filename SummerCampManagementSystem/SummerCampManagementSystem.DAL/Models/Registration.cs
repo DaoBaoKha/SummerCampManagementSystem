@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Registration")]
+[Index("appliedPromotionId", Name = "IX_Registration_appliedPromotionId")]
+[Index("campId", Name = "IX_Registration_campId")]
+[Index("userId", Name = "IX_Registration_userId")]
 public partial class Registration
 {
     [Key]
@@ -33,6 +36,9 @@ public partial class Registration
 
     [InverseProperty("registration")]
     public virtual ICollection<RegistrationCancel> RegistrationCancels { get; set; } = new List<RegistrationCancel>();
+
+    [InverseProperty("registration")]
+    public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();
 
     [InverseProperty("registration")]
     public virtual ICollection<Transaction> Transactions { get; set; } = new List<Transaction>();

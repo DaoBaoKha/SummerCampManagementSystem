@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Driver")]
+[Index("userId", Name = "IX_Driver_userId")]
 public partial class Driver
 {
     [Key]

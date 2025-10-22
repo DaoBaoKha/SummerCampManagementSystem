@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("DriverSchedule")]
+[Index("campId", Name = "IX_DriverSchedule_campId")]
+[Index("driverId", Name = "IX_DriverSchedule_driverId")]
+[Index("vehicleId", Name = "IX_DriverSchedule_vehicleId")]
 public partial class DriverSchedule
 {
     [Key]

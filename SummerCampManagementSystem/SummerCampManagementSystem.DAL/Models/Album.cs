@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Album")]
+[Index("campId", Name = "IX_Album_campId")]
 public partial class Album
 {
     [Key]

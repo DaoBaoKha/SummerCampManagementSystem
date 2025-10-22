@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Report")]
+[Index("activityId", Name = "IX_Report_activityId")]
+[Index("camperId", Name = "IX_Report_camperId")]
+[Index("reportedBy", Name = "IX_Report_reportedBy")]
 public partial class Report
 {
     [Key]
@@ -33,10 +36,6 @@ public partial class Report
 
     [StringLength(50)]
     public string level { get; set; }
-
-    [ForeignKey("activityId")]
-    [InverseProperty("Reports")]
-    public virtual Activity activity { get; set; }
 
     [ForeignKey("camperId")]
     [InverseProperty("Reports")]

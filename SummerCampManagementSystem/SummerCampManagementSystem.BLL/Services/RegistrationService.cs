@@ -55,12 +55,41 @@ namespace SummerCampManagementSystem.BLL.Services
                 status = RegistrationStatus.PendingApproval.ToString()
             };
 
+            // add campers
             foreach (var camperId in request.CamperIds)
             {
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
                 _unitOfWork.Campers.Attach(camper);
                 newRegistration.campers.Add(camper);
+            }
+
+            // add optional activities for each campers
+            foreach (var optionalChoice in request.OptionalChoices)
+            {
+                // validation
+                if (!request.CamperIds.Contains(optionalChoice.CamperId))
+                {
+                    throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
+                }
+
+                var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalChoice.ActivityScheduleId)
+                    ?? throw new KeyNotFoundException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} not found.");
+
+                if (!activitySchedule.isOptional)
+                {
+                    throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
+                }
+
+                var registrationOptionalActivity = new RegistrationOptionalActivity
+                {
+                    registration = newRegistration,
+                    camperId = optionalChoice.CamperId,
+                    activityScheduleId = optionalChoice.ActivityScheduleId,
+                    status = "Pending" // status pending (not count as a slot yet
+                };
+
+                newRegistration.RegistrationOptionalActivities.Add(registrationOptionalActivity);
             }
 
             await _unitOfWork.Registrations.CreateAsync(newRegistration);

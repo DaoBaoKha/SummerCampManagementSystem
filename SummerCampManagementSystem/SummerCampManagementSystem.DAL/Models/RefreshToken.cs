@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("RefreshToken")]
+[Index("userId", Name = "IX_RefreshToken_userId")]
 public partial class RefreshToken
 {
     [Key]

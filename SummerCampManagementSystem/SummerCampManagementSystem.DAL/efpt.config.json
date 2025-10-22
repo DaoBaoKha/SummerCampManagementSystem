@@ -195,6 +195,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[RegistrationOptionalActivity]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Report]",
          "ObjectType": 0
       },
