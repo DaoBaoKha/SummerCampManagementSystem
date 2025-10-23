@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
 
-        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService, 
+        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService,
             PayOS payOS, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
@@ -62,34 +62,6 @@ namespace SummerCampManagementSystem.BLL.Services
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
                 _unitOfWork.Campers.Attach(camper);
                 newRegistration.campers.Add(camper);
-            }
-
-            // add optional activities for each campers
-            foreach (var optionalChoice in request.OptionalChoices)
-            {
-                // validation
-                if (!request.CamperIds.Contains(optionalChoice.CamperId))
-                {
-                    throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
-                }
-
-                var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalChoice.ActivityScheduleId)
-                    ?? throw new KeyNotFoundException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} not found.");
-
-                if (!activitySchedule.isOptional)
-                {
-                    throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
-                }
-
-                var registrationOptionalActivity = new RegistrationOptionalActivity
-                {
-                    registration = newRegistration,
-                    camperId = optionalChoice.CamperId,
-                    activityScheduleId = optionalChoice.ActivityScheduleId,
-                    status = "Pending" // status pending (not count as a slot yet
-                };
-
-                newRegistration.RegistrationOptionalActivities.Add(registrationOptionalActivity);
             }
 
             await _unitOfWork.Registrations.CreateAsync(newRegistration);
@@ -139,7 +111,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(c => !request.CamperIds.Contains(c.camperId)).ToList();
             foreach (var camper in campersToRemove)
             {
-                existingRegistration.campers.Remove(camper); 
+                existingRegistration.campers.Remove(camper);
             }
 
             var camperIdsToAdd = request.CamperIds
@@ -151,7 +123,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 _unitOfWork.Campers.Attach(camperToAdd);
 
-                existingRegistration.campers.Add(camperToAdd); 
+                existingRegistration.campers.Add(camperToAdd);
             }
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
@@ -174,7 +146,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var registration = await _unitOfWork.Registrations.GetQueryable()
                 .Where(r => r.registrationId == id)
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider)
                 .FirstOrDefaultAsync();
 
             return registration;
@@ -183,7 +155,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
         {
             var registrations = await _unitOfWork.Registrations.GetQueryable()
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
             return registrations;
@@ -208,7 +180,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             var registrations = await query
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
             return registrations;
@@ -222,7 +194,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(r => r.campers)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
-                .FirstOrDefaultAsync(r => r.registrationId == registrationId); 
+                .FirstOrDefaultAsync(r => r.registrationId == registrationId);
 
             if (registration == null) throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
 
@@ -253,12 +225,12 @@ namespace SummerCampManagementSystem.BLL.Services
             // start using dbcontext
             var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
 
-            
+
             using (var transaction = await dbContext.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    int optionalActivitiesTotalCost = 0; 
+                    int optionalActivitiesTotalCost = 0;
 
                     // remove old regis optional if theres any
                     if (registration.RegistrationOptionalActivities != null && registration.RegistrationOptionalActivities.Any())
@@ -294,7 +266,7 @@ namespace SummerCampManagementSystem.BLL.Services
                                 registrationId = registration.registrationId,
                                 camperId = optionalChoice.CamperId,
                                 activityScheduleId = optionalChoice.ActivityScheduleId,
-                                status = "Holding", 
+                                status = "Holding",
                                 createdTime = DateTime.UtcNow
                             };
                             _unitOfWork.RegistrationOptionalActivities.CreateAsync(optionalReg);
@@ -319,7 +291,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     // price logic
                     int baseAmount = (int)registration.camp.price * registration.campers.Count;
-                    int finalAmount = baseAmount + optionalActivitiesTotalCost; 
+                    int finalAmount = baseAmount + optionalActivitiesTotalCost;
 
                     // promotion logic
                     if (registration.appliedPromotionId.HasValue && registration.appliedPromotion != null)

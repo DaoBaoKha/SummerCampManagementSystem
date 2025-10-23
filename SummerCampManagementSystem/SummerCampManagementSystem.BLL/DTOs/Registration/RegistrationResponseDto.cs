@@ -31,7 +31,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
     public class GeneratePaymentLinkResponseDto
     {
         public int RegistrationId { get; set; }
-        public string Status { get; set; } 
+        public string Status { get; set; }
         public decimal Amount { get; set; }
         public string PaymentUrl { get; set; }
     }
@@ -40,7 +40,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
     {
         public int CamperId { get; set; }
         public string ActivityName { get; set; }
-        public string Status { get; set; } 
+        public string Status { get; set; }
     }
 
     public class CreateRegistrationResponseDto
@@ -49,12 +49,5 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         public string Status { get; set; } // pending
         public decimal Amount { get; set; }
         public string PaymentUrl { get; set; }
-    }
-
-    public class OptionalActivityChoiceSummaryDto
-    {
-        public int CamperId { get; set; }
-        public string ActivityName { get; set; }
-        public string Status { get; set; } 
     }
 }
