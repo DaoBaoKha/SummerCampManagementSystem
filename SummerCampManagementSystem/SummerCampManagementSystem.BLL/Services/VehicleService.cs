@@ -38,8 +38,18 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task UpdateVehicleAsync(Vehicle vehicle)
         {
+            Console.WriteLine($"🔄 [VehicleService] Updating vehicle:");
+            Console.WriteLine($"   - vehicleId: {vehicle.vehicleId}");
+            Console.WriteLine($"   - vehicleName: {vehicle.vehicleName}");
+            Console.WriteLine($"   - vehicleNumber: {vehicle.vehicleNumber}");
+            Console.WriteLine($"   - capacity: {vehicle.capacity}");
+            Console.WriteLine($"   - status: {vehicle.status}");
+            Console.WriteLine($"   - vehicleType: {vehicle.vehicleType}");
+
             await _unitOfWork.Vehicles.UpdateAsync(vehicle);
             await _unitOfWork.CommitAsync();
+
+            Console.WriteLine($"✅ [VehicleService] Vehicle updated and committed to database");
         }
     }
 }
