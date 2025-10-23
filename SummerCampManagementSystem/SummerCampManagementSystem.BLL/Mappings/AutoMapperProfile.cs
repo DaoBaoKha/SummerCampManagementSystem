@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
+using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
@@ -86,6 +87,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Activity, ActivityResponseDto>();
             CreateMap<ActivityCreateDto, Activity>();
 
+            //ActivitySchedule mappings
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activity.name));
+            CreateMap<ActivityScheduleCreateDto, ActivitySchedule>();
+
+            CreateMap<OptionalScheduleCreateDto, ActivitySchedule>()
+    .ForMember(dest => dest.isOptional, opt => opt.MapFrom(src => true)); 
             //CamperActivity mappings
             CreateMap<CamperActivity, CamperActivityResponseDto>()
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper))

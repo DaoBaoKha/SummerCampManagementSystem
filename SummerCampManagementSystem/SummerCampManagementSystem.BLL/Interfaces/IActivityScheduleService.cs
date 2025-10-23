@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,5 +9,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IActivityScheduleService
     {
+        Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
+        Task<ActivityScheduleResponseDto> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto, int coreScheduleId);
     }
 }

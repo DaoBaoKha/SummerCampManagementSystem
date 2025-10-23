@@ -50,4 +50,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         public decimal Amount { get; set; }
         public string PaymentUrl { get; set; }
     }
+
+    public class OptionalActivityChoiceSummaryDto
+    {
+        public int CamperId { get; set; }
+        public string ActivityName { get; set; }
+        public string Status { get; set; } 
+    }
 }
