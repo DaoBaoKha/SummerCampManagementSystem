@@ -68,8 +68,6 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Driver> Drivers { get; set; }
 
-    public virtual DbSet<DriverSchedule> DriverSchedules { get; set; }
-
     public virtual DbSet<DriverVehicle> DriverVehicles { get; set; }
 
     public virtual DbSet<FAQ> FAQs { get; set; }
@@ -114,11 +112,11 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Transaction> Transactions { get; set; }
 
+    public virtual DbSet<TransportSchedule> TransportSchedules { get; set; }
+
     public virtual DbSet<UserAccount> UserAccounts { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
-
-    public virtual DbSet<VehicleSchedule> VehicleSchedules { get; set; }
 
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
@@ -225,6 +223,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
             entity.HasOne(d => d.staff).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Staff");
 
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_TransportSchedule");
+
             entity.HasOne(d => d.vehicle).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Vehicle");
         });
 
@@ -309,7 +309,7 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.camperActivityId).HasName("PK__CamperAc__B77C246F3CB74DB4");
 
-            entity.HasOne(d => d.activity).WithMany(p => p.CamperActivities).HasConstraintName("FK_CamperActivity_Activity");
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.CamperActivities).HasConstraintName("FK_CamperActivity_ActivitySchedule");
 
             entity.HasOne(d => d.camper).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__campe__395884C4");
         });
@@ -369,17 +369,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.user).WithMany(p => p.Drivers).HasConstraintName("FK__Driver__userId__02084FDA");
         });
 
-        modelBuilder.Entity<DriverSchedule>(entity =>
-        {
-            entity.HasKey(e => e.driverScheduleId).HasName("PK__DriverSc__8ACADD5F9F179836");
-
-            entity.HasOne(d => d.camp).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__campI__531856C7");
-
-            entity.HasOne(d => d.driver).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__drive__51300E55");
-
-            entity.HasOne(d => d.vehicle).WithMany(p => p.DriverSchedules).HasConstraintName("FK__DriverSch__vehic__5224328E");
-        });
-
         modelBuilder.Entity<DriverVehicle>(entity =>
         {
             entity.HasKey(e => e.driverVehicleId).HasName("PK__DriverVe__D1A5D3882F71F9B3");
@@ -408,6 +397,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<GroupActivity>(entity =>
         {
             entity.HasKey(e => e.groupActivityId).HasName("PK__GroupAct__4CEA4BBCEF38C6BA");
+
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.GroupActivities).HasConstraintName("FK_GroupActivity_ActivitySchedule");
 
             entity.HasOne(d => d.camperGroup).WithMany(p => p.GroupActivities).HasConstraintName("FK__GroupActi__campe__3D2915A8");
         });
@@ -550,6 +541,8 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.registrationOptionalActivityId).HasName("PK__Registra__B2A97D0B42129393");
 
+            entity.Property(e => e.createdTime).HasDefaultValueSql("(getdate())");
+
             entity.HasOne(d => d.activitySchedule).WithMany(p => p.RegistrationOptionalActivities)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_RegOptionalActivity_ActivitySchedule");
@@ -586,6 +579,17 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.registration).WithMany(p => p.Transactions).HasConstraintName("FK__Transacti__regis__70A8B9AE");
         });
 
+        modelBuilder.Entity<TransportSchedule>(entity =>
+        {
+            entity.HasKey(e => e.transportScheduleId).HasName("PK__TransportSchedule");
+
+            entity.HasOne(d => d.driver).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Driver");
+
+            entity.HasOne(d => d.route).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Route");
+
+            entity.HasOne(d => d.vehicle).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Vehicle");
+        });
+
         modelBuilder.Entity<UserAccount>(entity =>
         {
             entity.HasKey(e => e.userId).HasName("PK__UserAcco__CB9A1CFF87D326B1");
@@ -596,15 +600,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasKey(e => e.vehicleId).HasName("PK__Vehicle__5B9D25F2463A0876");
 
             entity.HasOne(d => d.vehicleTypeNavigation).WithMany(p => p.Vehicles).HasConstraintName("FK__Vehicle__vehicle__4A8310C6");
-        });
-
-        modelBuilder.Entity<VehicleSchedule>(entity =>
-        {
-            entity.HasKey(e => e.vehicleScheduleId).HasName("PK__VehicleS__98B042A10CA86140");
-
-            entity.HasOne(d => d.route).WithMany(p => p.VehicleSchedules).HasConstraintName("FK__VehicleSc__route__0C50D423");
-
-            entity.HasOne(d => d.vehicle).WithMany(p => p.VehicleSchedules).HasConstraintName("FK__VehicleSc__vehic__0B5CAFEA");
         });
 
         modelBuilder.Entity<VehicleType>(entity =>

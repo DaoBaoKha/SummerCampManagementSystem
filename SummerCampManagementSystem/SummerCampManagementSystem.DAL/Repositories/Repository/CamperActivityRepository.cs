@@ -24,7 +24,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.CamperActivities
                  .Include(ca => ca.camper)
-                 .Include(ca => ca.activity)
+                 .Include(ca => ca.activitySchedule)
                 .ToListAsync();
         }
 
@@ -32,14 +32,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.CamperActivities
                 .Include(ca => ca.camper)
-                .Include(ca => ca.activity)
+                .Include(ca => ca.activitySchedule)
                 .FirstOrDefaultAsync(g => g.camperActivityId == id);
         }
 
         public async Task<bool> IsApprovedAsync(int camperId, int activityId)
         {
             return await _context.CamperActivities
-                .AnyAsync(ca => ca.camperId == camperId && ca.activityId == activityId);
+                .AnyAsync(ca => ca.camperId == camperId && ca.activityScheduleId == activityId);
         }
     }
 }

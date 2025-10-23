@@ -5,6 +5,7 @@ using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -67,6 +68,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // respond to the webhook based on the verification result
                 if (verifiedData.code == "00")
                 {
+                    int registrationId;
                     long uniqueOrderCode = verifiedData.orderCode;
 
                     // find transaction by using transactionCode column
@@ -80,6 +82,9 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
 
                     if (!transaction.registrationId.HasValue) return;
+
+                    registrationId = transaction.registrationId.Value;
+
                     var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
 
                     if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
@@ -88,7 +93,23 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
 
                     transaction.status = "Completed";
-                    registration.status = RegistrationStatus.PendingCompletion.ToString();
+                    registration.status = RegistrationStatus.Completed.ToString();
+
+
+                    // find optionalActivities with status holding
+                    var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
+                        .Where(roa => roa.registrationId == registrationId && roa.status == "Holding")
+                        .ToListAsync();
+
+                    if (optionalActivities.Any())
+                    {
+                        foreach (var activity in optionalActivities)
+                        {
+                            // change status from holding to confirmed
+                            activity.status = "Confirmed";
+                            _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
+                        }
+                    }
 
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
                     await _unitOfWork.Registrations.UpdateAsync(registration);

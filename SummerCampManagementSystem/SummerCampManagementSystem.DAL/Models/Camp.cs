@@ -83,9 +83,6 @@ public partial class Camp
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 
     [InverseProperty("camp")]
-    public virtual ICollection<DriverSchedule> DriverSchedules { get; set; } = new List<DriverSchedule>();
-
-    [InverseProperty("camp")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
     [InverseProperty("camp")]

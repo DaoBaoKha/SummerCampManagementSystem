@@ -115,10 +115,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[DriverSchedule]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[DriverVehicle]",
          "ObjectType": 0
       },
@@ -211,15 +207,15 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[TransportSchedule]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[UserAccount]",
          "ObjectType": 0
       },
       {
          "Name": "[dbo].[Vehicle]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[VehicleSchedule]",
          "ObjectType": 0
       },
       {

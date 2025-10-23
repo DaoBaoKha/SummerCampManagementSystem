@@ -27,7 +27,7 @@ public partial class Route
     public virtual ICollection<Location> Locations { get; set; } = new List<Location>();
 
     [InverseProperty("route")]
-    public virtual ICollection<VehicleSchedule> VehicleSchedules { get; set; } = new List<VehicleSchedule>();
+    public virtual ICollection<TransportSchedule> TransportSchedules { get; set; } = new List<TransportSchedule>();
 
     [ForeignKey("campId")]
     [InverseProperty("Routes")]

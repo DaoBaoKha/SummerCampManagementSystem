@@ -27,9 +27,6 @@ public partial class Activity
     [InverseProperty("activity")]
     public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
-    [InverseProperty("activity")]
-    public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
-
     [ForeignKey("campId")]
     [InverseProperty("Activities")]
     public virtual Camp camp { get; set; }
