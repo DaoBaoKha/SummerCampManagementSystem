@@ -13,5 +13,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CampResponseDto> UpdateCampAsync(int campId, CampRequestDto camp);
         Task<CampResponseDto> UpdateCampStatusAsync(int campId, CampStatusUpdateRequestDto statusUpdate);
         Task<bool> DeleteCampAsync(int id);
+        Task<CampResponseDto> TransitionCampStatusAsync(int campId, CampStatus newStatus);
     }
 }

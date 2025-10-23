@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -12,10 +13,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public CampService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IUserContextService _userContextService;
+
+        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _userContextService = userContextService;
         }
 
         public async Task<CampResponseDto> CreateCampAsync(CampRequestDto campRequest)
@@ -23,8 +27,14 @@ namespace SummerCampManagementSystem.BLL.Services
             // map the request DTO to the Camp entity
             var newCamp = _mapper.Map<Camp>(campRequest);
 
-            // map create status draft
-            newCamp.status = CampStatus.PendingApproval.ToString();
+            // get userId
+            newCamp.createBy = _userContextService.GetCurrentUserId();
+            if (newCamp.createBy == null)
+            {
+                throw new UnauthorizedAccessException("Người dùng hiện tại không hợp lệ hoặc chưa đăng nhập.");
+            }
+
+            newCamp.status = CampStatus.Draft.ToString();
 
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
@@ -40,7 +50,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return _mapper.Map<CampResponseDto>(createdCamp);
         }
-
         public async Task<bool> DeleteCampAsync(int id)
         {
             var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
@@ -80,6 +89,108 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
 
+        public async Task<CampResponseDto> TransitionCampStatusAsync(int campId, CampStatus newStatus)
+        {
+            var existingCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId);
+
+            if (existingCamp == null)
+            {
+                throw new Exception($"Camp with ID {campId} not found.");
+            }
+
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
+            {
+                throw new Exception("Trạng thái hiện tại của Camp không hợp lệ.");
+            }
+
+            bool isValidTransition = false;
+
+            // can change status to Cancelled from Draft, PendingApproval, Rejected, Published, OpenForRegistration, RegistrationClosed.
+            // cannot Cancelled from InProgress and Completed.
+            if (newStatus == CampStatus.Canceled)
+            {
+                if (currentStatus != CampStatus.InProgress && currentStatus != CampStatus.Completed && currentStatus != CampStatus.Canceled)
+                {
+                    isValidTransition = true;
+                }
+            }
+            else
+            {
+                switch (currentStatus)
+                {
+                    case CampStatus.Draft:
+                        if (newStatus == CampStatus.PendingApproval)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.PendingApproval:
+                        if (newStatus == CampStatus.Published)
+                        {
+                            isValidTransition = true;
+                        }
+                        else if (newStatus == CampStatus.Rejected)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Rejected:
+                        if (newStatus == CampStatus.PendingApproval)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Published:
+                        if (newStatus == CampStatus.OpenForRegistration)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.OpenForRegistration:
+                        if (newStatus == CampStatus.RegistrationClosed)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.RegistrationClosed:
+                        if (newStatus == CampStatus.InProgress)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.InProgress:
+                        if (newStatus == CampStatus.Completed)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Completed:
+                        break;
+                }
+            }
+
+            if (!isValidTransition)
+            {
+                throw new ArgumentException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã định.");
+            }
+
+            existingCamp.status = newStatus.ToString();
+
+            await _unitOfWork.Camps.UpdateAsync(existingCamp);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<CampResponseDto>(existingCamp);
+        }
+
+
         public async Task<CampResponseDto> UpdateCampAsync(int campId, CampRequestDto campRequest)
         {
             // get the existing camp with related entities
@@ -92,20 +203,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             _mapper.Map(campRequest, existingCamp);
-
-            if (!string.IsNullOrEmpty(campRequest.Status))
-            {
-
-                // change from dto to enum
-                if (Enum.TryParse(campRequest.Status, true, out CampStatus newStatus))
-                {
-                    existingCamp.status = newStatus.ToString();
-                }
-                else
-                {
-                    throw new ArgumentException($"Trạng thái '{campRequest.Status}' không hợp lệ.");
-                }
-            }
+            existingCamp.status = CampStatus.PendingApproval.ToString();
 
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
             await _unitOfWork.CommitAsync();
@@ -115,21 +213,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CampResponseDto> UpdateCampStatusAsync(int campId, CampStatusUpdateRequestDto statusUpdate)
         {
-            var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId);
-
-            if (existingCamp == null)
-            {
-                throw new Exception($"Camp with ID {campId} not found.");
-            }
-
-            // change enum to string
-            existingCamp.status = statusUpdate.Status.ToString();
-
-            await _unitOfWork.Camps.UpdateAsync(existingCamp);
-            await _unitOfWork.CommitAsync();
-
-            return _mapper.Map<CampResponseDto>(existingCamp);
+            return await TransitionCampStatusAsync(campId, statusUpdate.Status);
         }
 
         public async Task<IEnumerable<CampResponseDto>> GetCampsByStatusAsync(CampStatus? status = null)

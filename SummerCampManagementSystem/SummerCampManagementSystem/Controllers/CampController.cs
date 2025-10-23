@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -36,16 +36,12 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("status")]
-        public async Task<ActionResult<IEnumerable<CampResponseDto>>> GetCampsByStatus([FromQuery] CampStatus? status) 
+        public async Task<ActionResult<IEnumerable<CampResponseDto>>> GetCampsByStatus([FromQuery] CampStatus? status)
         {
             try
             {
                 var camps = await _campService.GetCampsByStatusAsync(status);
                 return Ok(camps);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
             }
             catch (Exception)
             {
@@ -54,6 +50,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteCamp(int id)
         {
             var result = await _campService.DeleteCampAsync(id);
@@ -61,10 +58,11 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = $"Camp with ID {id} not found." });
             }
-            return NoContent(); 
+            return NoContent();
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateCamp([FromBody] CampRequestDto camp)
         {
             if (!ModelState.IsValid)
@@ -75,6 +73,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var createdCamp = await _campService.CreateCampAsync(camp);
                 return CreatedAtAction(nameof(GetCampById), new { id = createdCamp.CampId }, createdCamp);
+            }
+            catch (UnauthorizedAccessException ex) // authorization error
+            {
+                return Unauthorized(new { message = ex.Message });
             }
             catch (ArgumentException ex)
             {
@@ -87,6 +89,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateCamp(int id, [FromBody] CampRequestDto camp)
         {
             if (!ModelState.IsValid)
@@ -113,20 +116,17 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPatch("{campId}/status")]
-        public async Task<ActionResult<CampResponseDto>> UpdateCampStatus(int campId,[FromBody] CampStatusUpdateRequestDto statusUpdate)
+        [Authorize]
+        public async Task<ActionResult<CampResponseDto>> UpdateCampStatus(int campId, [FromBody] CampStatusUpdateRequestDto statusUpdate)
         {
             try
             {
-                if (statusUpdate.Status.ToString() == "0") // check valid enum 
-                {
-                    return BadRequest("Invalid or missing status value.");
-                }
-
-                var updatedCamp = await _campService.UpdateCampStatusAsync(campId, statusUpdate);
+                // use TransitionCampStatusAsync to check bussiness flow
+                var updatedCamp = await _campService.TransitionCampStatusAsync(campId, statusUpdate.Status);
 
                 return Ok(updatedCamp);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException ex) 
             {
                 return BadRequest(new { message = ex.Message });
             }
@@ -139,6 +139,5 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error updating camp status." });
             }
         }
-
     }
 }
