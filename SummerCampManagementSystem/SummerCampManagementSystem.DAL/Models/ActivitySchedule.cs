@@ -39,8 +39,16 @@ public partial class ActivitySchedule
 
     public int? locationId { get; set; }
 
+    public int? currentCapacity { get; set; }
+
     [InverseProperty("activitySchedule")]
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
+
+    [InverseProperty("activitySchedule")]
+    public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
+
+    [InverseProperty("activitySchedule")]
+    public virtual ICollection<GroupActivity> GroupActivities { get; set; } = new List<GroupActivity>();
 
     [InverseProperty("activitySchedule")]
     public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();

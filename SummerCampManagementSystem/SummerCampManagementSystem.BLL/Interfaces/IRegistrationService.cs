@@ -17,7 +17,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<bool> DeleteRegistrationAsync(int id);
 
-        Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId);
-
+        Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request);
     }
 }

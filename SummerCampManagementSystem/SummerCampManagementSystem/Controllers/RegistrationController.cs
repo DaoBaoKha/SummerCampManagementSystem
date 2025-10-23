@@ -57,11 +57,13 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost("{id}/payment-link")]
-        public async Task<IActionResult> GeneratePaymentLink(int id)
+        public async Task<IActionResult> GeneratePaymentLink([FromRoute] int id, [FromBody] GeneratePaymentLinkRequestDto request)
         {
             try
             {
-                var response = await _registrationService.GeneratePaymentLinkAsync(id);
+                // take registrationId from URL (id)
+                // transfer registrationId and request body into Service
+                var response = await _registrationService.GeneratePaymentLinkAsync(id, request);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -71,6 +73,10 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An internal error occurred during payment link generation: " + ex.Message });
             }
         }
 

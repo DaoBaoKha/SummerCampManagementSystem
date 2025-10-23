@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("GroupActivity")]
-[Index("activityId", Name = "IX_GroupActivity_activityId")]
+[Index("activityScheduleId", Name = "IX_GroupActivity_activityId")]
 [Index("camperGroupId", Name = "IX_GroupActivity_camperGroupId")]
 public partial class GroupActivity
 {
@@ -18,10 +18,14 @@ public partial class GroupActivity
 
     public int? camperGroupId { get; set; }
 
-    public int? activityId { get; set; }
+    public int? activityScheduleId { get; set; }
 
     [StringLength(50)]
     public string status { get; set; }
+
+    [ForeignKey("activityScheduleId")]
+    [InverseProperty("GroupActivities")]
+    public virtual ActivitySchedule activitySchedule { get; set; }
 
     [ForeignKey("camperGroupId")]
     [InverseProperty("GroupActivities")]

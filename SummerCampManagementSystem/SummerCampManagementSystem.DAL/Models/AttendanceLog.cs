@@ -9,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("AttendanceLog")]
-[Index("activityScheduleId", Name = "IX_AttendanceLog_activityId")]
 [Index("camperId", Name = "IX_AttendanceLog_camperId")]
 [Index("staffId", Name = "IX_AttendanceLog_staffId")]
 [Index("vehicleId", Name = "IX_AttendanceLog_vehicleId")]
@@ -33,12 +32,14 @@ public partial class AttendanceLog
 
     public int? vehicleId { get; set; }
 
-    public int? activityScheduleId { get; set; }
+    public int? transportScheduleId { get; set; }
 
     public int? staffId { get; set; }
 
     [StringLength(255)]
     public string note { get; set; }
+
+    public int? activityScheduleId { get; set; }
 
     [ForeignKey("activityScheduleId")]
     [InverseProperty("AttendanceLogs")]
@@ -51,6 +52,10 @@ public partial class AttendanceLog
     [ForeignKey("staffId")]
     [InverseProperty("AttendanceLogs")]
     public virtual UserAccount staff { get; set; }
+
+    [ForeignKey("transportScheduleId")]
+    [InverseProperty("AttendanceLogs")]
+    public virtual TransportSchedule transportSchedule { get; set; }
 
     [ForeignKey("vehicleId")]
     [InverseProperty("AttendanceLogs")]

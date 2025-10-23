@@ -89,7 +89,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //CamperActivity mappings
             CreateMap<CamperActivity, CamperActivityResponseDto>()
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper))
-                .ForMember(dest => dest.Activity, opt => opt.MapFrom(src => src.activity));
+                .ForMember(dest => dest.Activity, opt => opt.MapFrom(src => src.activitySchedule));
 
             CreateMap<Activity, ActivitySummaryDto>();
 

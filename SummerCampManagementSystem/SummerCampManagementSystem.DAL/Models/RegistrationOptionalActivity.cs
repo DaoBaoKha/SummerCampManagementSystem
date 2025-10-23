@@ -23,6 +23,9 @@ public partial class RegistrationOptionalActivity
     [StringLength(50)]
     public string status { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? createdTime { get; set; }
+
     [ForeignKey("activityScheduleId")]
     [InverseProperty("RegistrationOptionalActivities")]
     public virtual ActivitySchedule activitySchedule { get; set; }

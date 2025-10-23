@@ -34,10 +34,10 @@ public partial class Driver
     public DateOnly? dob { get; set; }
 
     [InverseProperty("driver")]
-    public virtual ICollection<DriverSchedule> DriverSchedules { get; set; } = new List<DriverSchedule>();
+    public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();
 
     [InverseProperty("driver")]
-    public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();
+    public virtual ICollection<TransportSchedule> TransportSchedules { get; set; } = new List<TransportSchedule>();
 
     [ForeignKey("userId")]
     [InverseProperty("Drivers")]
