@@ -15,5 +15,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CamperActivityResponseDto> CreateAsync(CamperActivityCreateDto dto);
         Task<bool> UpdateAsync(int id, CamperActivityUpdateDto dto);
         Task<bool> DeleteAsync(int id);
+
+        Task<CamperActivityResponseDto> RegisterOptionalActivityAsync(CamperActivityCreateDto dto);
     }
 }

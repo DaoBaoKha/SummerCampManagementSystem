@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Camper")]
+[Index("groupId", Name = "IX_Camper_groupId")]
 public partial class Camper
 {
     [Key]
@@ -51,6 +52,9 @@ public partial class Camper
 
     [InverseProperty("camper")]
     public virtual ICollection<ParentCamper> ParentCampers { get; set; } = new List<ParentCamper>();
+
+    [InverseProperty("camper")]
+    public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();
 
     [InverseProperty("camper")]
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();

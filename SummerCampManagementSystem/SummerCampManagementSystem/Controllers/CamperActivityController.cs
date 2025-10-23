@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -45,6 +46,31 @@ namespace SummerCampManagementSystem.API.Controllers
             return CreatedAtAction(nameof(GetById), new { id = result.CamperActivityId }, result);
         }
 
+        [HttpPost("register-optional")]
+        public async Task<IActionResult> RegisterOptionalActivity([FromBody] CamperActivityCreateDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await _service.RegisterOptionalActivityAsync(dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
         // PUT api/<CamperActivityController>/5
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CamperActivityUpdateDto dto)
@@ -64,5 +90,7 @@ namespace SummerCampManagementSystem.API.Controllers
             var success = await _service.DeleteAsync(id);
             return success ? NoContent() : NotFound();
         }
+
+
     }
 }

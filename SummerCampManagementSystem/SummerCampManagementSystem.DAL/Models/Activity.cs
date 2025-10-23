@@ -24,25 +24,10 @@ public partial class Activity
 
     public int? campId { get; set; }
 
-    public int? locationId { get; set; }
-
     [InverseProperty("activity")]
-    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
-
-    [InverseProperty("activity")]
-    public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
-
-    [InverseProperty("activity")]
-    public virtual ICollection<GroupActivity> GroupActivities { get; set; } = new List<GroupActivity>();
-
-    [InverseProperty("activity")]
-    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
+    public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
     [ForeignKey("campId")]
     [InverseProperty("Activities")]
     public virtual Camp camp { get; set; }
-
-    [ForeignKey("locationId")]
-    [InverseProperty("Activities")]
-    public virtual Location location { get; set; }
 }

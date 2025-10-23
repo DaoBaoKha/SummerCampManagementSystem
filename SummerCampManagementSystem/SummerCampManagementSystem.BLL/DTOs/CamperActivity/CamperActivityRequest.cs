@@ -9,11 +9,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperActivity
     public class CamperActivityRequest
     {
         public string? ParticipationStatus { get; set; }
-        public DateTime? CheckInTime { get; set; }
-        public DateTime? CheckOutTime { get; set; }
+       
     }
 
-    public class CamperActivityCreateDto : CamperActivityRequest
+    public class CamperActivityCreateDto
     {
         public int CamperId { get; set; }
         public int ActivityId { get; set; }

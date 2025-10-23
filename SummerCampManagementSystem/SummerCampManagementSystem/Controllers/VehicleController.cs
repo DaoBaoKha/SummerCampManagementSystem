@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Google.Api;
+using Microsoft.AspNetCore.Mvc;
+using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Models;
@@ -46,23 +48,19 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Vehicle vehicle)
+        public async Task<IActionResult> Post([FromBody] VehicleRequestDto dto)
         {
-            if (ModelState.IsValid)
-            {
-                await _vehicleService.CreateVehicleAsync(vehicle);
-                return Ok(new { message = "Vehicle added successfully" });
-            }
-            else
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
-
             }
+            var result = await _vehicleService.CreateVehicleAsync(dto);
+            return CreatedAtAction(nameof(GetVehicleById), new { id = result.vehicleId }, result);
         }
 
         // PUT api/<VehicleTypeController>/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] Vehicle vehicle)
+        public async Task<IActionResult> Put(int id, [FromBody] VehicleRequestDto vehicle)
         {
             Console.WriteLine($"🔄 [VehicleController] PUT /api/vehicle/{id}");
             Console.WriteLine($"📥 [VehicleController] Received vehicle data:");
@@ -106,13 +104,8 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var existing = await _vehicleService.GetVehicleById(id);
-            if (existing == null)
-            {
-                return NotFound(new { message = "Vehicle not found" });
-            }
-            await _vehicleService.DeleteVehicleAsync(id);
-            return Ok(new { message = "Vehicle deleted successfully" });
+            var result = await _vehicleService.DeleteVehicleAsync(id);
+            return result ? NoContent() : NotFound();
         }
     }
 }

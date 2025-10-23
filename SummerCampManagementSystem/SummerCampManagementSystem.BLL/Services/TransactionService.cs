@@ -5,6 +5,7 @@ using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -67,30 +68,52 @@ namespace SummerCampManagementSystem.BLL.Services
                 // respond to the webhook based on the verification result
                 if (verifiedData.code == "00")
                 {
-                    long registrationId = verifiedData.orderCode;
-                    var registration = await _unitOfWork.Registrations.GetByIdAsync((int)registrationId);
+                    int registrationId;
+                    long uniqueOrderCode = verifiedData.orderCode;
+
+                    // find transaction by using transactionCode column
+                    string orderCodeString = uniqueOrderCode.ToString();
+                    var transaction = await _unitOfWork.Transactions.GetQueryable()
+                        .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
+
+                    if (transaction == null || transaction.status != "Pending")
+                    {
+                        return; 
+                    }
+
+                    if (!transaction.registrationId.HasValue) return;
+
+                    registrationId = transaction.registrationId.Value;
+
+                    var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
 
                     if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
                     {
                         return;
                     }
 
-                    // find transaction related to this regis
-                    var transaction = await _unitOfWork.Transactions.GetQueryable()
-                        .Where(p => p.registrationId == registrationId && p.status == "Pending")
-                        .OrderByDescending(t => t.transactionTime) // take recent transaction
-                        .FirstOrDefaultAsync();
+                    transaction.status = "Completed";
+                    registration.status = RegistrationStatus.Completed.ToString();
 
-                    if (transaction != null)
+
+                    // find optionalActivities with status holding
+                    var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
+                        .Where(roa => roa.registrationId == registrationId && roa.status == "Holding")
+                        .ToListAsync();
+
+                    if (optionalActivities.Any())
                     {
-                        //update status
-                        transaction.status = "Completed";
-                        registration.status = "Confirmed";
-
-                        await _unitOfWork.Transactions.UpdateAsync(transaction);
-                        await _unitOfWork.Registrations.UpdateAsync(registration);
-                        await _unitOfWork.CommitAsync();
+                        foreach (var activity in optionalActivities)
+                        {
+                            // change status from holding to confirmed
+                            activity.status = "Confirmed";
+                            _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
+                        }
                     }
+
+                    await _unitOfWork.Transactions.UpdateAsync(transaction);
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
+                    await _unitOfWork.CommitAsync();
                 }
             }
             catch (Exception ex)

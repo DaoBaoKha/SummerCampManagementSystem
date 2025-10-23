@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Vehicle")]
+[Index("vehicleType", Name = "IX_Vehicle_vehicleType")]
 public partial class Vehicle
 {
     [Key]
@@ -32,13 +33,10 @@ public partial class Vehicle
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     [InverseProperty("vehicle")]
-    public virtual ICollection<DriverSchedule> DriverSchedules { get; set; } = new List<DriverSchedule>();
-
-    [InverseProperty("vehicle")]
     public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();
 
     [InverseProperty("vehicle")]
-    public virtual ICollection<VehicleSchedule> VehicleSchedules { get; set; } = new List<VehicleSchedule>();
+    public virtual ICollection<TransportSchedule> TransportSchedules { get; set; } = new List<TransportSchedule>();
 
     [ForeignKey("vehicleType")]
     [InverseProperty("Vehicles")]

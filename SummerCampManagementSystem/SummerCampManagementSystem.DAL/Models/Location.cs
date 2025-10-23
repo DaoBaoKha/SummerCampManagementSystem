@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Location")]
+[Index("routeId", Name = "IX_Location_routeId")]
 public partial class Location
 {
     [Key]
@@ -25,7 +26,7 @@ public partial class Location
     public bool? isActive { get; set; }
 
     [InverseProperty("location")]
-    public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
+    public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
     [InverseProperty("location")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();

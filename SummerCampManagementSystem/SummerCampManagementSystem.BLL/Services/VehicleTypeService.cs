@@ -1,4 +1,7 @@
-﻿using SummerCampManagementSystem.BLL.Interfaces;
+﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Vehicle;
+using SummerCampManagementSystem.BLL.DTOs.VehicleType;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
@@ -12,44 +15,56 @@ namespace SummerCampManagementSystem.BLL.Services
     public class VehicleTypeService : IVehicleTypeService
     {
         private readonly IUnitOfWork _unitOfWork;
-        public VehicleTypeService(IUnitOfWork unitOfWork) 
+        private readonly IMapper _mapper;
+        public VehicleTypeService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
-        public async Task CreateVehicleTypeAsync(VehicleType type)
+        public async Task<VehicleTypeResponseDto> CreateVehicleTypeAsync(VehicleTypeRequestDto type)
         {
-            await _unitOfWork.VehicleTypes.CreateAsync(type);
+            var vehicleType = _mapper.Map<VehicleType>(type);
+            await _unitOfWork.VehicleTypes.CreateAsync(vehicleType);
             await _unitOfWork.CommitAsync();
+            return _mapper.Map<VehicleTypeResponseDto>(vehicleType);
         }
 
-        public async Task DeleteVehicleTypeAsync(int id)
+        public async Task<bool> DeleteVehicleTypeAsync(int id)
         {
             var type = await _unitOfWork.VehicleTypes.GetByIdAsync(id);
-            if (type == null) return;
+            if (type == null) return false;
 
             await _unitOfWork.VehicleTypes.RemoveAsync(type);
             await _unitOfWork.CommitAsync();
+            return true;
         }
 
-        public async Task<List<VehicleType>> GetActiveVehicleAsync()
+        public async Task<List<VehicleTypeResponseDto>> GetActiveVehicleAsync()
         {
-            return await _unitOfWork.VehicleTypes.GetActiveTypesAsync();
+            var activeTypes = await _unitOfWork.VehicleTypes.GetActiveTypesAsync();
+            return _mapper.Map<List<VehicleTypeResponseDto>>(activeTypes);
         }
 
-        public async Task<List<VehicleType>> GetAllVehicleTypesAsync()
+        public async Task<List<VehicleTypeResponseDto>> GetAllVehicleTypesAsync()
         {
-            return await _unitOfWork.VehicleTypes.GetAllAsync();
+            var vehicleTypes = await _unitOfWork.VehicleTypes.GetAllAsync();
+            return _mapper.Map<List<VehicleTypeResponseDto>>(vehicleTypes);
         }
 
-        public Task<VehicleType?> GetVehicleTypeByIdAsync(int id)
+        public async Task<VehicleTypeResponseDto?> GetVehicleTypeByIdAsync(int id)
         {
-            return _unitOfWork.VehicleTypes.GetByIdAsync(id);
+            var vehicleType = await _unitOfWork.VehicleTypes.GetByIdAsync(id);
+            return vehicleType == null ? null : _mapper.Map<VehicleTypeResponseDto>(vehicleType);
         }
 
-        public async Task UpdateVehicleTypeAsync(VehicleType type)
+        public async Task<bool> UpdateVehicleTypeAsync(int id, VehicleTypeUpdateDto type)
         {
-            await _unitOfWork.VehicleTypes.UpdateAsync(type);
+            var existingType = await _unitOfWork.VehicleTypes.GetByIdAsync(id);
+            if (existingType == null) return false;
+            _mapper.Map(type, existingType);
+            await _unitOfWork.VehicleTypes.UpdateAsync(existingType);
             await _unitOfWork.CommitAsync();
+            return true;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿    using Microsoft.AspNetCore.Mvc;
+using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 
@@ -18,7 +19,10 @@ namespace SummerCampManagementSystem.API.Controllers
         // GET: api/<VehicleTypeController>
         [HttpGet]
         public async Task<IActionResult> GetAll()
-        => Ok(await _vehicleTypeService.GetAllVehicleTypesAsync());
+        {
+            var types = await _vehicleTypeService.GetAllVehicleTypesAsync();
+            return Ok(types);
+        }
 
         // GET api/<VehicleTypeController>/5
         [HttpGet("{id}")]
@@ -34,54 +38,42 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpGet("active")]
         public async Task<IActionResult> GetActive()
-      => Ok(await _vehicleTypeService.GetActiveVehicleAsync());
+        {
+            var types = await _vehicleTypeService.GetActiveVehicleAsync();
+            return Ok(types);
+        }
 
         // POST api/<VehicleTypeController>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] VehicleType type)
+        public async Task<IActionResult> Post([FromBody] VehicleTypeRequestDto type)
         {
-            if (ModelState.IsValid)
-            {
-                await _vehicleTypeService.CreateVehicleTypeAsync(type);
-                return Ok(new { message = "Vehicle type added successfully" });
-            }
-            else
-            {
+           if(!ModelState.IsValid)
+           {
                 return BadRequest(ModelState);
-
-            }
+           }
+            var createdType = await _vehicleTypeService.CreateVehicleTypeAsync(type);
+            return CreatedAtAction(nameof(Get), new { id = createdType.vehicleTypeId }, createdType);
         }
 
         // PUT api/<VehicleTypeController>/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> Put(int id, [FromBody] VehicleType vehicleType)
+        public async Task<IActionResult> Put(int id, [FromBody] VehicleTypeUpdateDto vehicleType)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(new {message= "Input data is invalid" });
+                return BadRequest(ModelState);
             }
 
-            var existing = await _vehicleTypeService.GetVehicleTypeByIdAsync(id);
-            if (existing == null)
-            {
-                return NotFound(new { message = "Vehicle type not found" });
-            }
-
-            await _vehicleTypeService.UpdateVehicleTypeAsync(vehicleType);
-            return Ok(new { message = "Vehicle type updated successfully" });
+            var result = await _vehicleTypeService.UpdateVehicleTypeAsync(id, vehicleType);
+            return result ? NoContent() : NotFound(new {message = "Vehicle type not found"});
         }
 
         // DELETE api/<VehicleTypeController>/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var existing = await _vehicleTypeService.GetVehicleTypeByIdAsync(id);
-            if (existing == null)
-            {
-                return NotFound(new { message = "Vehicle type not found" });
-            }
-            await _vehicleTypeService.DeleteVehicleTypeAsync(id);
-            return Ok(new { message = "Vehicle type deleted successfully" });
+            var res = await _vehicleTypeService.DeleteVehicleTypeAsync(id);
+            return res ? NoContent() : NotFound(new { message = "Vehicle type not found" });
         }
     }
 }
