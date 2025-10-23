@@ -1,4 +1,6 @@
-﻿using SummerCampManagementSystem.DAL.Repositories.Interfaces;
+﻿using Microsoft.EntityFrameworkCore.Storage;
+using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
 namespace SummerCampManagementSystem.DAL.UnitOfWork
 {
@@ -8,7 +10,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IUserRepository Users { get; }
         IRefreshTokenRepository RefreshTokens { get; }
         IRegistrationRepository Registrations { get; }
-        IRegistrationOptionalActivityRepository RegistrationsOptionalActivities { get; }
+        IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
         IRouteRepository Routes { get; }
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
@@ -26,5 +28,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ITransactionRepository Transactions { get; }
         ILocationRepository Locations { get; }
         Task<int> CommitAsync();
+        Task<IDbContextTransaction> BeginTransactionAsync();
+        CampEaseDatabaseContext GetDbContext();
     }
 }

@@ -49,5 +49,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context.Set<T>().Attach(entity);
         }
+
+        // delete multiple entities
+        public void RemoveRange(IEnumerable<T> entities)
+        {
+            _context.Set<T>().RemoveRange(entities);
+        }
+
     }
 }

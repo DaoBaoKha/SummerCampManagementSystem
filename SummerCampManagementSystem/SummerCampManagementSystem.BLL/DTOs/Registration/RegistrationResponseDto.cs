@@ -42,4 +42,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         public string ActivityName { get; set; }
         public string Status { get; set; } 
     }
+
+    public class CreateRegistrationResponseDto
+    {
+        public int RegistrationId { get; set; }
+        public string Status { get; set; } // pending
+        public decimal Amount { get; set; }
+        public string PaymentUrl { get; set; }
+    }
 }
