@@ -40,6 +40,41 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(registrations);
         }
 
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetRegistrationsByCampId(int campId)
+        {
+            try
+            {
+                var registrations = await _registrationService.GetRegistrationByCampIdAsync(campId);
+
+                return Ok(registrations);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving registrations by camp ID.", details = ex.Message });
+            }
+        }
+
+        [HttpGet("history")]
+        public async Task<IActionResult> GetUserRegistrationHistory()
+        {
+            try
+            {
+                var history = await _registrationService.GetUserRegistrationHistoryAsync();
+
+                return Ok(history);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving user registration history.", details = ex.Message });
+            }
+        }
+
+
         [HttpPost]
         //use create registration dto
         public async Task<IActionResult> CreateRegistration([FromBody] CreateRegistrationRequestDto registration)
