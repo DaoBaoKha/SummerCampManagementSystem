@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -34,7 +34,23 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(promotion);
         }
 
+        [HttpGet("valid")]
+        public async Task<IActionResult> GetValidPromotions()
+        {
+            try
+            {
+                var promotions = await _promotionService.GetValidPromotionsAsync();
+
+                return Ok(promotions);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving valid promotions.", details = ex.Message });
+            }
+        }
+
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreatePromotion([FromBody] PromotionRequestDto promotionDto)
         {
             if (!ModelState.IsValid)
@@ -54,6 +70,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdatePromotion(int id, [FromBody] PromotionRequestDto promotionDto)
         {
             if (!ModelState.IsValid)
@@ -73,6 +90,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeletePromotion(int id)
         {
             var result = await _promotionService.DeletePromotionAsync(id);

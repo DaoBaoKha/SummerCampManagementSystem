@@ -6,11 +6,8 @@
         public string Description { get; set; }
         public DateOnly? startDate { get; set; }
         public DateOnly? endDate { get; set; }
-        public string Status { get; set; }
         public decimal? Percent { get; set; }
         public decimal? MaxDiscountAmount { get; set; }
-        public int? createBy { get; set; }
-        public DateTime? createAt { get; set; }
         public int? PromotionTypeId { get; set; }
         public string Code { get; set; }
     }
