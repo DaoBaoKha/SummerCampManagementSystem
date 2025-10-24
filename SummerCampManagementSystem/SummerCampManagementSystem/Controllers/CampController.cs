@@ -139,5 +139,30 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error updating camp status." });
             }
         }
+
+        [HttpPatch("{campId}/submit-for-approval")]
+        [Authorize]
+        public async Task<ActionResult<CampResponseDto>> SubmitForApproval(int campId)
+        {
+            try
+            {
+                // use SubmitForApprovalAsync, check Activity/Group/Staff
+                var updatedCamp = await _campService.SubmitForApprovalAsync(campId);
+
+                return Ok(updatedCamp);
+            }
+            catch (ArgumentException ex) // flow error 
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex.Message.Contains("not found"))
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error submitting camp for approval." });
+            }
+        }
     }
 }
