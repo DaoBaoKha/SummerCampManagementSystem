@@ -11,5 +11,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
         Task<ActivityScheduleResponseDto> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto, int coreScheduleId);
+        Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync();
     }
 }

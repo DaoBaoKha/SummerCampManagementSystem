@@ -15,6 +15,14 @@ namespace SummerCampManagementSystem.API.Controllers
             _service = service;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _service.GetAllSchedulesAsync();
+            return Ok(result);
+        }
+
+
         [HttpPost("core")]
         public async Task<IActionResult> CreateCore([FromBody] ActivityScheduleCreateDto dto)
         {

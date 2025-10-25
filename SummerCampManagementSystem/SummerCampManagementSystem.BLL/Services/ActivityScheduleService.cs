@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -17,6 +18,13 @@ namespace SummerCampManagementSystem.BLL.Services
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
+
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync()
+        {
+            var activities = await _unitOfWork.ActivitySchedules.GetAllAsync();
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
+        }
+
 
         public async Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
         {
@@ -89,7 +97,7 @@ namespace SummerCampManagementSystem.BLL.Services
             
             var schedule = _mapper.Map<ActivitySchedule>(dto);
 
-            schedule.currentCapacity = currentCapacity; // ← Thêm dòng này
+            schedule.currentCapacity = currentCapacity;
 
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
@@ -127,11 +135,51 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only Optional activities can be created inside a core optional slot");
 
-            // Check time within core slot
-            //if (dto.StartTime < coreSlot.startTime || dto.EndTime > coreSlot.endTime)
-            //    throw new InvalidOperationException("Optional schedule must be within the core optional slot");
+            if (dto.locationId.HasValue)
+            {
+                var location = await _unitOfWork.Locations.GetByIdAsync(dto.locationId.Value)
+              ?? throw new KeyNotFoundException("Location not found");
+
+                bool locationConflict = await _unitOfWork.ActivitySchedules
+                    .ExistsInSameTimeAndLocationAsync(dto.locationId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
+
+                if (locationConflict)
+                    throw new InvalidOperationException("This location is already occupied during the selected time range.");
+            }
+
+            if (dto.StaffId.HasValue)
+            {
+                var staff = await _unitOfWork.Users.GetByIdAsync(dto.StaffId.Value)
+                    ?? throw new KeyNotFoundException("Staff not found.");
+
+
+                if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
+
+                {
+                    throw new InvalidOperationException("Assigned user is not a staff member.");
+                }
+
+                // 4.2 Staff không được là supervisor của CamperGroup nào
+                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+
+
+                if (isSupervisor)
+                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+
+                // 4.3 Staff không được trùng lịch với activity khác
+                bool staffConflict = await _unitOfWork.ActivitySchedules
+                    .IsStaffBusyAsync(dto.StaffId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
+
+                if (staffConflict)
+                    throw new InvalidOperationException("Staff has another activity scheduled during this time.");
+            }
+
 
             var schedule = _mapper.Map<ActivitySchedule>(dto);
+
+            schedule.startTime = coreSlot.startTime;
+            schedule.endTime = coreSlot.endTime;
+            schedule.roomId = coreSlot.activityScheduleId.ToString();
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
