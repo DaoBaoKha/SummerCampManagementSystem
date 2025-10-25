@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
@@ -86,10 +87,14 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();
             CreateMap<ActivityCreateDto, Activity>();
+            CreateMap<Activity, ActivitySummaryDto>();
+
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
-                .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activity.name));
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
+
+            CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>();
+
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
@@ -106,7 +111,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper))
                 .ForMember(dest => dest.Activity, opt => opt.MapFrom(src => src.activitySchedule));
 
-            CreateMap<Activity, ActivitySummaryDto>();
 
             CreateMap<CamperActivityCreateDto, CamperActivity>()
                 .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
@@ -144,6 +148,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Location mappings
             CreateMap<LocationRequestDto, Location>();
             CreateMap<Location, LocationResponseDto>();
+
+            CreateMap<AttendanceLog, AttendanceLogDto>()
+          .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.firstName + " " + src.staff.lastName));
+         
+
         }
     }
 }

@@ -8,5 +8,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<bool> ExistsInSameTimeAndLocationAsync(int locationId, DateTime start, DateTime end);
         Task<bool> IsStaffBusyAsync(int staffId, DateTime start, DateTime end);
         Task<ActivitySchedule?> GetByIdWithActivityAsync(int id);
+        Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId);
+        Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId);
     }
 }
