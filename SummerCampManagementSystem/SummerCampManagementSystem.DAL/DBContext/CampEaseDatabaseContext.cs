@@ -539,7 +539,7 @@ public partial class CampEaseDatabaseContext : DbContext
 
         modelBuilder.Entity<RegistrationOptionalActivity>(entity =>
         {
-            entity.HasKey(e => e.registrationOptionalActivityId).HasName("PK__Registra__B2A97D0B42129393");
+            entity.HasKey(e => e.registrationOptionalActivityId).HasName("PK__Registra__B2A97D0BF622F2B0");
 
             entity.Property(e => e.createdTime).HasDefaultValueSql("(getdate())");
 

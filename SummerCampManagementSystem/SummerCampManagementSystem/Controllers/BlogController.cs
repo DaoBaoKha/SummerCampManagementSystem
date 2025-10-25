@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -32,6 +33,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateBlogPost([FromBody] BlogRequestDto blogPost)
         {
             if (!ModelState.IsValid)
@@ -43,6 +45,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize]
         public async Task<IActionResult> DeleteBlogPost(int id)
         {
             var result = await _blogService.DeleteBlogPostAsync(id);
@@ -54,6 +57,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize]
         public async Task<IActionResult> UpdateBlogPost(int id, [FromBody] BlogRequestDto blogPost)
         {
             if (!ModelState.IsValid)
