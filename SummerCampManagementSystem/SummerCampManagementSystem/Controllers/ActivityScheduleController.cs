@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -71,6 +72,43 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
 
+        }
+
+        [HttpGet("camp/{campId}/staff/{staffId}")]
+        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId)
+        {
+            try
+            {
+                var result = await _service.GetByCampAndStaffAsync(campId, staffId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("camper/{camperId}/camp/{campId}")]
+        public async Task<IActionResult> GetByCamperAndCamp(int camperId, int campId)
+        {
+            try
+            {
+                var result = await _service.GetSchedulesByCamperAndCampAsync(camperId, campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+           
         }
     }
 }

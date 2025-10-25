@@ -48,5 +48,29 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     a.endTime > start);
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
+        {
+            return await _context.ActivitySchedules
+                .Include(a => a.activity)
+                .Include(a => a.GroupActivities)
+                    .ThenInclude(ga => ga.camperGroup)
+                .Where(a =>
+                    a.activity.campId == campId &&
+                    (
+                        a.staffId == staffId || // Staff được gán trực tiếp
+                        a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId) // Supervisor của nhóm
+                    ))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.activity)
+                .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
+                .Where(s => s.activity.campId == campId)
+                .ToListAsync();
+        }
+
     }
 }
