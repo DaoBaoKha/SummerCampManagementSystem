@@ -2,6 +2,8 @@
 {
     public enum CampStatus
     {
+        Draft = 0,
+
         PendingApproval = 1,
 
         Rejected = 2,

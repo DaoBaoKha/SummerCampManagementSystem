@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
 
-        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService, 
+        public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService,
             PayOS payOS, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
@@ -45,6 +45,25 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new UnauthorizedAccessException("Cannot get user ID from token. Please login again.");
             }
 
+
+            // check if camper already regis
+            foreach (var camperId in request.CamperIds)
+            {
+                // only stop regis if these status
+                var isAlreadyRegistered = await _unitOfWork.Registrations.GetQueryable()
+                    .Where(r => r.campId == request.CampId &&
+                                r.campers.Any(c => c.camperId == camperId) &&
+                                (r.status == RegistrationStatus.Approved.ToString() ||
+                                 r.status == RegistrationStatus.PendingApproval.ToString() ||
+                                 r.status == RegistrationStatus.PendingPayment.ToString()))
+                    .AnyAsync();
+
+                if (isAlreadyRegistered)
+                {
+                    throw new InvalidOperationException($"Camper with ID {camperId} is already registered for this camp or a registration is pending.");
+                }
+            }
+
             var newRegistration = new Registration
             {
                 campId = request.CampId,
@@ -63,6 +82,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 _unitOfWork.Campers.Attach(camper);
                 newRegistration.campers.Add(camper);
             }
+
             await _unitOfWork.Registrations.CreateAsync(newRegistration);
             await _unitOfWork.CommitAsync();
 
@@ -110,7 +130,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(c => !request.CamperIds.Contains(c.camperId)).ToList();
             foreach (var camper in campersToRemove)
             {
-                existingRegistration.campers.Remove(camper); 
+                existingRegistration.campers.Remove(camper);
             }
 
             var camperIdsToAdd = request.CamperIds
@@ -122,7 +142,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 _unitOfWork.Campers.Attach(camperToAdd);
 
-                existingRegistration.campers.Add(camperToAdd); 
+                existingRegistration.campers.Add(camperToAdd);
             }
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
@@ -143,21 +163,40 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         public async Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id)
         {
-            var registration = await _unitOfWork.Registrations.GetQueryable()
+            var registrationEntity = await _unitOfWork.Registrations.GetQueryable()
                 .Where(r => r.registrationId == id)
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .Include(r => r.appliedPromotion)
                 .FirstOrDefaultAsync();
 
-            return registration;
+            if (registrationEntity == null) return null;
+
+            var responseDto = _mapper.Map<RegistrationResponseDto>(registrationEntity);
+
+            // add final price
+            responseDto.FinalPrice = CalculateFinalPrice(registrationEntity);
+
+            return responseDto;
         }
 
         public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
         {
-            var registrations = await _unitOfWork.Registrations.GetQueryable()
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
-            return registrations;
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
+
+            // get final price for each registration
+            for (int i = 0; i < registrationEntities.Count; i++)
+            {
+                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+            }
+
+            return responseDtos;
         }
 
         public async Task<bool> DeleteRegistrationAsync(int id)
@@ -178,22 +217,34 @@ namespace SummerCampManagementSystem.BLL.Services
                 query = query.Where(r => r.status == statusString);
             }
 
-            var registrations = await query
-                .ProjectTo<RegistrationResponseDto>(_mapper.ConfigurationProvider) 
+            var registrationEntities = await query
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
-            return registrations;
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
+
+            // get final price for each registration
+            for (int i = 0; i < registrationEntities.Count; i++)
+            {
+                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+            }
+
+            return responseDtos;
         }
+
+        // Trong file RegistrationService.cs
 
         public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request)
         {
-            //  load registration
+            // load registration
             var registration = await _unitOfWork.Registrations.GetQueryable()
                 .Include(r => r.camp)
                 .Include(r => r.campers)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
-                .FirstOrDefaultAsync(r => r.registrationId == registrationId); 
+                .FirstOrDefaultAsync(r => r.registrationId == registrationId);
 
             if (registration == null) throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
 
@@ -224,12 +275,11 @@ namespace SummerCampManagementSystem.BLL.Services
             // start using dbcontext
             var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
 
-            
             using (var transaction = await dbContext.Database.BeginTransactionAsync())
             {
                 try
                 {
-                    int optionalActivitiesTotalCost = 0; 
+                    int optionalActivitiesTotalCost = 0;
 
                     // remove old regis optional if theres any
                     if (registration.RegistrationOptionalActivities != null && registration.RegistrationOptionalActivities.Any())
@@ -243,7 +293,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         var activityScheduleIds = request.OptionalChoices.Select(oc => oc.ActivityScheduleId).Distinct().ToList();
 
-                        // load ActivitySchedules
+                        // load ActivitySchedules (use for checking capacity)
                         var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
                             .Where(s => activityScheduleIds.Contains(s.activityScheduleId))
                             .ToListAsync();
@@ -253,24 +303,26 @@ namespace SummerCampManagementSystem.BLL.Services
                             var schedule = activitySchedules.FirstOrDefault(s => s.activityScheduleId == optionalChoice.ActivityScheduleId)
                                 ?? throw new KeyNotFoundException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} not found.");
 
-                            // validation
+                            // validation 
                             if (!schedule.isOptional)
                                 throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
                             if (!registration.campers.Any(c => c.camperId == optionalChoice.CamperId))
                                 throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
 
-                            // create new regisOptional
+                            // create new regisOptional 
                             var optionalReg = new RegistrationOptionalActivity
                             {
                                 registrationId = registration.registrationId,
                                 camperId = optionalChoice.CamperId,
                                 activityScheduleId = optionalChoice.ActivityScheduleId,
-                                status = "Holding", 
+                                status = "Holding",
                                 createdTime = DateTime.UtcNow
                             };
-                            _unitOfWork.RegistrationOptionalActivities.CreateAsync(optionalReg);
+                            await _unitOfWork.RegistrationOptionalActivities.CreateAsync(optionalReg);
 
-                            // update to increase current capacity
+
+
+                            // update to increase current capacity 
                             schedulesToUpdate[schedule.activityScheduleId] = schedulesToUpdate.GetValueOrDefault(schedule.activityScheduleId) + 1;
                         }
 
@@ -284,33 +336,15 @@ namespace SummerCampManagementSystem.BLL.Services
                             }
 
                             schedule.currentCapacity = (schedule.currentCapacity ?? 0) + count;
-                            _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
                         }
                     }
 
-                    // price logic
-                    int baseAmount = (int)registration.camp.price * registration.campers.Count;
-                    int finalAmount = baseAmount + optionalActivitiesTotalCost; 
+                    // price logic: use CalculateFinalPrice (Base Price - Promotion Discount)
+                    var finalAmountDecimal = CalculateFinalPrice(registration);
 
-                    // promotion logic
-                    if (registration.appliedPromotionId.HasValue && registration.appliedPromotion != null)
-                    {
-                        var promotion = registration.appliedPromotion;
-                        decimal discount = 0;
-
-                        if (promotion.status == "Active" &&
-                            (!promotion.startDate.HasValue || promotion.startDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.UtcNow) &&
-                            (!promotion.endDate.HasValue || promotion.endDate.Value.ToDateTime(TimeOnly.MinValue) >= DateTime.UtcNow))
-                        {
-                            if (promotion.percent.HasValue)
-                                discount = (decimal)baseAmount * (promotion.percent.Value / 100);
-
-                            if (promotion.maxDiscountAmount.HasValue && discount > promotion.maxDiscountAmount.Value)
-                                discount = promotion.maxDiscountAmount.Value;
-                        }
-                        finalAmount = (int)(finalAmount - discount);
-                        if (finalAmount < 0) finalAmount = 0;
-                    }
+                    // finalAmount = price after promotion + 0 (optionalActivitiesTotalCost)
+                    int finalAmount = (int)Math.Round(finalAmountDecimal + optionalActivitiesTotalCost);
 
                     // create transaction
                     var newTransaction = new Transaction
@@ -342,7 +376,8 @@ namespace SummerCampManagementSystem.BLL.Services
                         amount: finalAmount,
                         description: $"Thanh toan don hang #{registration.registrationId}",
                         items: new List<ItemData> {
-                    new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.campers.Count, baseAmount)
+
+                    new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.campers.Count, (int)finalAmountDecimal)
                         },
                         cancelUrl: _configuration["PayOS:CancelUrl"],
                         returnUrl: _configuration["PayOS:ReturnUrl"]
@@ -367,6 +402,95 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw;
                 }
             }
+        }
+        public async Task<IEnumerable<RegistrationResponseDto>> GetRegistrationByCampIdAsync(int campId)
+        {
+            var campExist = await _unitOfWork.Camps.GetByIdAsync(campId) != null;
+
+            if (!campExist)
+            {
+                throw new KeyNotFoundException($"Camp with ID {campId} not found.");
+            }
+
+            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
+                .Where(r => r.campId == campId)
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .Include(r => r.appliedPromotion)
+                .ToListAsync();
+
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
+
+            // get final price for each registration
+            for (int i = 0; i < registrationEntities.Count; i++)
+            {
+                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+            }
+
+            return responseDtos;
+        }
+
+        public async Task<IEnumerable<RegistrationResponseDto>> GetUserRegistrationHistoryAsync()
+        {
+            var currentUserId = _userContextService.GetCurrentUserId();
+
+            if (!currentUserId.HasValue)
+            {
+                throw new UnauthorizedAccessException("Không thể lấy thông tin người dùng từ token. Xin hãy đăng nhập lại!");
+            }
+
+            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
+                .Where(r => r.userId == currentUserId.Value)
+                .OrderByDescending(r => r.registrationCreateAt)
+                .Include(r => r.camp)
+                .Include(r => r.campers)
+                .Include(r => r.appliedPromotion)
+                .ToListAsync();
+
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
+
+            // get final price
+            for (int i = 0; i < registrationEntities.Count; i++)
+            {
+                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+            }
+
+            return responseDtos;
+        }
+
+
+        private decimal CalculateFinalPrice(Registration registration)
+        {
+            // Kiểm tra các mối quan hệ cần thiết
+            if (registration.camp == null || registration.campers == null) return 0m;
+
+            // Giá cơ bản (Camp Price * số lượng Campers)
+            int baseAmount = (int)(registration.camp.price ?? 0) * registration.campers.Count;
+            decimal finalAmount = baseAmount;
+            decimal discount = 0m;
+
+            // Xử lý khuyến mãi
+            if (registration.appliedPromotionId.HasValue && registration.appliedPromotion != null)
+            {
+                var promotion = registration.appliedPromotion;
+
+                // Kiểm tra trạng thái và thời gian khuyến mãi
+                if (promotion.status == "Active" &&
+                    (!promotion.startDate.HasValue || promotion.startDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.UtcNow) &&
+                    (!promotion.endDate.HasValue || promotion.endDate.Value.ToDateTime(TimeOnly.MinValue) >= DateTime.UtcNow))
+                {
+                    if (promotion.percent.HasValue)
+                        discount = (decimal)baseAmount * (promotion.percent.Value / 100);
+
+                    // Giới hạn giảm giá tối đa
+                    if (promotion.maxDiscountAmount.HasValue && discount > promotion.maxDiscountAmount.Value)
+                        discount = promotion.maxDiscountAmount.Value;
+                }
+
+                finalAmount = finalAmount - discount;
+            }
+
+            return Math.Max(0m, finalAmount);
         }
     }
 }

@@ -119,7 +119,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<PromotionType, PromotionTypeNameResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionTypeId));
 
-            // Registration mappings
+            // RegistrationStaff mappings
             CreateMap<RegisterStaffRequestDto, UserAccount>()
                 .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
                 .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))

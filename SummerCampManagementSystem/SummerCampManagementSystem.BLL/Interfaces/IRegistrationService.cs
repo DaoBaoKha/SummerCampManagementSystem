@@ -8,9 +8,15 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync();
 
         Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id);
+
+        Task<IEnumerable<RegistrationResponseDto?>> GetRegistrationByCampIdAsync(int campId);
+
         Task<IEnumerable<RegistrationResponseDto>> GetRegistrationByStatusAsync(RegistrationStatus? status = null);
 
+        Task<IEnumerable<RegistrationResponseDto>> GetUserRegistrationHistoryAsync();
+
         Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request);
+
         Task<RegistrationResponseDto> ApproveRegistrationAsync(int registrationId);
 
         Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request);

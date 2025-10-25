@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -12,19 +13,31 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        public CampService(IUnitOfWork unitOfWork, IMapper mapper)
+        private readonly IUserContextService _userContextService;
+
+        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _userContextService = userContextService;
         }
 
         public async Task<CampResponseDto> CreateCampAsync(CampRequestDto campRequest)
         {
+            // check validation before creating
+            await RunValidationChecks(campRequest);
+
             // map the request DTO to the Camp entity
             var newCamp = _mapper.Map<Camp>(campRequest);
 
-            // map create status draft
-            newCamp.status = CampStatus.PendingApproval.ToString();
+            // get userId
+            newCamp.createBy = _userContextService.GetCurrentUserId();
+            if (newCamp.createBy == null)
+            {
+                throw new UnauthorizedAccessException("Người dùng hiện tại không hợp lệ hoặc chưa đăng nhập.");
+            }
+
+            newCamp.status = CampStatus.Draft.ToString();
 
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
@@ -40,7 +53,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return _mapper.Map<CampResponseDto>(createdCamp);
         }
-
         public async Task<bool> DeleteCampAsync(int id)
         {
             var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
@@ -80,6 +92,110 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
 
+        public async Task<CampResponseDto> TransitionCampStatusAsync(int campId, CampStatus newStatus)
+        {
+            var existingCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId);
+
+            if (existingCamp == null)
+            {
+                throw new Exception($"Camp with ID {campId} not found.");
+            }
+
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
+            {
+                throw new Exception("Trạng thái hiện tại của Camp không hợp lệ.");
+            }
+
+             
+            bool isValidTransition = false;
+
+            // check canceled status
+            if (newStatus == CampStatus.Canceled)
+            {
+                // allow cancel status before InProgress and Completed
+                if (currentStatus < CampStatus.InProgress && currentStatus != CampStatus.Canceled)
+                {
+                    isValidTransition = true;
+                }
+            }
+          
+            else
+            {
+                switch (currentStatus)
+                {
+                    case CampStatus.Draft:
+                        // Draft -> PendingApproval use SubmitForApprovalAsync
+                        break;
+
+                    case CampStatus.PendingApproval:
+                        // admin Approve/Reject
+                        if (newStatus == CampStatus.Published || newStatus == CampStatus.Rejected)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Rejected:
+                        // admin Approve Manager's Adjustment (status = PendingApproval)
+                        if (newStatus == CampStatus.PendingApproval)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Published:
+                        // system check time
+                        if (newStatus == CampStatus.OpenForRegistration)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.OpenForRegistration:
+                        // system check time
+                        if (newStatus == CampStatus.RegistrationClosed)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.RegistrationClosed:
+                        // camp start time
+                        if (newStatus == CampStatus.InProgress)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.InProgress:
+                        // camp end
+                        if (newStatus == CampStatus.Completed)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
+                    case CampStatus.Completed:
+                    case CampStatus.Canceled:
+                        break;
+                }
+            }
+
+            if (!isValidTransition)
+            {
+                throw new ArgumentException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã quy định.");
+            }
+
+            existingCamp.status = newStatus.ToString();
+
+            await _unitOfWork.Camps.UpdateAsync(existingCamp);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<CampResponseDto>(existingCamp);
+        }
+
+
         public async Task<CampResponseDto> UpdateCampAsync(int campId, CampRequestDto campRequest)
         {
             // get the existing camp with related entities
@@ -91,20 +207,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new Exception("Camp not found");
             }
 
+            // only allow update when status is Draft or Rejected
+            if (existingCamp.status != CampStatus.Draft.ToString() && existingCamp.status != CampStatus.Rejected.ToString())
+            {
+                throw new ArgumentException($"Camp chỉ có thể được chỉnh sửa nội dung khi ở trạng thái Draft hoặc Rejected. Trạng thái hiện tại: {existingCamp.status}.");
+            }
+
+            await RunValidationChecks(campRequest, campId);
+
             _mapper.Map(campRequest, existingCamp);
 
-            if (!string.IsNullOrEmpty(campRequest.Status))
+           
+            if (existingCamp.status == CampStatus.Rejected.ToString())
             {
-
-                // change from dto to enum
-                if (Enum.TryParse(campRequest.Status, true, out CampStatus newStatus))
-                {
-                    existingCamp.status = newStatus.ToString();
-                }
-                else
-                {
-                    throw new ArgumentException($"Trạng thái '{campRequest.Status}' không hợp lệ.");
-                }
+                existingCamp.status = CampStatus.Draft.ToString(); // back to draft after updating
             }
 
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
@@ -115,21 +231,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CampResponseDto> UpdateCampStatusAsync(int campId, CampStatusUpdateRequestDto statusUpdate)
         {
-            var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId);
-
-            if (existingCamp == null)
-            {
-                throw new Exception($"Camp with ID {campId} not found.");
-            }
-
-            // change enum to string
-            existingCamp.status = statusUpdate.Status.ToString();
-
-            await _unitOfWork.Camps.UpdateAsync(existingCamp);
-            await _unitOfWork.CommitAsync();
-
-            return _mapper.Map<CampResponseDto>(existingCamp);
+            return await TransitionCampStatusAsync(campId, statusUpdate.Status);
         }
 
         public async Task<IEnumerable<CampResponseDto>> GetCampsByStatusAsync(CampStatus? status = null)
@@ -142,11 +244,56 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 query = query.Where(c => c.status == statusString);
             }
-            //if status is null, return all camps
+            // if status is null, return all camps
 
             var camps = await query.ToListAsync();
 
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
+        }
+
+        // change status Draft to PendingApproval and check required conditions
+        public async Task<CampResponseDto> SubmitForApprovalAsync(int campId)
+        {
+            var existingCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId);
+
+            if (existingCamp == null)
+            {
+                throw new Exception($"Camp with ID {campId} not found.");
+            }
+
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) || currentStatus != CampStatus.Draft)
+            {
+                throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
+            }
+
+            // 1. Check điều kiện cần để gửi phê duyệt (Group và Activity)
+
+            // Giả định: CampStaffAssignments là cách bạn kiểm tra Group/Staff. 
+            // Giả định: Activities là cách bạn kiểm tra đã tạo hoạt động.
+
+            // Lưu ý: Tùy thuộc vào model cụ thể của bạn, bạn có thể cần kiểm tra CampStaffAssignments hoặc CamperGroup.
+            // Ví dụ này kiểm tra Activity và Group/Staff Assignment.
+
+            var hasActivities = await _unitOfWork.Activities.GetQueryable()
+                .AnyAsync(a => a.campId == campId);
+
+            var hasGroupsOrStaff = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.campId == campId)
+                .Select(c => c.CampStaffAssignments.Any() || c.CamperGroups.Any()) // Kiểm tra Staff hoặc Group
+                .FirstOrDefaultAsync();
+
+            if (!hasActivities)
+            {
+                throw new ArgumentException("Không thể gửi phê duyệt. Camp cần có ít nhất một hoạt động (Activity) được tạo.");
+            }
+            if (!hasGroupsOrStaff)
+            {
+                throw new ArgumentException("Không thể gửi phê duyệt. Camp cần có ít nhất một Group/Staff Assignment hoặc Camper Group được tạo.");
+            }
+
+            // 2. Chuyển trạng thái
+            return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
         }
 
         // help method to include related entities
@@ -157,6 +304,94 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(c => c.campType)
                 .Include(c => c.location)
                 .Include(c => c.promotion);
+        }
+
+
+        /// <param name="campRequest">Dữ liệu Camp Request.</param>
+        /// <param name="currentCampId">ID của Camp (để loại trừ chính nó khi check trùng lặp).</param>
+        private async Task RunValidationChecks(CampRequestDto campRequest, int? currentCampId = null)
+        {
+            // check nullables
+            if (!campRequest.StartDate.HasValue || !campRequest.EndDate.HasValue ||
+                !campRequest.RegistrationStartDate.HasValue || !campRequest.RegistrationEndDate.HasValue ||
+                !campRequest.LocationId.HasValue || !campRequest.CampTypeId.HasValue || 
+                !campRequest.MinParticipants.HasValue || !campRequest.MaxParticipants.HasValue ||
+                !campRequest.MinAge.HasValue || !campRequest.MaxAge.HasValue) 
+            {
+                throw new ArgumentException("Ngày bắt đầu/kết thúc, ngày đăng ký, địa điểm, loại trại, số lượng tham gia và độ tuổi là các trường bắt buộc.");
+            }
+
+            // validation
+            if (string.IsNullOrWhiteSpace(campRequest.Name) ||
+                string.IsNullOrWhiteSpace(campRequest.Description) ||
+                string.IsNullOrWhiteSpace(campRequest.Place) ||
+                string.IsNullOrWhiteSpace(campRequest.Address))
+            {
+                throw new ArgumentException("Tên, mô tả, địa điểm tổ chức và địa chỉ không được để trống.");
+            }
+
+            if (campRequest.RegistrationStartDate.Value >= campRequest.RegistrationEndDate.Value)
+            {
+                throw new ArgumentException("Ngày đóng đăng ký phải sau ngày mở đăng ký.");
+            }
+
+            if (campRequest.RegistrationEndDate.Value.Date >= campRequest.StartDate.Value.ToDateTime(TimeOnly.MinValue).Date)
+            {
+                throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
+            }
+
+            if (campRequest.StartDate.Value >= campRequest.EndDate.Value)
+            {
+                throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
+            }
+
+            if (campRequest.EndDate.Value.DayNumber - campRequest.StartDate.Value.DayNumber < 3)
+            {
+                throw new ArgumentException("Thời lượng trại phải kéo dài ít nhất 3 ngày.");
+            }
+
+            if (campRequest.MinParticipants.Value <= 0 || campRequest.MaxParticipants.Value <= 0)
+            {
+                throw new ArgumentException("Số lượng tham gia tối thiểu và tối đa phải lớn hơn 0.");
+            }
+            if (campRequest.MinParticipants.Value > campRequest.MaxParticipants.Value)
+            {
+                throw new ArgumentException("Số lượng tham gia tối thiểu không được lớn hơn số lượng tham gia tối đa.");
+            }
+
+            if (campRequest.MinAge.Value < 0 || campRequest.MaxAge.Value < 0)
+            {
+                throw new ArgumentException("Giới hạn độ tuổi không được là số âm.");
+            }
+            if (campRequest.MinAge.Value > campRequest.MaxAge.Value)
+            {
+                throw new ArgumentException("Độ tuổi tối thiểu không được lớn hơn độ tuổi tối đa.");
+            }
+
+            if (campRequest.Price.HasValue && campRequest.Price.Value < 0)
+            {
+                throw new ArgumentException("Giá trại không được là số âm.");
+            }
+
+            // check same location
+            var newCampStartDate = campRequest.StartDate.Value;
+            var newCampEndDate = campRequest.EndDate.Value;
+            var locationId = campRequest.LocationId.Value;
+
+            var overlappingCamps = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.locationId == locationId &&
+                            c.campId != currentCampId && // no check current camp id
+                            (c.status != CampStatus.Canceled.ToString()) &&
+                            c.startDate.HasValue && c.endDate.HasValue &&
+                            // check same time: (StartA <= EndB) AND (EndA >= StartB)
+                            (c.startDate.Value <= newCampEndDate) &&
+                            (c.endDate.Value >= newCampStartDate))
+                .ToListAsync();
+
+            if (overlappingCamps.Any())
+            {
+                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate} đến {overlappingCamps.First().endDate}.");
+            }
         }
     }
 }
