@@ -27,6 +27,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IHealthRecordRepository HealthRecords { get; }
         ITransactionRepository Transactions { get; }
         ILocationRepository Locations { get; }
+        IGroupActivityRepository GroupActivities { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();

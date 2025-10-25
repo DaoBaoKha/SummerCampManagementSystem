@@ -29,6 +29,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
         public ILocationRepository Locations { get; }
+        public IGroupActivityRepository GroupActivities { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
@@ -37,7 +38,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities,
             IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions
             ,ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
-            ,IActivityScheduleRepository activitySchedules)
+            ,IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities)
         {
             _context = context;
             Blogs = blogs;
@@ -61,6 +62,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             HealthRecords = healthRecords;
             Transactions = transactions;
             Locations = locations;
+            GroupActivities = groupActivities;
         }
 
         public async Task<int> CommitAsync()
