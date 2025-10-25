@@ -110,6 +110,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Route> Routes { get; set; }
 
+    public virtual DbSet<RouteStop> RouteStops { get; set; }
+
     public virtual DbSet<Transaction> Transactions { get; set; }
 
     public virtual DbSet<TransportSchedule> TransportSchedules { get; set; }
@@ -449,8 +451,6 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<Location>(entity =>
         {
             entity.HasKey(e => e.locationId).HasName("PK__Location__30646B6E1B427B16");
-
-            entity.HasOne(d => d.route).WithMany(p => p.Locations).HasConstraintName("FK__Location__routeI__0B91BA14");
         });
 
         modelBuilder.Entity<Message>(entity =>
@@ -570,6 +570,19 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasKey(e => e.routeId).HasName("PK__Route__BAC024C756723709");
 
             entity.HasOne(d => d.camp).WithMany(p => p.Routes).HasConstraintName("FK__Route__campId__08B54D69");
+        });
+
+        modelBuilder.Entity<RouteStop>(entity =>
+        {
+            entity.HasKey(e => e.routeStopId).HasName("PK__RouteSto__1B27620E2DD0340A");
+
+            entity.HasOne(d => d.location).WithMany(p => p.RouteStops)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RouteStop_Location");
+
+            entity.HasOne(d => d.route).WithMany(p => p.RouteStops)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RouteStop_Route");
         });
 
         modelBuilder.Entity<Transaction>(entity =>

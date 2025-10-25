@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<SuccessResponseDto<LocationResponseDto>> CreateLocationAsync(LocationRequestDto location)
         {
             var newLocation = _mapper.Map<Location>(location);
-            newLocation.isActive = true;
+            newLocation.isActive = true; 
 
             await _unitOfWork.Locations.CreateAsync(newLocation);
             await _unitOfWork.CommitAsync();
