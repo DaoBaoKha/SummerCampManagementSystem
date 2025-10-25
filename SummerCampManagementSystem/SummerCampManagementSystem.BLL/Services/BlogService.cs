@@ -10,27 +10,58 @@ namespace SummerCampManagementSystem.BLL.Services
     public class BlogService : IBlogService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IValidationService _validationService;
+        private readonly IUserContextService _userContextService;
 
-        public BlogService(IUnitOfWork unitOfWork, IValidationService validationService)
+        public BlogService(IUnitOfWork unitOfWork, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
-            _validationService = validationService;
+            _userContextService = userContextService;
+        }
+
+        private void RunBlogValidationChecks(BlogRequestDto blogPost)
+        {
+            if (string.IsNullOrWhiteSpace(blogPost.Title))
+            {
+                throw new ArgumentException("The blog post title cannot be empty.");
+            }
+
+            if (blogPost.Title.Length > 255) 
+            {
+                throw new ArgumentException("The blog post title cannot exceed 255 characters.");
+            }
+
+            if (string.IsNullOrWhiteSpace(blogPost.Content))
+            {
+                throw new ArgumentException("The blog post content cannot be empty.");
+            }
+
+            if (blogPost.Content.Length < 10)
+            {
+                throw new ArgumentException("The blog post content must be at least 10 characters long.");
+            }
         }
 
         public async Task<BlogResponseDto> CreateBlogPostAsync(BlogRequestDto blogPost)
         {
-            var author = await _unitOfWork.Users.GetByIdAsync(blogPost.AuthorId);
+            RunBlogValidationChecks(blogPost);
+
+            var authorId = _userContextService.GetCurrentUserId();
+            if (authorId == null)
+            {
+                throw new UnauthorizedAccessException("Cannot create blog post. Author information is invalid or missing.");
+            }
+
+            var author = await _unitOfWork.Users.GetByIdAsync(authorId.Value);
             if (author == null)
             {
-                throw new KeyNotFoundException("Author not found.");
+                throw new KeyNotFoundException("Author account not found in the system.");
             }
 
             var newBlogPost = new Blog
             {
                 title = blogPost.Title,
                 content = blogPost.Content,
-                authorId = blogPost.AuthorId,
+                authorId = authorId, 
                 createAt = DateTime.UtcNow,
                 isActive = true,
             };
@@ -42,6 +73,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return MapToBlogResponseDto(newBlogPost);
         }
+
         public async Task<bool> DeleteBlogPostAsync(int id)
         {
             var existingBlogPost = await _unitOfWork.Blogs.GetByIdAsync(id);
@@ -49,14 +81,36 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 return false;
             }
+
+            // only the original author can delete
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (currentUserId == null || existingBlogPost.authorId != currentUserId.Value)
+            {
+                throw new UnauthorizedAccessException("You do not have permission to delete this post. Only the original author can delete");
+            }
+
             await _unitOfWork.Blogs.RemoveAsync(existingBlogPost);
             await _unitOfWork.CommitAsync();
             return true;
         }
 
-        public async Task<IEnumerable<Blog>> GetAllBlogPostsAsync()
+        public async Task<IEnumerable<BlogResponseDto>> GetAllBlogPostsAsync()
         {
-            return await _unitOfWork.Blogs.GetAllAsync();
+            // use Include() to load Author and project to DTO
+            var blogs = await _unitOfWork.Blogs.GetQueryable()
+                .Include(b => b.author) 
+                .Select(b => new BlogResponseDto
+                {
+                    Id = b.blogId,
+                    Title = b.title,
+                    Content = b.content,
+                    CreatedAt = b.createAt ?? DateTime.MinValue,
+                    AuthorId = b.authorId ?? 0,
+                    AuthorName = b.author != null ? $"{b.author.firstName} {b.author.lastName}" : "N/A"
+                })
+                .ToListAsync();
+
+            return blogs;
         }
 
         public async Task<BlogResponseDto?> GetBlogPostByIdAsync(int id)
@@ -84,15 +138,19 @@ namespace SummerCampManagementSystem.BLL.Services
                 return null;
             }
 
-            var author = await _unitOfWork.Users.GetByIdAsync(blogPost.AuthorId);
-            if (author == null)
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (currentUserId == null || existingBlogPost.authorId != currentUserId.Value)
             {
-                throw new KeyNotFoundException("Author not found.");
+                throw new UnauthorizedAccessException("You do not have permission to edit this post. Only original author and edit");
             }
+
+            RunBlogValidationChecks(blogPost);
+
+            var author = await _unitOfWork.Users.GetByIdAsync(existingBlogPost.authorId.Value);
 
             existingBlogPost.title = blogPost.Title;
             existingBlogPost.content = blogPost.Content;
-            existingBlogPost.authorId = blogPost.AuthorId;
+
             _unitOfWork.Blogs.UpdateAsync(existingBlogPost);
 
             await _unitOfWork.CommitAsync();
