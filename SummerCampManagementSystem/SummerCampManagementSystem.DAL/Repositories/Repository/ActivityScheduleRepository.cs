@@ -21,7 +21,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             .Include(s => s.activity)
             .AnyAsync(s =>
                 s.activity.campId == campId &&
-                !s.isOptional &&
                 s.startTime < end &&
                 s.endTime > start);
         }
@@ -31,6 +30,22 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.ActivitySchedules
                 .Include(s => s.activity)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
+        }
+
+        public async Task<bool> ExistsInSameTimeAndLocationAsync(int locationId, DateTime start, DateTime end)
+        {
+            return await _context.ActivitySchedules.AnyAsync(s =>
+                s.locationId == locationId &&
+                ((start < s.endTime) && (end > s.startTime)));
+        }
+
+        public async Task<bool> IsStaffBusyAsync(int staffId, DateTime start, DateTime end)
+        {
+            return await _context.ActivitySchedules
+                .AnyAsync(a =>
+                    a.staffId == staffId && 
+                    a.startTime < end &&
+                    a.endTime > start);
         }
 
     }

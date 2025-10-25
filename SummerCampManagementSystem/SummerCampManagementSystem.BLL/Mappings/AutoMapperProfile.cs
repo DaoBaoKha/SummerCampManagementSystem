@@ -90,7 +90,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //ActivitySchedule mappings
             CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
                 .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activity.name));
-            CreateMap<ActivityScheduleCreateDto, ActivitySchedule>();
+            CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
+                .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
+                .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
             CreateMap<OptionalScheduleCreateDto, ActivitySchedule>()
     .ForMember(dest => dest.isOptional, opt => opt.MapFrom(src => true)); 
