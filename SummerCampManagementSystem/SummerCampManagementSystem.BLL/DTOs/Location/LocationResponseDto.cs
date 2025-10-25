@@ -3,10 +3,12 @@
     public class LocationResponseDto
     {
         public int locationId { get; set; }
-        public int? routeId { get; set; }
         public string Name { get; set; }
         public string locationType { get; set; }
         public bool isActive { get; set; }
+        public string? Address { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
 
     }
 

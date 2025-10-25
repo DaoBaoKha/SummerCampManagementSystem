@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -9,10 +11,12 @@ namespace SummerCampManagementSystem.BLL.Services
     public class RouteService : IRouteService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public RouteService(IUnitOfWork unitOfWork)
+        public RouteService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         public async Task<RouteResponseDto> CreateRouteAsync(RouteRequestDto routeRequestDto)
@@ -23,19 +27,16 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Camp with ID {routeRequestDto.campId} not found.");
             }
 
-            var newRoute = new Route
-            {
-                campId = routeRequestDto.campId,
-                routeName = routeRequestDto.routeName,
-                status = "Active",
-            };
+            var newRoute = _mapper.Map<Route>(routeRequestDto); 
+
+            newRoute.status = "Active";
 
             await _unitOfWork.Routes.CreateAsync(newRoute);
             await _unitOfWork.CommitAsync();
 
-            newRoute.camp = camp; //include camp details in the response
+            newRoute.camp = camp;
 
-            return MapToResponseDto(newRoute);
+            return _mapper.Map<RouteResponseDto>(newRoute); 
         }
 
         public async Task<bool> DeleteRouteAsync(int routeId)
@@ -51,11 +52,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RouteResponseDto>> GetAllRoutesAsync()
         {
-            var routes = await _unitOfWork.Routes.GetQueryable()
-                .Include(r => r.camp)
+            return await _unitOfWork.Routes.GetQueryable()
+                .Include(r => r.camp) 
+                .ProjectTo<RouteResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-
-            return routes.Select(MapToResponseDto);
         }
 
         public async Task<RouteResponseDto> GetRouteByIdAsync(int routeId)
@@ -66,18 +66,18 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (route == null) throw new KeyNotFoundException($"Route with ID {routeId} not found.");
 
-            return MapToResponseDto(route);
+            return _mapper.Map<RouteResponseDto>(route); 
         }
 
         public async Task<IEnumerable<RouteResponseDto>> GetRoutesByCampIdAsync(int campId)
         {
-            var route = await _unitOfWork.Routes.GetQueryable()
+            return await _unitOfWork.Routes.GetQueryable()
                 .Include(r => r.camp)
                 .Where(r => r.campId == campId)
+                .ProjectTo<RouteResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
-
-            return route.Select(MapToResponseDto);
         }
+
 
         public async Task<RouteResponseDto> UpdateRouteAsync(int routeId, RouteRequestDto routeRequestDto)
         {
@@ -85,27 +85,17 @@ namespace SummerCampManagementSystem.BLL.Services
             if (existingRoute == null) throw new KeyNotFoundException($"Route with ID {routeId} not found.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(routeRequestDto.campId);
-            existingRoute.routeName = routeRequestDto.routeName;
-            existingRoute.campId = routeRequestDto.campId;
+
+            _mapper.Map(routeRequestDto, existingRoute);
+
             existingRoute.status = "Active";
 
             await _unitOfWork.Routes.UpdateAsync(existingRoute);
             await _unitOfWork.CommitAsync();
 
-            return MapToResponseDto(existingRoute);
+            existingRoute.camp = camp; 
+            return _mapper.Map<RouteResponseDto>(existingRoute); 
         }
 
-        //mapping dto to camp entity
-        private RouteResponseDto MapToResponseDto(Route route)
-        {
-            return new RouteResponseDto
-            {
-                routeId = route.routeId,
-                routeName = route.routeName,
-                status = route.status,
-                campId = (int)route.campId,
-                CampName = route.camp != null ? route.camp.name : string.Empty
-            };
-        }
     }
 }

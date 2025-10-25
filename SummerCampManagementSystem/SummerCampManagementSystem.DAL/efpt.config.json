@@ -203,6 +203,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[RouteStop]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Transaction]",
          "ObjectType": 0
       },

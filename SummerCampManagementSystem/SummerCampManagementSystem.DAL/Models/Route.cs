@@ -23,8 +23,15 @@ public partial class Route
     [StringLength(50)]
     public string status { get; set; }
 
+    [StringLength(50)]
+    public string routeType { get; set; }
+
+    public int? estimateDuration { get; set; }
+
+    public bool? isActive { get; set; }
+
     [InverseProperty("route")]
-    public virtual ICollection<Location> Locations { get; set; } = new List<Location>();
+    public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
 
     [InverseProperty("route")]
     public virtual ICollection<TransportSchedule> TransportSchedules { get; set; } = new List<TransportSchedule>();
