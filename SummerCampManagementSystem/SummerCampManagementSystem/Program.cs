@@ -207,6 +207,7 @@ builder.Services.AddScoped<IRouteRepository, RouteRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 
+builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 

@@ -9,13 +9,10 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("Location")]
-[Index("routeId", Name = "IX_Location_routeId")]
 public partial class Location
 {
     [Key]
     public int locationId { get; set; }
-
-    public int? routeId { get; set; }
 
     [StringLength(255)]
     public string name { get; set; }
@@ -25,13 +22,21 @@ public partial class Location
 
     public bool? isActive { get; set; }
 
+    [StringLength(500)]
+    public string address { get; set; }
+
+    [Column(TypeName = "decimal(10, 8)")]
+    public decimal? latitude { get; set; }
+
+    [Column(TypeName = "decimal(11, 8)")]
+    public decimal? longitude { get; set; }
+
     [InverseProperty("location")]
     public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
     [InverseProperty("location")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
-    [ForeignKey("routeId")]
-    [InverseProperty("Locations")]
-    public virtual Route route { get; set; }
+    [InverseProperty("location")]
+    public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
 }

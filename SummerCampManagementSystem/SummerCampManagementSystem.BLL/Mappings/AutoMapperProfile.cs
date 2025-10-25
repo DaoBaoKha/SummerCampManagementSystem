@@ -11,6 +11,7 @@ using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
@@ -81,7 +82,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities)); 
 
             CreateMap<RegistrationOptionalActivity, OptionalActivityChoiceSummaryDto>()
-                .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activitySchedule.activity.name)); 
+                .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activitySchedule.activity.name));
+
+            //Route mappings
+            CreateMap<RouteRequestDto, Route>();
+            CreateMap<Route, RouteResponseDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
+
 
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();
@@ -136,9 +143,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<VehicleType, VehicleTypeResponseDto>();
 
-            //Location mappings
+            // Location mappings
             CreateMap<LocationRequestDto, Location>();
             CreateMap<Location, LocationResponseDto>();
+
+            CreateMap<Location, LocationDto>()
+                .ForMember(dest => dest.Id,
+                            opt => opt.MapFrom(src => src.locationId));
         }
     }
 }
