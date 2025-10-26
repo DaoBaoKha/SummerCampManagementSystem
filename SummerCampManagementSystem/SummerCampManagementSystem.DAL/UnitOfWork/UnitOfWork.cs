@@ -8,6 +8,10 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     {
         private readonly CampEaseDatabaseContext _context;
 
+        public IActivityRepository Activities { get; }
+        public IActivityScheduleRepository ActivitySchedules { get; }
+        public IAlbumRepository Albums { get; }
+        public IAlbumPhotoRepository AlbumPhotos { get; }
         public IBlogRepository Blogs { get; }
         public IUserRepository Users { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
@@ -23,8 +27,6 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
-        public IActivityRepository Activities { get; }
-        public IActivityScheduleRepository ActivitySchedules { get; }
         public ICamperActivityRepository CamperActivities { get; }
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
@@ -38,9 +40,13 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities,
             IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions
             ,ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
-            ,IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities)
+            ,IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos)
         {
             _context = context;
+            Activities = activities;
+            ActivitySchedules = activitySchedules;
+            Albums = albums;
+            AlbumPhotos = albumPhotos;
             Blogs = blogs;
             Users = userRepository;
             RefreshTokens = refreshTokenRepository;
@@ -56,8 +62,6 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Promotions = promotions;
             PromotionTypes = promotionTypes;
             Guardians = guardians;
-            Activities = activities;
-            ActivitySchedules = activitySchedules;
             CamperActivities = camperActivities;
             HealthRecords = healthRecords;
             Transactions = transactions;
