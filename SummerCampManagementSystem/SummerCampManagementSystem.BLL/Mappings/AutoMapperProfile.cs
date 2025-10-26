@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.DTOs.Album;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
@@ -163,6 +164,14 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Location, LocationDto>()
                 .ForMember(dest => dest.Id,
                             opt => opt.MapFrom(src => src.locationId));
+
+            //Album mappings
+            CreateMap<AlbumRequestDto, Album>()
+    .ForMember(dest => dest.campId, opt => opt.MapFrom(src => src.CampId));
+
+            CreateMap<Album, AlbumResponseDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
+                .ForMember(dest => dest.PhotoCount, opt => opt.MapFrom(src => src.AlbumPhotos.Count));
         }
     }
 }

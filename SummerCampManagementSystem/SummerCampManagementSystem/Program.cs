@@ -176,6 +176,11 @@ builder.Services.AddScoped<IGuardianService, GuardianService>();
 
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
 
+builder.Services.AddScoped<IAlbumPhotoRepository, AlbumPhotoRepository>();
+builder.Services.AddScoped<IAlbumPhotoService, AlbumPhotoService>();
+
+builder.Services.AddScoped<IAlbumRepository, AlbumRepository>();
+builder.Services.AddScoped<IAlbumService, AlbumService>();
 
 builder.Services.AddScoped<IActivityRepository, ActivityRepository>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
