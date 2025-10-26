@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -33,6 +34,21 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = $"Camper with id {id} not found." });
 
             return Ok(camper);
+        }
+
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetByCampId(int campId)
+        {
+            try
+            {
+                var camper = await _camperService.GetCampersByCampId(campId);
+                return Ok(camper);
+
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = $"Camp with id {campId} not found." });
+            }  
         }
 
         [HttpPost]

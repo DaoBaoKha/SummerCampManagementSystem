@@ -15,5 +15,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto camper);
         Task<bool> UpdateCamperAsync(int id, CamperRequestDto camper);
         Task<bool> DeleteCamperAsync(int id);
+        Task<IEnumerable<CamperResponseDto?>> GetCampersByCampId(int campId);
     }
 }

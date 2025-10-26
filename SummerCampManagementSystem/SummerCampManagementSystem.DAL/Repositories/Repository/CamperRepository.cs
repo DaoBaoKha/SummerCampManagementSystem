@@ -38,5 +38,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return camper?.registrations.FirstOrDefault();
         }
+
+        public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
+        {
+            return await _context.Campers
+                .Where(c => c.registrations.Any(r => r.campId == campId))
+                .ToListAsync();
+        }
     }
 }

@@ -66,6 +66,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
         }
 
+        public async Task<IEnumerable<CamperResponseDto?>> GetCampersByCampId(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException($"Camp with id {campId} not found.");
+            var campers = await _unitOfWork.Campers.GetCampersByCampId(campId);
+            return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
+        }
+
         public async Task<bool> UpdateCamperAsync(int id, CamperRequestDto dto)
         {
             var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
@@ -98,5 +106,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return true;
         }
+
+
     }
 }
