@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SummerCampManagementSystem.Core.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,9 +11,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Activity
     {
         public int CampId { get; set; }
 
-        public int LocationId { get; set; } 
-
-        public string? ActivityType { get; set; }
+        public ActivityType activityType { get; set; }
 
         public string Name { get; set; } = null!;
 

@@ -25,6 +25,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 s.endTime > start);
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetOptionalScheduleByCampIdAsync(int campId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.activity)
+                .Where(s => s.activity.campId == campId && !string.IsNullOrWhiteSpace(s.roomId))
+                .ToListAsync();
+        }
+
         public async Task<ActivitySchedule?> GetByIdWithActivityAsync(int id)
         {
             return await _context.ActivitySchedules

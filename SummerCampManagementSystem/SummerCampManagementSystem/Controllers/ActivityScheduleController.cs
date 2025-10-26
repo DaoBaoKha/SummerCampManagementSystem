@@ -46,7 +46,7 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
-           
+
         }
 
         [HttpPost("optional/{coreScheduleId}")]
@@ -108,7 +108,25 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
-           
+
+        }
+
+        [HttpGet("optional/camp/{campId}")]
+        public async Task<IActionResult> GetOptionalByCamp(int campId)
+        {
+            try
+            {
+                var result = await _service.GetOptionalSchedulesByCampAsync(campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
         }
     }
 }
