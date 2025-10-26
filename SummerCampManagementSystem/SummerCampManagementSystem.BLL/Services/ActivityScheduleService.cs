@@ -175,11 +175,17 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
 
-            var schedule = _mapper.Map<ActivitySchedule>(dto);
+            //var schedule = _mapper.Map<ActivitySchedule>(dto);
+            var schedule = _mapper.Map<OptionalScheduleCreateDto, ActivitySchedule>(dto);
+
 
             schedule.startTime = coreSlot.startTime;
             schedule.endTime = coreSlot.endTime;
             schedule.roomId = coreSlot.activityScheduleId.ToString();
+            //schedule.isOptional = true;
+            //schedule.isLivestream = false;
+            //schedule.status = "Draft";
+
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
@@ -226,6 +232,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 .ToList();
 
             return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
+        }
+
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetOptionalSchedulesByCampAsync(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+            var schedules = await _unitOfWork.ActivitySchedules.GetOptionalScheduleByCampIdAsync(campId);
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
     }
 }
