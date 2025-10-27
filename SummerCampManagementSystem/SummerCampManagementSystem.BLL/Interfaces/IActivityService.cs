@@ -12,6 +12,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<ActivityResponseDto>> GetAllAsync();
         Task<ActivityResponseDto?> GetByIdAsync(int id);
         Task<IEnumerable<ActivityResponseDto>> GetByCampIdAsync(int campId);
+        Task<IEnumerable<ActivityResponseDto>> GetOptionalActivitiesAsync();
         Task<ActivityResponseDto> CreateAsync(ActivityCreateDto dto);
         Task<bool> UpdateAsync(int id, ActivityCreateDto dto);
         Task<bool> DeleteAsync(int id);

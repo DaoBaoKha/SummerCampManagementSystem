@@ -75,5 +75,12 @@ namespace SummerCampManagementSystem.API.Controllers
             var success = await _service.DeleteAsync(id);
             return success ? NoContent() : NotFound();
         }
+
+        [HttpGet("optional")]
+        public async Task<IActionResult> GetOptionalActivities()
+        {
+            var result = await _service.GetOptionalActivitiesAsync();
+            return Ok(result);
+        }
     }
 }
