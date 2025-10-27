@@ -267,20 +267,18 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
             }
 
-            // 1. Check điều kiện cần để gửi phê duyệt (Group và Activity)
 
-            // Giả định: CampStaffAssignments là cách bạn kiểm tra Group/Staff. 
-            // Giả định: Activities là cách bạn kiểm tra đã tạo hoạt động.
+            // CampStaffAssignments check Group/Staff. 
+            // Activities check activity.
 
-            // Lưu ý: Tùy thuộc vào model cụ thể của bạn, bạn có thể cần kiểm tra CampStaffAssignments hoặc CamperGroup.
-            // Ví dụ này kiểm tra Activity và Group/Staff Assignment.
+            // this one check Activity and Group/Staff Assignment.
 
             var hasActivities = await _unitOfWork.Activities.GetQueryable()
                 .AnyAsync(a => a.campId == campId);
 
             var hasGroupsOrStaff = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.campId == campId)
-                .Select(c => c.CampStaffAssignments.Any() || c.CamperGroups.Any()) // Kiểm tra Staff hoặc Group
+                .Select(c => c.CampStaffAssignments.Any() || c.CamperGroups.Any()) // check staff or group
                 .FirstOrDefaultAsync();
 
             if (!hasActivities)
@@ -292,7 +290,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Không thể gửi phê duyệt. Camp cần có ít nhất một Group/Staff Assignment hoặc Camper Group được tạo.");
             }
 
-            // 2. Chuyển trạng thái
             return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
         }
 

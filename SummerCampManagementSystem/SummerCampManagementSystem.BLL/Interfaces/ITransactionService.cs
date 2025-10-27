@@ -1,14 +1,13 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.PayOS;
+﻿using SummerCampManagementSystem.BLL.DTOs.Transaction;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
-    public interface ITransactionService 
+    public interface ITransactionService
     {
-        Task HandlePayOSWebhook(PayOSWebhookRequestDto webhookRequest);
-        string ProcessPaymentMobileCallback(PayOSCallbackRequestDto callbackData);
-        string ProcessPaymentMobileCallbackRaw(string rawQueryString);
-        Task<string> ConfirmUrlAsync(string url);
-        Task<WebCallbackResponseDto> ProcessPaymentWebsiteCallbackRaw(string rawQueryString);
-
+        Task<IEnumerable<TransactionResponseDto>> GetUserTransactionHistoryAsync();
+        Task<IEnumerable<TransactionResponseDto>> GetTransactionsByRegistrationIdAsync(int registrationId);
+        Task<IEnumerable<TransactionResponseDto>> GetAllTransactionsAsync();
+        Task<TransactionResponseDto?> GetTransactionByIdAsync(int id);
+        Task<IEnumerable<TransactionResponseDto>> GetTransactionsByCampIdAsync(int campId);
     }
 }
