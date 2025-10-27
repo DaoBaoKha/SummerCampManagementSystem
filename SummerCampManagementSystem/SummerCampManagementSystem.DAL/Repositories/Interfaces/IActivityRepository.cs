@@ -10,6 +10,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     public interface IActivityRepository : IGenericRepository<Activity>
     {
         Task<IEnumerable<Activity>> GetByCampIdAsync(int campId);
+        Task<IEnumerable<Activity>> GetOptionalActivitiesAsync();
 
     }
 }

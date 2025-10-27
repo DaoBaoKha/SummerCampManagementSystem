@@ -66,5 +66,11 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
             return true;
         }
+
+        public async Task<IEnumerable<ActivityResponseDto>> GetOptionalActivitiesAsync()
+        {
+            var activities = await _unitOfWork.Activities.GetOptionalActivitiesAsync();
+            return _mapper.Map<IEnumerable<ActivityResponseDto>>(activities);
+        }
     }
 }

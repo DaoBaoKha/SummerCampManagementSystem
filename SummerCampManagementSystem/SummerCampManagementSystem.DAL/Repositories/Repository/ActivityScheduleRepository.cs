@@ -12,7 +12,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
-        public async Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end)
+        public async Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end, int? excludeScheduleId = null)
         {
             if (campId == null)
                 return false;
@@ -21,8 +21,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             .Include(s => s.activity)
             .AnyAsync(s =>
                 s.activity.campId == campId &&
-                s.startTime < end &&
-                s.endTime > start);
+               (excludeScheduleId == null || s.activityScheduleId != excludeScheduleId) &&
+                s.startTime < end && s.endTime > start);
         }
 
         public async Task<IEnumerable<ActivitySchedule>> GetOptionalScheduleByCampIdAsync(int campId)
@@ -41,7 +41,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-
+        public async Task<IEnumerable<ActivitySchedule>> GetScheduleByCampIdAsync(int campId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.activity)
+                .Where(s => s.activity.campId == campId)
+                .ToListAsync();
+        }
 
         public async Task<ActivitySchedule?> GetByIdWithActivityAsync(int id)
         {
@@ -50,20 +56,25 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
 
-        public async Task<bool> ExistsInSameTimeAndLocationAsync(int locationId, DateTime start, DateTime end)
-        {
-            return await _context.ActivitySchedules.AnyAsync(s =>
-                s.locationId == locationId &&
-                ((start < s.endTime) && (end > s.startTime)));
-        }
-
-        public async Task<bool> IsStaffBusyAsync(int staffId, DateTime start, DateTime end)
+        public async Task<bool> ExistsInSameTimeAndLocationAsync(int locationId, DateTime start, DateTime end, int? excludeScheduleId = null)
         {
             return await _context.ActivitySchedules
-                .AnyAsync(a =>
-                    a.staffId == staffId && 
-                    a.startTime < end &&
-                    a.endTime > start);
+                .AnyAsync(s =>
+                    s.locationId == locationId &&
+                    (excludeScheduleId == null || s.activityScheduleId != excludeScheduleId) &&
+                    s.startTime < end && s.endTime > start
+                );
+        }
+
+
+        public async Task<bool> IsStaffBusyAsync(int staffId, DateTime start, DateTime end, int? excludeScheduleId = null)
+        {
+            return await _context.ActivitySchedules
+                .AnyAsync(s =>
+                    s.staffId == staffId &&
+                    (excludeScheduleId == null || s.activityScheduleId != excludeScheduleId) &&
+                    s.startTime < end && s.endTime > start
+                );
         }
 
         public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
@@ -87,6 +98,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.activity)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
                 .Where(s => s.activity.campId == campId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetActivitySchedulesByDateAsync(DateTime fromDate, DateTime toDate)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.activity)
+                .Where(s => s.startTime >= fromDate && s.endTime <= toDate)
                 .ToListAsync();
         }
 

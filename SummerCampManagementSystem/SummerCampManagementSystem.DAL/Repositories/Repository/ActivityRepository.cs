@@ -23,5 +23,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(a => a.campId == id)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Activity>> GetOptionalActivitiesAsync()
+        {
+            return await _context.Activities
+                     .Where(a => a.activityType != null && a.activityType.ToLower() == "optional")
+                .ToListAsync();
+        }
     }
 }
