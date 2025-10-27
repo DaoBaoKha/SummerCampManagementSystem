@@ -174,17 +174,12 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new InvalidOperationException("Staff has another activity scheduled during this time.");
             }
 
-
-            //var schedule = _mapper.Map<ActivitySchedule>(dto);
             var schedule = _mapper.Map<OptionalScheduleCreateDto, ActivitySchedule>(dto);
-
 
             schedule.startTime = coreSlot.startTime;
             schedule.endTime = coreSlot.endTime;
             schedule.roomId = coreSlot.activityScheduleId.ToString();
-            //schedule.isOptional = true;
-            //schedule.isLivestream = false;
-            //schedule.status = "Draft";
+           
 
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
@@ -239,6 +234,14 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
             var schedules = await _unitOfWork.ActivitySchedules.GetOptionalScheduleByCampIdAsync(campId);
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetCoreSchedulesByCampAsync(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+            var schedules = await _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(campId);
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
     }
