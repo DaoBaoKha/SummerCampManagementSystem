@@ -16,6 +16,7 @@ using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.User;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using SummerCampManagementSystem.DAL.Models;
@@ -180,6 +181,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.registration.userId))    
                 .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.transactionId))
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
+
+            // UserAccount mappings
+            CreateMap<UserAccount, UserResponseDto>();
+            CreateMap<UserProfileUpdateDto, UserAccount>();
         }
     }
 }
