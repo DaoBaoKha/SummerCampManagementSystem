@@ -14,6 +14,7 @@ using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Route;
+using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
@@ -164,13 +165,21 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Id,
                             opt => opt.MapFrom(src => src.locationId));
 
-            //Album mappings
+            // Album mappings
             CreateMap<AlbumRequestDto, Album>()
-    .ForMember(dest => dest.campId, opt => opt.MapFrom(src => src.CampId));
+                .ForMember(dest => dest.campId, opt => opt.MapFrom(src => src.CampId));
 
             CreateMap<Album, AlbumResponseDto>()
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
                 .ForMember(dest => dest.PhotoCount, opt => opt.MapFrom(src => src.AlbumPhotos.Count));
+
+            // Transaction mappings 
+            CreateMap<Transaction, TransactionResponseDto>()
+                .ForMember(dest => dest.RegistrationId, opt => opt.MapFrom(src => src.registrationId))
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.registration.camp.name)) 
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.registration.userId))    
+                .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.transactionId))
+                .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
         }
     }
 }

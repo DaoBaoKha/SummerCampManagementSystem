@@ -160,7 +160,7 @@ builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 //builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
 //builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
-builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPromotionTypeRepository, PromotionTypeRepository>();
@@ -215,6 +215,9 @@ builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
+
+builder.Services.AddScoped<ITransactionService, TransactionService>();
+builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
