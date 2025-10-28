@@ -25,6 +25,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto)
         {
+          
+            if (dto.Dob >= new DateOnly(2019, 12, 1))
+                throw new ArgumentException("Date of birth must be before 01/12/2019.");
+
             var camper = _mapper.Map<Camper>(dto);
             await _unitOfWork.Campers.CreateAsync(camper);
             await _unitOfWork.CommitAsync();
