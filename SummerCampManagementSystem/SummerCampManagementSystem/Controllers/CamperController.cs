@@ -58,8 +58,17 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var created = await _camperService.CreateCamperAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = created.CamperId }, created);
+
+            try
+            {
+                var created = await _camperService.CreateCamperAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = created.CamperId }, created);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+
+            }
         }
 
         [HttpPut("{id}")]

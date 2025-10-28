@@ -13,8 +13,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public string? CamperName { get; set; }
         public string? Gender { get; set; }
         public DateOnly? Dob { get; set; }
+        public int Age { get; set; }
         public int? GroupId { get; set; }
         public string? avatar { get; set; }
+
 
 
         public HealthRecordResponseDto? HealthRecord { get; set; }
