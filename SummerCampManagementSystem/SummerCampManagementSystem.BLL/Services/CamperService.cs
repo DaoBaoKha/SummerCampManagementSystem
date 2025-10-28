@@ -63,6 +63,13 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
         }
 
+        public async Task<IEnumerable<CamperWithGuardiansResponseDto>> GetGuardiansByCamperId(int camperId)
+        {
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new KeyNotFoundException($"Camper with id {camperId} not found.");
+            var guardians = await _unitOfWork.Campers.GetGuardiansByCamperId(camperId);
+            return _mapper.Map<IEnumerable<CamperWithGuardiansResponseDto>>(guardians);
+        }
         public async Task<CamperResponseDto?> GetCamperByIdAsync(int id)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(id);

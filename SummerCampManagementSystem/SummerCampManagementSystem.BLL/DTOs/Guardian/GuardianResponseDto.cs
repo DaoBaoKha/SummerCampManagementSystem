@@ -20,4 +20,13 @@ namespace SummerCampManagementSystem.BLL.DTOs.Guardian
 
         public List<CamperSummaryDto>? Campers { get; set; }
     }
+
+    public class GuardianSummaryDto
+    {
+        public int GuardianId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Gender { get; set; } = string.Empty;
+
+    }
 }
