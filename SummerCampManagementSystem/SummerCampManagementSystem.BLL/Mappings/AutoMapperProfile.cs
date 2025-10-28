@@ -28,7 +28,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             // Camper mappings
-
+            CreateMap<Camper, CamperSummaryDto>();
             CreateMap<CamperRequestDto, Camper>();
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
@@ -37,6 +37,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                           (DateTime.Now.DayOfYear < src.dob.Value.DayOfYear ? 1 : 0)
                         : 0
             ));
+            CreateMap<Camper, CamperWithGuardiansResponseDto>()
+                .ForMember(dest => dest.Guardians,
+                    opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
+
 
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();
@@ -46,8 +50,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Guardian, GuardianResponseDto>()
             .ForMember(dest => dest.Campers,
                 opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.camper)));
-
-            CreateMap<Camper, CamperSummaryDto>();
+            CreateMap<Guardian, GuardianSummaryDto>();
             CreateMap<GuardianCreateDto, Guardian>();
             CreateMap<GuardianUpdateDto, Guardian>();
 

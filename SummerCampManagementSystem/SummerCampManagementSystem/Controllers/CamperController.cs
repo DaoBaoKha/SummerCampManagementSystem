@@ -51,6 +51,20 @@ namespace SummerCampManagementSystem.API.Controllers
             }  
         }
 
+        [HttpGet("{camperId}/guardians")]
+        public async Task<IActionResult> GetGuardiansByCamperId(int camperId)
+        {
+            try
+            {
+                var guardians = await _camperService.GetGuardiansByCamperId(camperId);
+                return Ok(guardians);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create(CamperRequestDto dto)
         {

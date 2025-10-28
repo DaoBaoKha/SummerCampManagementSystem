@@ -30,6 +30,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .FirstOrDefaultAsync(c => c.camperId == id);
         }
 
+        public async Task<IEnumerable<Camper>> GetGuardiansByCamperId(int camperId)
+        {
+            var camper = await _context.Campers
+                .Include(c => c.CamperGuardians)
+                .ThenInclude(cg => cg.guardian)
+                .Where(c => c.camperId == camperId)
+                .ToListAsync();
+            return camper;
+        }
         public async Task<Registration?> GetRegistrationByCamperIdAsync(int camperId)
         {
             var camper = await _context.Campers
