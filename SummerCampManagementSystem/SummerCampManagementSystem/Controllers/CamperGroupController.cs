@@ -36,10 +36,26 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
+            try
+            {
+                var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
 
-            return CreatedAtAction(nameof(GetCamperGroupById),
-                new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+                return CreatedAtAction(nameof(GetCamperGroupById),
+                    new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+
         }
 
         [HttpPut("{id}")]

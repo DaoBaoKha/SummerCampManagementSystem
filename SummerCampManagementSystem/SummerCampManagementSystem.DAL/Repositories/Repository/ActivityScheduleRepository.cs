@@ -73,7 +73,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .AnyAsync(s =>
                     s.staffId == staffId &&
                     (excludeScheduleId == null || s.activityScheduleId != excludeScheduleId) &&
-                    s.startTime < end && s.endTime > start
+                    s.startTime <= end && s.endTime >= start
                 );
         }
 
