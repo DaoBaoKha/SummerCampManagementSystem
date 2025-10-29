@@ -6,6 +6,7 @@ using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
+using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
@@ -40,6 +41,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Camper, CamperWithGuardiansResponseDto>()
                 .ForMember(dest => dest.Guardians,
                     opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
+
+            // CamperGroup mapping
+            CreateMap<CamperGroup, CamperGroupResponseDto>();
+            CreateMap<CamperGroupRequestDto, CamperGroup>();
 
 
             // HealthRecord mappings

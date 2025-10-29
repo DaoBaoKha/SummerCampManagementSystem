@@ -8,5 +8,7 @@
         public int MaxSize { get; set; }
         public int SupervisorId { get; set; }
         public int CampId { get; set; }
+        public int MinAge { get; set; }
+        public int MaxAge { get; set; }
     }
 }
