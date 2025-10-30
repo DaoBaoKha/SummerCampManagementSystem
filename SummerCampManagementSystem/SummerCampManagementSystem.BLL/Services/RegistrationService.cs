@@ -45,14 +45,13 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new UnauthorizedAccessException("Cannot get user ID from token. Please login again.");
             }
 
-
-            // check if camper already regis
+            // Check if camper is already registered (using RegistrationCampers for explicit M-to-M)
             foreach (var camperId in request.CamperIds)
             {
-                // only stop regis if these status
                 var isAlreadyRegistered = await _unitOfWork.Registrations.GetQueryable()
                     .Where(r => r.campId == request.CampId &&
-                                r.campers.Any(c => c.camperId == camperId) &&
+                                 // Check link status through the junction table
+                                 r.RegistrationCampers.Any(rc => rc.camperId == camperId) &&
                                 (r.status == RegistrationStatus.Approved.ToString() ||
                                  r.status == RegistrationStatus.PendingApproval.ToString() ||
                                  r.status == RegistrationStatus.PendingPayment.ToString()))
@@ -74,22 +73,31 @@ namespace SummerCampManagementSystem.BLL.Services
                 status = RegistrationStatus.PendingApproval.ToString()
             };
 
-            // add campers
+            // ADD CAMPERS (Using RegistrationCamper entity for explicit M-to-M)
+            newRegistration.RegistrationCampers = new List<RegistrationCamper>();
             foreach (var camperId in request.CamperIds)
             {
+                // Ensure camper exists (optional but good practice)
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
-                _unitOfWork.Campers.Attach(camper);
-                newRegistration.campers.Add(camper);
+
+                // Create the explicit link entity
+                var registrationCamper = new RegistrationCamper
+                {
+                    camperId = camperId,
+                    // registrationId will be set by EF after creation
+                    status = "Pending" // Initial status of the link
+                };
+                newRegistration.RegistrationCampers.Add(registrationCamper);
             }
 
             await _unitOfWork.Registrations.CreateAsync(newRegistration);
             await _unitOfWork.CommitAsync();
 
+            // Load the created registration entity with includes for response
             var createdRegistration = await GetRegistrationByIdAsync(newRegistration.registrationId);
             return createdRegistration;
         }
-
         public async Task<RegistrationResponseDto> ApproveRegistrationAsync(int registrationId)
         {
             var registration = await _unitOfWork.Registrations.GetByIdAsync(registrationId)
@@ -110,8 +118,8 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request)
         {
             var existingRegistration = await _unitOfWork.Registrations.GetQueryable()
-                .Include(r => r.campers)
-                .AsNoTracking() // add no tracking so EF wont track this
+                .Include(r => r.RegistrationCampers) // Include link table
+                .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.registrationId == id);
 
             if (existingRegistration == null) throw new KeyNotFoundException($"Registration with ID {id} not found.");
@@ -123,27 +131,43 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             bool requiresReApproval = existingRegistration.status == RegistrationStatus.Approved.ToString();
 
+            // Access DbContext directly for complex M-to-M entity tracking
+            var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
 
-            _unitOfWork.Registrations.Attach(existingRegistration); //attach this so EF track
+            // 1. Get existing links
+            var oldCamperLinks = await dbContext.RegistrationCampers
+                .Where(rc => rc.registrationId == id)
+                .ToListAsync();
 
-            var campersToRemove = existingRegistration.campers
-                .Where(c => !request.CamperIds.Contains(c.camperId)).ToList();
-            foreach (var camper in campersToRemove)
-            {
-                existingRegistration.campers.Remove(camper);
-            }
+            // 2. Remove links for Campers excluded from the updated list
+            var linksToRemove = oldCamperLinks
+                .Where(rc => !request.CamperIds.Contains(rc.camperId)).ToList();
 
+            dbContext.RegistrationCampers.RemoveRange(linksToRemove);
+
+            // 3. Add links for new Campers
+            var existingCamperIds = oldCamperLinks.Select(rc => rc.camperId).ToList();
             var camperIdsToAdd = request.CamperIds
-                .Where(camperId => !existingRegistration.campers.Any(c => c.camperId == camperId)).ToList();
+                .Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
+
             foreach (var camperId in camperIdsToAdd)
             {
                 var camperToAdd = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
 
-                _unitOfWork.Campers.Attach(camperToAdd);
-
-                existingRegistration.campers.Add(camperToAdd);
+                // Create new link entity
+                var newLink = new RegistrationCamper
+                {
+                    registrationId = id,
+                    camperId = camperToAdd.camperId,
+                    // Status is Pending if it was Approved before, ensuring re-approval if changes are made
+                    status = requiresReApproval ? "Pending" : "Pending"
+                };
+                dbContext.RegistrationCampers.Add(newLink);
             }
+
+            // 4. Update the main Registration entity
+            dbContext.Registrations.Attach(existingRegistration);
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
                 ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
@@ -154,6 +178,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (requiresReApproval)
             {
+                // If it was previously approved, major changes require it to return to pending approval status
                 existingRegistration.status = RegistrationStatus.PendingApproval.ToString();
             }
 
@@ -166,31 +191,35 @@ namespace SummerCampManagementSystem.BLL.Services
             var registrationEntity = await _unitOfWork.Registrations.GetQueryable()
                 .Where(r => r.registrationId == id)
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                // FIX: Include through the RegistrationCampers junction table
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .FirstOrDefaultAsync();
 
             if (registrationEntity == null) return null;
 
+            // Map data to DTO (AutoMapper will use the updated profile to extract campers from RegistrationCampers)
             var responseDto = _mapper.Map<RegistrationResponseDto>(registrationEntity);
 
-            // add final price
+            // Add final price
             responseDto.FinalPrice = CalculateFinalPrice(registrationEntity);
 
             return responseDto;
         }
 
+
         public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
         {
             var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                // FIX: Include through the RegistrationCampers junction table
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
 
-            // get final price for each registration
+            // Get final price for each registration
             for (int i = 0; i < registrationEntities.Count; i++)
             {
                 responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
@@ -219,13 +248,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var registrationEntities = await query
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                // FIX: Include through the RegistrationCampers junction table
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
 
-            // get final price for each registration
+            // Get final price for each registration
             for (int i = 0; i < registrationEntities.Count; i++)
             {
                 responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
@@ -233,7 +263,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return responseDtos;
         }
-
         // Trong file RegistrationService.cs
 
         public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request)
@@ -241,7 +270,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // load registration
             var registration = await _unitOfWork.Registrations.GetQueryable()
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
                 .FirstOrDefaultAsync(r => r.registrationId == registrationId);
@@ -306,8 +335,11 @@ namespace SummerCampManagementSystem.BLL.Services
                             // validation 
                             if (!schedule.isOptional)
                                 throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
-                            if (!registration.campers.Any(c => c.camperId == optionalChoice.CamperId))
+                            
+                            // FIX: Check if Camper is part of this registration (using the link table)
+                            if (!registration.RegistrationCampers.Any(rc => rc.camperId == optionalChoice.CamperId))
                                 throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
+
 
                             // create new regisOptional 
                             var optionalReg = new RegistrationOptionalActivity
@@ -377,7 +409,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         description: $"Thanh toan don hang #{registration.registrationId}",
                         items: new List<ItemData> {
 
-                    new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.campers.Count, (int)finalAmountDecimal)
+                    new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.RegistrationCampers.Count, (int)finalAmountDecimal)
                         },
                         cancelUrl: _configuration["PayOS:CancelUrl"],
                         returnUrl: _configuration["PayOS:ReturnUrl"]
@@ -415,7 +447,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
                 .Where(r => r.campId == campId)
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
@@ -443,7 +475,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(r => r.userId == currentUserId.Value)
                 .OrderByDescending(r => r.registrationCreateAt)
                 .Include(r => r.camp)
-                .Include(r => r.campers)
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .ToListAsync();
 
@@ -461,20 +493,21 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private decimal CalculateFinalPrice(Registration registration)
         {
-            // Kiểm tra các mối quan hệ cần thiết
-            if (registration.camp == null || registration.campers == null) return 0m;
+            // Check necessary relationships
+            if (registration.camp == null || registration.RegistrationCampers == null) return 0m; // FIX: Use RegistrationCampers
 
-            // Giá cơ bản (Camp Price * số lượng Campers)
-            int baseAmount = (int)(registration.camp.price ?? 0) * registration.campers.Count;
+            // Base price (Camp Price * number of Campers)
+            // FIX: Use RegistrationCampers.Count
+            int baseAmount = (int)(registration.camp.price ?? 0) * registration.RegistrationCampers.Count;
             decimal finalAmount = baseAmount;
             decimal discount = 0m;
 
-            // Xử lý khuyến mãi
+            // Handle promotion
             if (registration.appliedPromotionId.HasValue && registration.appliedPromotion != null)
             {
                 var promotion = registration.appliedPromotion;
 
-                // Kiểm tra trạng thái và thời gian khuyến mãi
+                // Check promotion status and time
                 if (promotion.status == "Active" &&
                     (!promotion.startDate.HasValue || promotion.startDate.Value.ToDateTime(TimeOnly.MinValue) <= DateTime.UtcNow) &&
                     (!promotion.endDate.HasValue || promotion.endDate.Value.ToDateTime(TimeOnly.MinValue) >= DateTime.UtcNow))
@@ -482,7 +515,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     if (promotion.percent.HasValue)
                         discount = (decimal)baseAmount * (promotion.percent.Value / 100);
 
-                    // Giới hạn giảm giá tối đa
+                    // Max discount limit
                     if (promotion.maxDiscountAmount.HasValue && discount > promotion.maxDiscountAmount.Value)
                         discount = promotion.maxDiscountAmount.Value;
                 }

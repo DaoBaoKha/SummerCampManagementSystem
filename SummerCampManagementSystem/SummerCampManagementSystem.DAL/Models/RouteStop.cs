@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("RouteStop")]
+[Table("RouteStop", Schema = "dbo")]
 [Index("routeId", "locationId", Name = "UC_RouteStop_Location", IsUnique = true)]
 [Index("routeId", "stopOrder", Name = "UC_RouteStop_Order", IsUnique = true)]
 public partial class RouteStop

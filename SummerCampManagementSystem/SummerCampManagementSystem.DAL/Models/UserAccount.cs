@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("UserAccount")]
+[Table("UserAccount", Schema = "dbo")]
 public partial class UserAccount
 {
     [Key]
@@ -76,12 +76,6 @@ public partial class UserAccount
 
     [InverseProperty("user")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-    [InverseProperty("campStaff")]
-    public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();
-
-    [InverseProperty("user")]
-    public virtual ICollection<LivestreamUser> LivestreamUsers { get; set; } = new List<LivestreamUser>();
 
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();

@@ -8,33 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("RegistrationOptionalActivity", Schema = "dbo")]
-public partial class RegistrationOptionalActivity
+[PrimaryKey("registrationId", "camperId")]
+[Table("RegistrationCamper", Schema = "dbo")]
+[Index("camperId", Name = "IX_RegistrationCamper_camperId")]
+public partial class RegistrationCamper
 {
     [Key]
-    public int registrationOptionalActivityId { get; set; }
-
     public int registrationId { get; set; }
 
+    [Key]
     public int camperId { get; set; }
-
-    public int activityScheduleId { get; set; }
 
     [StringLength(50)]
     public string status { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime? createdTime { get; set; }
-
-    [ForeignKey("activityScheduleId")]
-    [InverseProperty("RegistrationOptionalActivities")]
-    public virtual ActivitySchedule activitySchedule { get; set; }
-
     [ForeignKey("camperId")]
-    [InverseProperty("RegistrationOptionalActivities")]
+    [InverseProperty("RegistrationCampers")]
     public virtual Camper camper { get; set; }
 
     [ForeignKey("registrationId")]
-    [InverseProperty("RegistrationOptionalActivities")]
+    [InverseProperty("RegistrationCampers")]
     public virtual Registration registration { get; set; }
 }

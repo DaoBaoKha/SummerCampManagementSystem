@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("ActivitySchedule")]
+[Table("ActivitySchedule", Schema = "dbo")]
 public partial class ActivitySchedule
 {
     [Key]
@@ -39,6 +39,8 @@ public partial class ActivitySchedule
 
     public int? locationId { get; set; }
 
+    public int? livestreamId { get; set; }
+
     public int? currentCapacity { get; set; }
 
     [InverseProperty("activitySchedule")]
@@ -56,6 +58,10 @@ public partial class ActivitySchedule
     [ForeignKey("activityId")]
     [InverseProperty("ActivitySchedules")]
     public virtual Activity activity { get; set; }
+
+    [ForeignKey("livestreamId")]
+    [InverseProperty("ActivitySchedules")]
+    public virtual Livestream livestream { get; set; }
 
     [ForeignKey("locationId")]
     [InverseProperty("ActivitySchedules")]

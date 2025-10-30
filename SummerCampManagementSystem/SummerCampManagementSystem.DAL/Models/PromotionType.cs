@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("PromotionType")]
+[Table("PromotionType", Schema = "dbo")]
 public partial class PromotionType
 {
     [Key]
