@@ -176,6 +176,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
+                avatar = model.Avatar,
                 dob = model.Dob,
                 role = UserRole.User.ToString(), // Default role
                 isActive = false,
