@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("CamperActivity")]
+[Table("CamperActivity", Schema = "dbo")]
 [Index("activityScheduleId", Name = "IX_CamperActivity_activityScheduleId")]
 [Index("camperId", Name = "IX_CamperActivity_camperId")]
 public partial class CamperActivity

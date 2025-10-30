@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Route")]
+[Table("Route", Schema = "dbo")]
 [Index("campId", Name = "IX_Route_campId")]
 public partial class Route
 {

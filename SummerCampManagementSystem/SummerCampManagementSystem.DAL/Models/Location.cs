@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Location")]
+[Table("Location", Schema = "dbo")]
 public partial class Location
 {
     [Key]

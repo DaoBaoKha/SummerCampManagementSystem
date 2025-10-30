@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Report")]
+[Table("Report", Schema = "dbo")]
 [Index("activityId", Name = "IX_Report_activityId")]
 [Index("camperId", Name = "IX_Report_camperId")]
 [Index("reportedBy", Name = "IX_Report_reportedBy")]

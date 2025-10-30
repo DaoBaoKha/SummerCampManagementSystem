@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("HealthRecord")]
+[Table("HealthRecord", Schema = "dbo")]
 public partial class HealthRecord
 {
     [Key]

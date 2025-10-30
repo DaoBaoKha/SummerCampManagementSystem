@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("AlbumPhoto")]
+[Table("AlbumPhoto", Schema = "dbo")]
 [Index("albumId", Name = "IX_AlbumPhoto_albumId")]
 public partial class AlbumPhoto
 {

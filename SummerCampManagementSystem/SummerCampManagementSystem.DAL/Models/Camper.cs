@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Camper")]
+[Table("Camper", Schema = "dbo")]
 [Index("groupId", Name = "IX_Camper_groupId")]
 public partial class Camper
 {
@@ -48,10 +48,10 @@ public partial class Camper
     public virtual HealthRecord HealthRecord { get; set; }
 
     [InverseProperty("camper")]
-    public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();
+    public virtual ICollection<ParentCamper> ParentCampers { get; set; } = new List<ParentCamper>();
 
     [InverseProperty("camper")]
-    public virtual ICollection<ParentCamper> ParentCampers { get; set; } = new List<ParentCamper>();
+    public virtual ICollection<RegistrationCamper> RegistrationCampers { get; set; } = new List<RegistrationCamper>();
 
     [InverseProperty("camper")]
     public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();
@@ -65,8 +65,4 @@ public partial class Camper
     [ForeignKey("groupId")]
     [InverseProperty("Campers")]
     public virtual CamperGroup group { get; set; }
-
-    [ForeignKey("camperId")]
-    [InverseProperty("campers")]
-    public virtual ICollection<Registration> registrations { get; set; } = new List<Registration>();
 }
