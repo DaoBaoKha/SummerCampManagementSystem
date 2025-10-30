@@ -222,6 +222,9 @@ builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 
+builder.Services.AddScoped<IAttendanceLogRepository, AttendanceLogRepository>();
+builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);

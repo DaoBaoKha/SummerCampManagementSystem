@@ -172,8 +172,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<LocationRequestDto, Location>();
             CreateMap<Location, LocationResponseDto>();
 
-            CreateMap<AttendanceLog, AttendanceLogDto>()
+            // AttendanceLog mappings
+            CreateMap<AttendanceLog, AttendanceLogResponseDto>()
           .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.firstName + " " + src.staff.lastName));
+            CreateMap<AttendanceLogRequestDto, AttendanceLog>();
          
 
             CreateMap<Location, LocationDto>()
