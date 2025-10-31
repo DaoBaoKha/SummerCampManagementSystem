@@ -16,12 +16,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
-        public async Task<bool> IsScheduleOfCamper(int activityScheduleId, int camperGroupId)
+        public async Task<bool> IsCoreScheduleOfCamper(int activityScheduleId, int camperGroupId)
         {
             return await _context.GroupActivities
                 .AnyAsync(ga =>
                     ga.activityScheduleId == activityScheduleId &&
                     ga.camperGroupId == camperGroupId);
         }
+
+        public async Task<bool> IsOptionalScheduleOfCamper(int activityScheduleId, int camperId)
+        {
+            return await _context.CamperActivities
+                .AnyAsync(ga =>
+                    ga.activityScheduleId == activityScheduleId &&
+                    ga.camperId == camperId);
+        }
+
     }
 }
