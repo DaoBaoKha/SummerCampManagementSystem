@@ -33,31 +33,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto camperGroup)
         {
-            //await _validationService.ValidateEntityExistsAsync(camperGroup.SupervisorId, _unitOfWork.Users.GetByIdAsync, "Supervisor");
-           // await _validationService.ValidateEntityExistsAsync(camperGroup.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
+            await _validationService.ValidateEntityExistsAsync(camperGroup.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(camperGroup.CampId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-
-            if (camperGroup.SupervisorId > 0)
-            {
-                var staff = await _unitOfWork.Users.GetByIdAsync(camperGroup.SupervisorId)
-                    ?? throw new KeyNotFoundException("Staff not found.");
-
-
-                if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
-
-                {
-                    throw new InvalidOperationException("Assigned user is not a staff member.");
-                }
-
-                bool staffConflict = await _unitOfWork.ActivitySchedules
-                   .IsStaffBusyAsync(camperGroup.SupervisorId, camp.startDate.Value.ToDateTime(TimeOnly.MinValue), camp.endDate.Value.ToDateTime(TimeOnly.MinValue));
-
-                if (staffConflict)
-                    throw new InvalidOperationException("Staff has another activity scheduled during this time.");
-            }
             var group = _mapper.Map<CamperGroup>(camperGroup);
 
             await _unitOfWork.CamperGroups.CreateAsync(group);
@@ -66,9 +46,35 @@ namespace SummerCampManagementSystem.BLL.Services
             return  _mapper.Map<CamperGroupResponseDto>(group);
         }
 
+        public async Task<CamperGroupResponseDto> AssignStaffToGroup(int camperGroupId, int staffId)
+        {
+            var group = await _unitOfWork.CamperGroups.GetByIdAsync(camperGroupId)
+                ?? throw new KeyNotFoundException("Camper Group not found.");
+
+            var camp = await _unitOfWork.Camps.GetByIdAsync(group.campId.Value);
+
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
+                ?? throw new KeyNotFoundException("Staff not found.");
+
+            if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Assigned user is not a staff member.");
+            }
+
+            bool staffConflict = await _unitOfWork.ActivitySchedules
+               .IsStaffBusyAsync(staffId, camp.startDate.Value.ToDateTime(TimeOnly.MinValue), camp.endDate.Value.ToDateTime(TimeOnly.MinValue));
+
+            if (staffConflict)
+                throw new InvalidOperationException("Staff has another activity scheduled during this time.");
+
+            group.supervisorId = staffId;
+            await _unitOfWork.CamperGroups.UpdateAsync(group);
+            await _unitOfWork.CommitAsync();
+            return _mapper.Map<CamperGroupResponseDto>(group);
+        }
+
         public async Task<CamperGroupResponseDto?> UpdateCamperGroupAsync(int id, CamperGroupRequestDto camperGroup)
         {
-            await _validationService.ValidateEntityExistsAsync(camperGroup.SupervisorId, _unitOfWork.Users.GetByIdAsync, "Supervisor");
             await _validationService.ValidateEntityExistsAsync(camperGroup.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
 
             var existingCamperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id);
