@@ -11,7 +11,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<AttendanceLogResponseDto>> GetAllAttendanceLogsAsync();
         Task<AttendanceLogResponseDto?> GetAttendanceLogByIdAsync(int id);
-        Task<AttendanceLogResponseDto> CreateAttendanceLogAsync(AttendanceLogRequestDto attendanceLogDto);
+        Task<AttendanceLogResponseDto> CoreActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
+        Task<AttendanceLogResponseDto> OptionalActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
 
     }
 }

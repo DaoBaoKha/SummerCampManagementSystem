@@ -9,6 +9,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IAttendanceLogRepository : IGenericRepository<AttendanceLog>
     {
-        Task<bool> IsScheduleOfCamper(int activityScheduleId, int camperGroupId);
+        Task<bool> IsCoreScheduleOfCamper(int activityScheduleId, int camperGroupId);
+        Task<bool> IsOptionalScheduleOfCamper(int activityScheduleId, int camperId);
     }
 }

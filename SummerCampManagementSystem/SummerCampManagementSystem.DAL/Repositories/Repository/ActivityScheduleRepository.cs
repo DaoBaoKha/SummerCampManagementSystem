@@ -77,6 +77,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 );
         }
 
+        public async Task<bool> IsStaffOfActivitySchedule(int staffId, int activityScheduleId)
+        {
+            return await _context.ActivitySchedules
+                .AnyAsync(s =>
+                    s.activityScheduleId == activityScheduleId &&
+                    s.staffId == staffId
+                );
+        }
+
         public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
         {
             return await _context.ActivitySchedules
@@ -108,6 +117,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(s => s.startTime >= fromDate && s.endTime <= toDate)
                 .ToListAsync();
         }
+
+        
 
     }
 }
