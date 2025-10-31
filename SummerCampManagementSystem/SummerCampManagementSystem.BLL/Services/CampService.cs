@@ -53,6 +53,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return _mapper.Map<CampResponseDto>(createdCamp);
         }
+
         public async Task<bool> DeleteCampAsync(int id)
         {
             var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
@@ -107,25 +108,30 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new Exception("Trạng thái hiện tại của Camp không hợp lệ.");
             }
 
-             
             bool isValidTransition = false;
 
-            // check canceled status
+            // cancel status
             if (newStatus == CampStatus.Canceled)
             {
-                // allow cancel status before InProgress and Completed
+                // allow cancel before InProgress and Completed
+                // (Draft, Pending, Rejected, Published, OpenForRegistration, RegistrationClosed, UnderEnrolled)
                 if (currentStatus < CampStatus.InProgress && currentStatus != CampStatus.Canceled)
                 {
                     isValidTransition = true;
                 }
             }
-          
+            // switch
             else
             {
                 switch (currentStatus)
                 {
                     case CampStatus.Draft:
                         // Draft -> PendingApproval use SubmitForApprovalAsync
+                        if (newStatus == CampStatus.PendingApproval)
+                        {
+                            // if use  Transition directly (should use SubmitForApproval)
+                            isValidTransition = true;
+                        }
                         break;
 
                     case CampStatus.PendingApproval:
@@ -137,7 +143,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         break;
 
                     case CampStatus.Rejected:
-                        // admin Approve Manager's Adjustment (status = PendingApproval)
+                        // Manager adjust (back to PendingApproval)
                         if (newStatus == CampStatus.PendingApproval)
                         {
                             isValidTransition = true;
@@ -153,20 +159,39 @@ namespace SummerCampManagementSystem.BLL.Services
                         break;
 
                     case CampStatus.OpenForRegistration:
-                        // system check time
-                        if (newStatus == CampStatus.RegistrationClosed)
+                        // system check time (-> Closed or UnderEnrolled)
+                        if (newStatus == CampStatus.RegistrationClosed || newStatus == CampStatus.UnderEnrolled)
                         {
                             isValidTransition = true;
                         }
                         break;
 
                     case CampStatus.RegistrationClosed:
-                        // camp start time
+                        // camp start time (-> InProgress)
                         if (newStatus == CampStatus.InProgress)
                         {
                             isValidTransition = true;
                         }
+                        // if not enough campers -> UnderEnrolled (System check)
+                        else if (newStatus == CampStatus.UnderEnrolled)
+                        {
+                            isValidTransition = true;
+                        }
                         break;
+
+                    case CampStatus.UnderEnrolled:
+                        // Admin extend registration time (-> OpenForRegistration)
+                        if (newStatus == CampStatus.OpenForRegistration)
+                        {
+                            isValidTransition = true;
+                        }
+                        // or admin start -> InProgress
+                        else if (newStatus == CampStatus.InProgress)
+                        {
+                            isValidTransition = true;
+                        }
+                        break;
+
 
                     case CampStatus.InProgress:
                         // camp end
@@ -178,6 +203,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     case CampStatus.Completed:
                     case CampStatus.Canceled:
+                        // Final states
                         break;
                 }
             }
@@ -210,6 +236,8 @@ namespace SummerCampManagementSystem.BLL.Services
             // only allow update when status is Draft or Rejected
             if (existingCamp.status != CampStatus.Draft.ToString() && existingCamp.status != CampStatus.Rejected.ToString())
             {
+                // Bổ sung: Cho phép chỉnh sửa khi UnderEnrolled nếu Admin muốn thay đổi MinCapacity/thời gian trước khi gia hạn? 
+                // Nếu không, chỉ giữ Draft/Rejected.
                 throw new ArgumentException($"Camp chỉ có thể được chỉnh sửa nội dung khi ở trạng thái Draft hoặc Rejected. Trạng thái hiện tại: {existingCamp.status}.");
             }
 
@@ -217,7 +245,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _mapper.Map(campRequest, existingCamp);
 
-           
+
             if (existingCamp.status == CampStatus.Rejected.ToString())
             {
                 existingCamp.status = CampStatus.Draft.ToString(); // back to draft after updating
@@ -271,7 +299,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // CampStaffAssignments check Group/Staff. 
             // Activities check activity.
 
-            // this one check Activity and Group/Staff Assignment.
+            // This section checks Activity and Group/Staff Assignment.
 
             var hasActivities = await _unitOfWork.Activities.GetQueryable()
                 .AnyAsync(a => a.campId == campId);
@@ -311,9 +339,9 @@ namespace SummerCampManagementSystem.BLL.Services
             // check nullables
             if (!campRequest.StartDate.HasValue || !campRequest.EndDate.HasValue ||
                 !campRequest.RegistrationStartDate.HasValue || !campRequest.RegistrationEndDate.HasValue ||
-                !campRequest.LocationId.HasValue || !campRequest.CampTypeId.HasValue || 
+                !campRequest.LocationId.HasValue || !campRequest.CampTypeId.HasValue ||
                 !campRequest.MinParticipants.HasValue || !campRequest.MaxParticipants.HasValue ||
-                !campRequest.MinAge.HasValue || !campRequest.MaxAge.HasValue) 
+                !campRequest.MinAge.HasValue || !campRequest.MaxAge.HasValue)
             {
                 throw new ArgumentException("Ngày bắt đầu/kết thúc, ngày đăng ký, địa điểm, loại trại, số lượng tham gia và độ tuổi là các trường bắt buộc.");
             }
@@ -377,9 +405,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var overlappingCamps = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.locationId == locationId &&
-                            c.campId != currentCampId && // no check current camp id
+                             c.campId != currentCampId && // no check current camp id
                             (c.status != CampStatus.Canceled.ToString()) &&
-                            c.startDate.HasValue && c.endDate.HasValue &&
+                             c.startDate.HasValue && c.endDate.HasValue &&
                             // check same time: (StartA <= EndB) AND (EndA >= StartB)
                             (c.startDate.Value <= newCampEndDate) &&
                             (c.endDate.Value >= newCampStartDate))

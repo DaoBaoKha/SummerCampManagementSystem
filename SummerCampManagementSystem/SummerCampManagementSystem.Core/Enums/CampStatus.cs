@@ -14,10 +14,12 @@
 
         RegistrationClosed = 5,
 
-        InProgress = 6,
+        UnderEnrolled = 6,
 
-        Completed = 7,
+        InProgress = 7, 
 
-        Canceled = 8
+        Completed = 8, 
+
+        Canceled = 9 
     }
 }
