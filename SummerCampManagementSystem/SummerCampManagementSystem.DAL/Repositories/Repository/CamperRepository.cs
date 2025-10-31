@@ -41,18 +41,27 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         }
         public async Task<Registration?> GetRegistrationByCamperIdAsync(int camperId)
         {
-            var camper = await _context.Campers
-                .Include(c => c.registrations)
-                .FirstOrDefaultAsync(c => c.camperId == camperId);
+            // FIX: Truy vấn thông qua bảng trung gian RegistrationCampers để lấy Registration
+            var registrationCamperLink = await _context.RegistrationCampers
+                .Include(rc => rc.registration) // Eager load the Registration object
+                .FirstOrDefaultAsync(rc => rc.camperId == camperId);
 
-            return camper?.registrations.FirstOrDefault();
+            // Trả về đối tượng Registration từ liên kết
+            return registrationCamperLink?.registration;
         }
 
         public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
         {
+            // FIX: Truy vấn Camper thông qua bảng trung gian RegistrationCamper
             return await _context.Campers
-                .Where(c => c.registrations.Any(r => r.campId == campId))
+                .Where(c => c.RegistrationCampers.Any(rc => rc.registration.campId == campId))
                 .ToListAsync();
+        }
+
+        public async Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId)
+        {
+            return await _context.Campers
+                .AnyAsync(c => c.camperId == camperId && c.group.supervisorId == staffId);
         }
     }
 }

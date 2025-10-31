@@ -27,7 +27,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
 
     public class ActivityScheduleByCamperResponseDto : ActivityScheduleResponseDto
     {
-        public List<AttendanceLogDto> AttendanceLogs { get; set; }
+        public List<AttendanceLogResponseDto> AttendanceLogs { get; set; }
 
     }
 }

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Camp")]
+[Table("Camp", Schema = "dbo")]
 [Index("campTypeId", Name = "IX_Camp_campTypeId")]
 [Index("createBy", Name = "IX_Camp_createBy")]
 [Index("locationId", Name = "IX_Camp_locationId")]
@@ -84,9 +84,6 @@ public partial class Camp
 
     [InverseProperty("camp")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-    [InverseProperty("camp")]
-    public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();
 
     [InverseProperty("camp")]
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();

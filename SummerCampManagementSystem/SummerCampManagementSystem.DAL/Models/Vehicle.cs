@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Vehicle")]
+[Table("Vehicle", Schema = "dbo")]
 [Index("vehicleType", Name = "IX_Vehicle_vehicleType")]
 public partial class Vehicle
 {

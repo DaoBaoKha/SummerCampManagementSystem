@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
+[Table("Notifications", Schema = "dbo")]
 [Index("userId", Name = "IX_Notifications_userId")]
 public partial class Notification
 {

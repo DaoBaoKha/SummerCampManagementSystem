@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Registration")]
+[Table("Registration", Schema = "dbo")]
 [Index("appliedPromotionId", Name = "IX_Registration_appliedPromotionId")]
 [Index("campId", Name = "IX_Registration_campId")]
 [Index("userId", Name = "IX_Registration_userId")]
@@ -35,6 +35,9 @@ public partial class Registration
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
     [InverseProperty("registration")]
+    public virtual ICollection<RegistrationCamper> RegistrationCampers { get; set; } = new List<RegistrationCamper>();
+
+    [InverseProperty("registration")]
     public virtual ICollection<RegistrationCancel> RegistrationCancels { get; set; } = new List<RegistrationCancel>();
 
     [InverseProperty("registration")]
@@ -54,8 +57,4 @@ public partial class Registration
     [ForeignKey("userId")]
     [InverseProperty("Registrations")]
     public virtual UserAccount user { get; set; }
-
-    [ForeignKey("registrationId")]
-    [InverseProperty("registrations")]
-    public virtual ICollection<Camper> campers { get; set; } = new List<Camper>();
 }

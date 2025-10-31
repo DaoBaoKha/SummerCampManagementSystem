@@ -139,15 +139,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Incident]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Livestream]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[LivestreamUser]",
          "ObjectType": 0
       },
       {

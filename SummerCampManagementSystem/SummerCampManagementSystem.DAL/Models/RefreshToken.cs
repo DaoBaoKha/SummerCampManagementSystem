@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("RefreshToken")]
+[Table("RefreshToken", Schema = "dbo")]
 [Index("userId", Name = "IX_RefreshToken_userId")]
 public partial class RefreshToken
 {
