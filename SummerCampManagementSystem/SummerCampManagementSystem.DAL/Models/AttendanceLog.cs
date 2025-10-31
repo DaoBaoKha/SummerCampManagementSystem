@@ -41,6 +41,9 @@ public partial class AttendanceLog
 
     public int? activityScheduleId { get; set; }
 
+    [StringLength(50)]
+    public string participantStatus { get; set; }
+
     [ForeignKey("activityScheduleId")]
     [InverseProperty("AttendanceLogs")]
     public virtual ActivitySchedule activitySchedule { get; set; }
