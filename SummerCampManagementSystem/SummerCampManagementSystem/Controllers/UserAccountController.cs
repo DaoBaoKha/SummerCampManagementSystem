@@ -36,7 +36,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPatch("user")]
+        [HttpPut("user")]
         public async Task<IActionResult> UpdateUserProfile([FromBody] UserProfileUpdateDto updateDto)
         {
             if (!ModelState.IsValid)
