@@ -12,6 +12,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IActivityScheduleRepository ActivitySchedules { get; }
         public IAlbumRepository Albums { get; }
         public IAlbumPhotoRepository AlbumPhotos { get; }
+        public IAlbumPhotoFaceRepository AlbumPhotoFaces { get; }
         public IBlogRepository Blogs { get; }
         public IUserRepository Users { get; }
         public IUserAccountRepository UserAccounts { get; }
@@ -43,13 +44,14 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions
             ,ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
             ,IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
-            ,IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs)
+            ,IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces)
         {
             _context = context;
             Activities = activities;
             ActivitySchedules = activitySchedules;
             Albums = albums;
             AlbumPhotos = albumPhotos;
+            AlbumPhotoFaces = albumPhotoFaces;
             Blogs = blogs;
             Users = userRepository;
             UserAccounts = userAccounts;
