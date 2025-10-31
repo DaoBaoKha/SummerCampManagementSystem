@@ -2,6 +2,7 @@
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
+using SummerCampManagementSystem.BLL.DTOs.AlbumPhoto;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
@@ -190,6 +191,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
                 .ForMember(dest => dest.PhotoCount, opt => opt.MapFrom(src => src.AlbumPhotos.Count));
 
+            // AlbumPhoto mappings
+            CreateMap<AlbumPhoto, AlbumPhotoResponseDto>();
+            CreateMap<AlbumPhotoRequestDto, AlbumPhoto>();
+
             // Transaction mappings 
             CreateMap<Transaction, TransactionResponseDto>()
                 .ForMember(dest => dest.RegistrationId, opt => opt.MapFrom(src => src.registrationId))
@@ -199,7 +204,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
 
             // UserAccount mappings
-            CreateMap<UserAccount, UserResponseDto>();
+            CreateMap<UserAccount, UserResponseDto>()
+                .ForMember(
+                    dest => dest.DateOfBirth,  // UserResponseDto
+                    opt => opt.MapFrom(src => src.dob) // UserAccount
+                );
             CreateMap<UserProfileUpdateDto, UserAccount>();
         }
     }

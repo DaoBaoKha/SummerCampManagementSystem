@@ -10,6 +10,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IActivityScheduleRepository ActivitySchedules { get; }
         IAlbumRepository Albums { get; }
         IAlbumPhotoRepository AlbumPhotos { get; }
+        IAlbumPhotoFaceRepository AlbumPhotoFaces { get; }
         IBlogRepository Blogs { get; }
         IUserRepository Users { get; }
         IUserAccountRepository UserAccounts { get; }

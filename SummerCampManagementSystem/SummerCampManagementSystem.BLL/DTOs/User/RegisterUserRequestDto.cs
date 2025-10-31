@@ -19,7 +19,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.User
         public string PhoneNumber { get; set; } = null!;
 
         public string Password { get; set; } = null!;
-        public string Avatar { get; set; } = null!;
 
         public DateOnly? Dob { get; set; }
     }

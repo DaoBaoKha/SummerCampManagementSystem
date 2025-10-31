@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.UserAccount
         [StringLength(255)]
         public string Avatar { get; set; } = string.Empty;
 
-        public DateOnly? Dob { get; set; }
+        public DateOnly Dob { get; set; }
     }
 
     public class UserAdminUpdateDto
