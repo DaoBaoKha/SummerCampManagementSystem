@@ -121,6 +121,7 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -162,6 +163,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.accommodationType).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__accom__1CBC4616");
 
             entity.HasOne(d => d.camp).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__campI__1BC821DD");
+
+            entity.HasOne(d => d.supervisor).WithMany(p => p.Accommodations).HasConstraintName("FK_Accommodation_UserAccount");
         });
 
         modelBuilder.Entity<AccommodationType>(entity =>
@@ -225,10 +228,6 @@ public partial class CampEaseDatabaseContext : DbContext
                 .HasConstraintName("FK_AttendanceLog_Camper");
 
             entity.HasOne(d => d.staff).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Staff");
-
-            entity.HasOne(d => d.transportSchedule).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_TransportSchedule");
-
-            entity.HasOne(d => d.vehicle).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Vehicle");
         });
 
         modelBuilder.Entity<Badge>(entity =>

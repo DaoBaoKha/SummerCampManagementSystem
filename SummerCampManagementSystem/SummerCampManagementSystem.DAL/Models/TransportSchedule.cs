@@ -35,9 +35,6 @@ public partial class TransportSchedule
 
     public string cancelReasons { get; set; }
 
-    [InverseProperty("transportSchedule")]
-    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
-
     [ForeignKey("driverId")]
     [InverseProperty("TransportSchedules")]
     public virtual Driver driver { get; set; }

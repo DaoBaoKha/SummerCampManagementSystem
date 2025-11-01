@@ -178,7 +178,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             schedule.startTime = coreSlot.startTime;
             schedule.endTime = coreSlot.endTime;
-            schedule.roomId = coreSlot.activityScheduleId.ToString();
+            schedule.coreActivityId = coreSlot.activityScheduleId;
 
 
 
@@ -292,9 +292,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
 
             var joinedOptionalCoreIds = schedules
-                .Where(s => !string.IsNullOrWhiteSpace(s.roomId))
-                .Select(s => int.Parse(s.roomId))
+                .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
+                .Select(s => s.coreActivityId)        // lấy giá trị int
                 .ToHashSet();
+
 
             var filteredSchedules = schedules
                 .Where(s => !joinedOptionalCoreIds.Contains(s.activityScheduleId))

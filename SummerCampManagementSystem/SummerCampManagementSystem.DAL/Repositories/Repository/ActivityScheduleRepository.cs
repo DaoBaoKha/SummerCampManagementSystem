@@ -29,7 +29,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(s => s.activity)
-                .Where(s => s.activity.campId == campId && !string.IsNullOrWhiteSpace(s.roomId))
+                .Where(s => s.activity.campId == campId && s.coreActivityId != null)
                 .ToListAsync();
         }
 
@@ -37,7 +37,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(s => s.activity)
-                .Where(s => s.activity.campId == campId && string.IsNullOrWhiteSpace(s.roomId))
+                .Where(s => s.activity.campId == campId && s.coreActivityId == null)
                 .ToListAsync();
         }
 

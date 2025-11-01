@@ -227,6 +227,9 @@ builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IAttendanceLogRepository, AttendanceLogRepository>();
 builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
 
+builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepository>();
+builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);

@@ -59,7 +59,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId)
                 ?? throw new KeyNotFoundException("The Activity Schedule does not have any activities.");
 
-            if (!string.IsNullOrWhiteSpace(activitySchedule.roomId))
+            if (activitySchedule.coreActivityId != null)
             {
                 throw new InvalidOperationException("This is not a core Activity Schedule.");
             }
@@ -89,7 +89,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId)
                 ?? throw new KeyNotFoundException("The Activity Schedule does not have any activities.");
 
-            if (string.IsNullOrWhiteSpace(activitySchedule.roomId))
+            if (activitySchedule.coreActivityId == null)
             {
                 throw new InvalidOperationException("This is not an optional Activity Schedule.");
             }
@@ -121,6 +121,59 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
             return _mapper.Map<AttendanceLogResponseDto>(attendanceLog);
 
+        }
+
+        public async Task<AttendanceLogResponseDto> CheckinAttendanceAsync(AttendanceLogRequestDto attendanceLogDto)
+        {
+            var camper = await _unitOfWork.Campers.GetByIdAsync(attendanceLogDto.CamperId)
+                ?? throw new KeyNotFoundException("Camper not found.");
+            var staff = await _unitOfWork.Users.GetByIdAsync(attendanceLogDto.StaffId)
+                ?? throw new KeyNotFoundException("Staff not found.");
+
+            if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Assigned user is not a staff member.");
+            }
+
+            bool isGroupStaff = await _unitOfWork.CamperAccommodations.IsAccommodationStaffOfCamper(attendanceLogDto.StaffId, attendanceLogDto.CamperId);
+
+            if (!isGroupStaff)
+            {
+                throw new InvalidOperationException("Staff is not an accomodation supervisor of the camper.");
+            }
+
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(attendanceLogDto.ActivityScheduleId)
+                ?? throw new KeyNotFoundException("Activity Schedule not found.");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId)
+                ?? throw new KeyNotFoundException("The Activity Schedule does not have any activities.");
+
+            if (activitySchedule.coreActivityId != null)
+            {
+                throw new InvalidOperationException("This is not a core Activity Schedule.");
+            }
+
+            bool isCamperInActivity = await _unitOfWork.AttendanceLogs.IsCoreScheduleOfCamper(camper.groupId.Value, attendanceLogDto.ActivityScheduleId);
+            if (!isCamperInActivity)
+            {
+                throw new InvalidOperationException("This Camper does not participate in this Activity Schedule.");
+            }
+
+
+            var attendanceLog = _mapper.Map<AttendanceLog>(attendanceLogDto);
+            await _unitOfWork.AttendanceLogs.CreateAsync(attendanceLog);
+
+            var registrationCamper = await _unitOfWork.RegistrationCampers
+                .GetByCamperId(attendanceLogDto.CamperId);
+
+            if (registrationCamper != null)
+            {
+                registrationCamper.status = "Checkin"; // cập nhật trạng thái
+                await _unitOfWork.RegistrationCampers.UpdateAsync(registrationCamper);
+            }
+
+            await _unitOfWork.CommitAsync();
+            return _mapper.Map<AttendanceLogResponseDto>(attendanceLog);
         }
     }
 }
