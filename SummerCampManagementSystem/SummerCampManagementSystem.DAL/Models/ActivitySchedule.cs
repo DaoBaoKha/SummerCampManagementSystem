@@ -29,9 +29,7 @@ public partial class ActivitySchedule
 
     public bool? isLivestream { get; set; }
 
-    [StringLength(255)]
-    [Unicode(false)]
-    public string roomId { get; set; }
+    public int? coreActivityId { get; set; }
 
     public int? maxCapacity { get; set; }
 

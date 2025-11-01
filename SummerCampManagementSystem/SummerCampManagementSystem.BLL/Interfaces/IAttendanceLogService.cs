@@ -13,6 +13,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<AttendanceLogResponseDto?> GetAttendanceLogByIdAsync(int id);
         Task<AttendanceLogResponseDto> CoreActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
         Task<AttendanceLogResponseDto> OptionalActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
+        Task<AttendanceLogResponseDto> CheckinAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
 
     }
 }

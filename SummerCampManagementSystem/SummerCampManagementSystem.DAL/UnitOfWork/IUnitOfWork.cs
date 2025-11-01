@@ -33,6 +33,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ILocationRepository Locations { get; }
         IGroupActivityRepository GroupActivities { get; }
         IAttendanceLogRepository AttendanceLogs { get; }
+        ICamperAccomodationRepository CamperAccommodations { get; }
+        IRegistrationCamperRepository RegistrationCampers { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();

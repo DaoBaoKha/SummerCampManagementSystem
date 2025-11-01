@@ -35,16 +35,18 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ILocationRepository Locations { get; }
         public IGroupActivityRepository GroupActivities { get; }
         public IAttendanceLogRepository AttendanceLogs { get; }
+        public ICamperAccomodationRepository CamperAccommodations { get; }
+        public IRegistrationCamperRepository RegistrationCampers { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
-            IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles, 
+            IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
-            ,ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
+            , ICamperGroupRepository camperGroups, IRegistrationRepository registrations, ICamperRepository campers,
             IBlogRepository blogs, IRouteRepository routes, IPromotionTypeRepository promotionTypes,
             IGuardianRepository guardians, IActivityRepository activities, ICamperActivityRepository camperActivities,
             IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions
-            ,ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
-            ,IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
-            ,IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces)
+            , ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
+            , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
+            , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces, ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers)
         {
             _context = context;
             Activities = activities;
@@ -74,6 +76,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Locations = locations;
             GroupActivities = groupActivities;
             AttendanceLogs = attendanceLogs;
+            CamperAccommodations = camperAccomodations;
+            RegistrationCampers = registrationCampers;
         }
 
         public async Task<int> CommitAsync()

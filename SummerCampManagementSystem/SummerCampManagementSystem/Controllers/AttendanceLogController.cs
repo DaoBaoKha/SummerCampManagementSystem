@@ -90,5 +90,32 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
+
+        [HttpPost]
+        [Route("checkin-activity")]
+        public async Task<IActionResult> CheckInActivityLog([FromBody] AttendanceLogRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var result = await _attendanceLogService.CheckinAttendanceAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
     }
 }
