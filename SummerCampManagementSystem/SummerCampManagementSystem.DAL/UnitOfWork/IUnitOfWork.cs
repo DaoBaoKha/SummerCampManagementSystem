@@ -24,6 +24,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICampRepository Camps { get; }
         ICampTypeRepository CampTypes { get; }
         ICamperRepository Campers { get; }
+        ICampStaffAssignmentRepository CampStaffAssignments { get; }
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }

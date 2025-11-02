@@ -13,4 +13,11 @@
         public string Avatar { get; set; } = string.Empty;
         public DateOnly? Dob { get; set; }
     }
+
+    public class StaffSummaryDto
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; }
+        public string Role { get; set; }
+    }
 }

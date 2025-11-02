@@ -77,16 +77,19 @@ namespace SummerCampManagementSystem.BLL.Services
             newRegistration.RegistrationCampers = new List<RegistrationCamper>();
             foreach (var camperId in request.CamperIds)
             {
-                // Ensure camper exists (optional but good practice)
+                // check if camper exists 
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
 
-                // Create the explicit link entity
+                // create
                 var registrationCamper = new RegistrationCamper
                 {
                     camperId = camperId,
-                    // registrationId will be set by EF after creation
-                    status = "Pending" // Initial status of the link
+
+                    /*
+                     * STATUS REGISTRATION & REGISTRATION CAMPER = PENDING APPROVAL
+                     */
+                    status = RegistrationCamperStatus.PendingApproval.ToString() 
                 };
                 newRegistration.RegistrationCampers.Add(registrationCamper);
             }
@@ -100,16 +103,34 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         public async Task<RegistrationResponseDto> ApproveRegistrationAsync(int registrationId)
         {
-            var registration = await _unitOfWork.Registrations.GetByIdAsync(registrationId)
-                ?? throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
+            // load Registration with related RegistrationCampers 
+            var registration = await _unitOfWork.Registrations.GetQueryable()
+        .Include(r => r.RegistrationCampers)
+        .FirstOrDefaultAsync(r => r.registrationId == registrationId)
+        ?? throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
 
             if (registration.status != RegistrationStatus.PendingApproval.ToString())
             {
                 throw new InvalidOperationException("Only 'PendingApproval' registrations can be approved.");
             }
 
-            registration.status = RegistrationStatus.Approved.ToString();
+            /*
+             * STATUS REGISTRATION = APPROVED
+             * STATUS REGISTRATIONCAMPER = REGISTERED
+             */
+            registration.status = RegistrationStatus.Approved.ToString();
             await _unitOfWork.Registrations.UpdateAsync(registration);
+
+            // status of each Camper -> Registered
+            foreach (var camperLink in registration.RegistrationCampers)
+            {
+                if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
+                {
+                    camperLink.status = RegistrationCamperStatus.Registered.ToString();
+                    // EF Core auto change status after regis status updated
+                }
+            }
+
             await _unitOfWork.CommitAsync();
 
             return await GetRegistrationByIdAsync(registrationId);
@@ -134,18 +155,18 @@ namespace SummerCampManagementSystem.BLL.Services
             // Access DbContext directly for complex M-to-M entity tracking
             var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
 
-            // 1. Get existing links
+            // get existing link
             var oldCamperLinks = await dbContext.RegistrationCampers
                 .Where(rc => rc.registrationId == id)
                 .ToListAsync();
 
-            // 2. Remove links for Campers excluded from the updated list
+            // remove links for Campers excluded from the updated list
             var linksToRemove = oldCamperLinks
                 .Where(rc => !request.CamperIds.Contains(rc.camperId)).ToList();
 
             dbContext.RegistrationCampers.RemoveRange(linksToRemove);
 
-            // 3. Add links for new Campers
+            // add links for new Campers
             var existingCamperIds = oldCamperLinks.Select(rc => rc.camperId).ToList();
             var camperIdsToAdd = request.CamperIds
                 .Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
@@ -191,9 +212,10 @@ namespace SummerCampManagementSystem.BLL.Services
             var registrationEntity = await _unitOfWork.Registrations.GetQueryable()
                 .Where(r => r.registrationId == id)
                 .Include(r => r.camp)
-                // FIX: Include through the RegistrationCampers junction table
+                // include through the RegistrationCampers junction table
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
+                .Include(r => r.RegistrationOptionalActivities)
                 .FirstOrDefaultAsync();
 
             if (registrationEntity == null) return null;
@@ -212,9 +234,10 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
                 .Include(r => r.camp)
-                // FIX: Include through the RegistrationCampers junction table
+                // include through the RegistrationCampers junction table
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
+                .Include(r => r.RegistrationOptionalActivities)
                 .ToListAsync();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
@@ -281,6 +304,20 @@ namespace SummerCampManagementSystem.BLL.Services
             if (registration.status != RegistrationStatus.Approved.ToString())
             {
                 throw new InvalidOperationException("Payment link can only be generated for 'Approved' registrations.");
+            }
+
+            // check CamperRegistration statuses (Flow CamperRegistration)
+            if (registration.RegistrationCampers == null || !registration.RegistrationCampers.Any())
+            {
+                throw new InvalidOperationException("This registration has no campers.");
+            }
+
+            bool allCampersRegistered = registration.RegistrationCampers
+              .All(rc => rc.status == RegistrationCamperStatus.Registered.ToString());
+
+            if (!allCampersRegistered)
+            {
+                throw new InvalidOperationException("Not all campers in this registration are in the 'Registered' state.");
             }
 
             // check transaction status
@@ -449,6 +486,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(r => r.camp)
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
+                .Include(r => r.RegistrationOptionalActivities)
                 .ToListAsync();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
@@ -477,6 +515,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(r => r.camp)
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
+                .Include(r => r.RegistrationOptionalActivities)
                 .ToListAsync();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();

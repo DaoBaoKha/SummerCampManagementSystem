@@ -30,4 +30,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
         public LocationDto? Location { get; set; }
         public PromotionDto? Promotion { get; set; }
     }
+
+    public class CampSummaryDto
+    {
+        public int CampId { get; set; }
+        public string Name { get; set; }
+    }
 }

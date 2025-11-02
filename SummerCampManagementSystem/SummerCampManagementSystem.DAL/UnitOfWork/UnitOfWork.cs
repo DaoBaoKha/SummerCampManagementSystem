@@ -26,6 +26,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICampRepository Camps { get; }
         public ICampTypeRepository CampTypes { get; }
         public ICamperRepository Campers { get; }
+        public ICampStaffAssignmentRepository CampStaffAssignments { get; }
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
@@ -46,7 +47,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             IHealthRecordRepository healthRecords, IPromotionRepository promotions, ITransactionRepository transactions
             , ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
-            , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces, ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers)
+            , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
+            ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments)
         {
             _context = context;
             Activities = activities;
@@ -64,6 +66,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CampTypes = campTypes;
             CamperGroups = camperGroups;
             Campers = campers;
+            CampStaffAssignments = campStaffAssignments;
             Registrations = registrations;
             RegistrationOptionalActivities = registrationOptionalActivities;
             Routes = routes;

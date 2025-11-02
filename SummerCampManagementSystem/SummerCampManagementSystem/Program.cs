@@ -168,7 +168,8 @@ builder.Services.AddScoped<IPromotionTypeService, PromotionTypeService>();
 
 builder.Services.AddScoped<ICamperRepository, CamperRepository>();
 builder.Services.AddScoped<ICamperService, CamperService>();
-
+builder.Services.AddScoped<ICampStaffAssignmentRepository, CampStaffAssignmentRepository>();
+builder.Services.AddScoped<ICampStaffAssignmentService, CampStaffAssignmentService>();
 
 
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
