@@ -8,6 +8,7 @@ using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
@@ -139,6 +140,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<CamperActivityCreateDto, CamperActivity>()
                 .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
             CreateMap<CamperActivityUpdateDto, CamperActivity>();
+
+            // CampStaffAssignment mappings
+            CreateMap<UserAccount, StaffSummaryDto>()
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.firstName + " " + src.lastName))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.role));
+
+            CreateMap<Camp, CampSummaryDto>();
+
+            CreateMap<CampStaffAssignment, CampStaffAssignmentResponseDto>()
+                .ForMember(dest => dest.CampStaffAssignmentId, opt => opt.MapFrom(src => src.campStaffAssignmentId));
+
+            CreateMap<CampStaffAssignmentRequestDto, CampStaffAssignment>();
 
             //Promotion mappings
             CreateMap<Promotion, PromotionResponseDto>()
