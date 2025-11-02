@@ -15,7 +15,7 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             _attendanceLogService = attendanceLogService;
         }
-        
+
         // GET: api/<AttendanceLogController>
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -102,6 +102,33 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 var result = await _attendanceLogService.CheckinAttendanceAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Route("checkout-activity")]
+        public async Task<IActionResult> CheckOutActivityLog([FromBody] AttendanceLogRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var result = await _attendanceLogService.CheckoutAttendanceAsync(dto);
                 return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
             }
             catch (KeyNotFoundException ex)
