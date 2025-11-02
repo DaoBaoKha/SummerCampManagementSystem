@@ -85,15 +85,33 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     registrationId = transaction.registrationId.Value;
 
-                    var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
+                    // load Registration & RegistrationCampers 
+                    var registration = await _unitOfWork.Registrations.GetQueryable()
+                        .Include(r => r.RegistrationCampers) 
+                        .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
 
+                    // check registration status
                     if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
                     {
                         return;
                     }
 
                     transaction.status = "Completed";
-                    registration.status = RegistrationStatus.Completed.ToString();
+
+                    /*
+                     * STATUS REGISTRAION * REGISTRATION CAMPER = CONFIRMED
+                     */
+                    registration.status = RegistrationStatus.Confirmed.ToString(); 
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
+                                                            
+                    foreach (var camperLink in registration.RegistrationCampers)
+                    {
+                        // only update camper at "Registered"
+                        if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
+                        {
+                            camperLink.status = RegistrationCamperStatus.Confirmed.ToString();
+                        }
+                    }
 
 
                     // find optionalActivities with status holding
@@ -107,7 +125,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         {
                             // change status from holding to confirmed
                             activity.status = "Confirmed";
-                            _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
+                            await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
                         }
                     }
 
