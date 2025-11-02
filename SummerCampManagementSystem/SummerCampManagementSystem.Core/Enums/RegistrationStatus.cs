@@ -2,12 +2,14 @@
 {
     public enum RegistrationStatus
     {
-        PendingApproval = 1,    
-        Approved = 2,          
-        PendingPayment = 3,     
-        Canceled = 4,           
-        PendingCompletion = 5,  //after paid -> user complete regis by choosing activity and group
-        PendingAssignGroup = 6,  //if dont choose group
-        Completed = 7
+        PendingApproval = 1,  
+        Rejected = 2,        
+        Approved = 3,      
+        PendingPayment = 4,   
+        Confirmed = 5,      
+        PendingRefund = 6,    
+        OnGoing = 7,         
+        Completed = 8,      
+        Canceled = 9          
     }
 }
