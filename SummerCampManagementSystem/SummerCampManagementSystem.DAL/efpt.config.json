@@ -15,6 +15,10 @@
    "T4TemplatePath": null,
    "Tables": [
       {
+         "Name": "[cam10536_campease].[ChatMessage]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Accommodation]",
          "ObjectType": 0
       },
@@ -99,7 +103,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ChatMessageAI]",
+         "Name": "[dbo].[ChatConversation]",
          "ObjectType": 0
       },
       {
@@ -228,7 +232,6 @@
    "UseAsyncStoredProcedureCalls": true,
    "UseBoolPropertiesWithoutDefaultSql": false,
    "UseDatabaseNames": true,
-   "UseDatabaseNamesForRoutines": true,
    "UseDateOnlyTimeOnly": true,
    "UseDbContextSplitting": false,
    "UseDecimalDataAnnotationForSprocResult": true,
@@ -247,6 +250,5 @@
    "UseSchemaFolders": false,
    "UseSchemaNamespaces": false,
    "UseSpatial": false,
-   "UseT4": false,
-   "UseT4Split": false
+   "UseT4": false
 }

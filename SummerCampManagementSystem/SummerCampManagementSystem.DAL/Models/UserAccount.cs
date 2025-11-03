@@ -68,8 +68,8 @@ public partial class UserAccount
     [InverseProperty("createByNavigation")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
-    [InverseProperty("sender")]
-    public virtual ICollection<ChatMessageAI> ChatMessageAIs { get; set; } = new List<ChatMessageAI>();
+    [InverseProperty("user")]
+    public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
 
     [InverseProperty("user")]
     public virtual ICollection<ChatRoomUser> ChatRoomUsers { get; set; } = new List<ChatRoomUser>();

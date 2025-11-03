@@ -34,4 +34,16 @@ namespace SummerCampManagementSystem.BLL.DTOs.UserAccount
 
         public bool IsActive { get; set; }
     }
+
+    public class ChangePasswordRequestDto
+    {
+        [Required(ErrorMessage = "Mật khẩu hiện tại là bắt buộc.")]
+        public string CurrentPassword { get; set; }
+
+        [Required(ErrorMessage = "Mật khẩu mới là bắt buộc.")]
+        public string NewPassword { get; set; }
+
+        [Compare("NewPassword", ErrorMessage = "Mật khẩu xác nhận không khớp.")]
+        public string ConfirmNewPassword { get; set; }
+    }
 }
