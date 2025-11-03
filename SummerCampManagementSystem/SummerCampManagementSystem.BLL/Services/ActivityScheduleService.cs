@@ -38,6 +38,9 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            if (dto.StartTime >= dto.EndTime)
+                throw new InvalidOperationException("Start date must be earlier than end date.");
+
             // Rule 1: Thời gian schedule phải nằm trong thời gian trại
             if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
                 dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))

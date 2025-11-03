@@ -21,6 +21,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<CamperGroup>> GetByCampIdAsync(int campId)
         {
             return await _context.CamperGroups
+                .Include(g => g.Campers)
                 .Where(g => g.campId == campId)
                 .ToListAsync();
         }
