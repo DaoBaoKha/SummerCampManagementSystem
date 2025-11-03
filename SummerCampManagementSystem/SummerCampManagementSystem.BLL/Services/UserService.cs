@@ -76,7 +76,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
-        private string HashPassword(string password)
+        public string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password);
@@ -84,7 +84,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return Convert.ToBase64String(hash);
         }
 
-        private bool VerifyPassword(string enteredPassword, string hashedPassword)
+        public bool VerifyPassword(string enteredPassword, string hashedPassword)
         {
             string hashedEnteredPassword = HashPassword(enteredPassword);
             return hashedEnteredPassword == hashedPassword;
@@ -385,5 +385,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             };
         }
+
     }
 }
