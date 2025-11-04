@@ -265,6 +265,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
 
 // Chat service
+builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddHttpClient();
 
