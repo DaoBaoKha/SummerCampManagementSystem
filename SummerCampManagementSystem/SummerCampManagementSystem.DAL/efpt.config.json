@@ -15,10 +15,6 @@
    "T4TemplatePath": null,
    "Tables": [
       {
-         "Name": "[cam10536_campease].[ChatMessage]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Accommodation]",
          "ObjectType": 0
       },
@@ -104,6 +100,10 @@
       },
       {
          "Name": "[dbo].[ChatConversation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatMessage]",
          "ObjectType": 0
       },
       {
