@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.Interfaces;
+using System.Security.Claims;
+using static SummerCampManagementSystem.BLL.DTOs.User.EmailDto;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -116,6 +118,96 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound($"User with ID {userId} not found.");
             }
             return NoContent();
+        }
+
+
+        [HttpPost("email/initiate-update")]
+        public async Task<IActionResult> InitiateEmailUpdate([FromBody] EmailUpdateRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var message = await _userAccountService.InitiateEmailUpdateAsync(model);
+                return Ok(new { Message = message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                // password incorrect
+                return Unauthorized(new { Message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                // Xnew email is used
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Đã xảy ra lỗi trong quá trình gửi OTP." });
+            }
+        }
+
+
+        [HttpPost("email/verify-update")]
+        public async Task<IActionResult> VerifyEmailUpdate([FromBody] EmailUpdateVerificationDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var updatedUser = await _userAccountService.VerifyEmailUpdateAsync(model);
+                return Ok(updatedUser);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // otp expired or error
+                return BadRequest(new { Message = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                // no user found
+                return NotFound(new { Message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "Đã xảy ra lỗi trong quá trình cập nhật email." });
+            }
+        }
+
+
+        [HttpPost("reset-password")] 
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized(new { message = "Token không hợp lệ hoặc thiếu thông tin người dùng." });
+            }
+
+            try
+            {
+                var (isSuccess, message) = await _userAccountService.ChangePasswordAsync(userId, model);
+
+                if (!isSuccess)
+                {
+                    return BadRequest(new { message = message });
+                }
+
+                return Ok(new { message = message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Đã xảy ra lỗi hệ thống khi đổi mật khẩu." });
+            }
         }
     }
 }

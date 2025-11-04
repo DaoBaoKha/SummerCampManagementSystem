@@ -60,7 +60,9 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<CamperGuardian> CamperGuardians { get; set; }
 
-    public virtual DbSet<ChatMessageAI> ChatMessageAIs { get; set; }
+    public virtual DbSet<ChatConversation> ChatConversations { get; set; }
+
+    public virtual DbSet<ChatMessage> ChatMessages { get; set; }
 
     public virtual DbSet<ChatRoom> ChatRooms { get; set; }
 
@@ -343,11 +345,23 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.guardian).WithMany(p => p.CamperGuardians).HasConstraintName("FK__CamperGua__guard__282DF8C2");
         });
 
-        modelBuilder.Entity<ChatMessageAI>(entity =>
+        modelBuilder.Entity<ChatConversation>(entity =>
         {
-            entity.HasKey(e => e.chatMessageAiId).HasName("PK__ChatMess__DBC8291A920D34D4");
+            entity.HasKey(e => e.chatConversationId).HasName("PK__ChatMess__DBC8291A920D34D4");
 
-            entity.HasOne(d => d.sender).WithMany(p => p.ChatMessageAIs).HasConstraintName("FK__ChatMessa__sende__607251E5");
+            entity.HasOne(d => d.user).WithMany(p => p.ChatConversations)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__ChatMessa__sende__607251E5");
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.Property(e => e.chatMessageId).ValueGeneratedNever();
+            entity.Property(e => e.role).IsFixedLength();
+
+            entity.HasOne(d => d.conversation).WithMany(p => p.ChatMessages)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ChatMessage_ChatConversation");
         });
 
         modelBuilder.Entity<ChatRoom>(entity =>

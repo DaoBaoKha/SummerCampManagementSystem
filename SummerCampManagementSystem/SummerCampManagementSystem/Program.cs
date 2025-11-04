@@ -51,6 +51,11 @@ string payosChecksumKey = builder.Configuration["PayOS:ChecksumKey"]?.Trim() ?? 
 string payosReturnUrl = builder.Configuration["PayOS:ReturnUrl"]?.Trim() ?? "";
 string payosCancelUrl = builder.Configuration["PayOS:CancelUrl"]?.Trim() ?? "";
 
+// Gemini settings (local default)
+string geminiApiKey = builder.Configuration["GeminiApi:ApiKey"]?.Trim() ?? "";
+string geminiBaseUrl = builder.Configuration["GeminiApi:ApiBaseUrl"]?.Trim() ?? "";
+string geminiModelName = builder.Configuration["GeminiApi:ModelName"]?.Trim() ?? "";
+
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
@@ -98,6 +103,14 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
 
 
+        // gemini
+        geminiApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-api-key", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        geminiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        geminiModelName = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-model-name", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
 
         var inMemorySettings = new Dictionary<string, string>
         {
@@ -116,7 +129,13 @@ if (builder.Environment.IsProduction())
             {"PayOS:ApiKey", payosApiKey},
             {"PayOS:ChecksumKey", payosChecksumKey},
             {"PayOS:ReturnUrl", payosReturnUrl},
-            {"PayOS:CancelUrl", payosCancelUrl}
+            {"PayOS:CancelUrl", payosCancelUrl},
+
+
+            // Gemini
+            {"GeminiApi:ApiKey", geminiApiKey},
+            {"GeminiApi:ApiBaseUrl", geminiBaseUrl},
+            {"GeminiApi:ModelName", geminiModelName}
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
@@ -244,6 +263,26 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
+
+// Chat service
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddHttpClient();
+
+// Gemini API Setting
+var geminiApiSettings = new GeminiApiSettings
+{
+    ApiKey = geminiApiKey,
+    ApiBaseUrl = geminiBaseUrl,
+    ModelName = geminiModelName
+};
+
+builder.Services.Configure<GeminiApiSettings>(opts =>
+{
+    opts.ApiKey = geminiApiSettings.ApiKey;
+    opts.ApiBaseUrl = geminiApiSettings.ApiBaseUrl;
+    opts.ModelName = geminiApiSettings.ModelName;
+});
+
 
 // Email service
 builder.Services.AddScoped<IEmailService, EmailService>();
