@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
@@ -86,19 +87,38 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 );
         }
 
-        public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
+        //public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
+        //{
+        //    return await _context.ActivitySchedules
+        //         .Include(a => a.activity)
+        //         .Include(a => a.GroupActivities)
+        //             .ThenInclude(ga => ga.camperGroup)
+        //         .Where(a =>
+        //             a.activity.campId == campId &&
+        //             (
+        //                 a.staffId == staffId || // Staff được gán trực tiếp
+        //                 a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId) // Supervisor của nhóm
+        //             ))
+        //         .ToListAsync();
+        //}
+
+        public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId, ActivityScheduleType? status = null)
         {
-            return await _context.ActivitySchedules
+            var query = _context.ActivitySchedules
                 .Include(a => a.activity)
                 .Include(a => a.GroupActivities)
                     .ThenInclude(ga => ga.camperGroup)
                 .Where(a =>
                     a.activity.campId == campId &&
                     (
-                        a.staffId == staffId || // Staff được gán trực tiếp
-                        a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId) // Supervisor của nhóm
-                    ))
-                .ToListAsync();
+                        a.staffId == staffId ||
+                        a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId)
+                    ));
+
+            if (status.HasValue)
+                query = query.Where(a => a.status == status.Value.ToString());
+
+            return await query.ToListAsync();
         }
 
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)

@@ -48,7 +48,7 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (Exception ex)
             {
                 return NotFound(new { message = $"Camp with id {campId} not found." });
-            }  
+            }
         }
 
         [HttpGet("{camperId}/guardians")]
@@ -58,6 +58,20 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var guardians = await _camperService.GetGuardiansByCamperId(camperId);
                 return Ok(guardians);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("activityScheduleId{id}")]
+        public async Task<IActionResult> GetCampersByOptionalActivitySchedule(int id)
+        {
+            try
+            {
+                var campers = await _camperService.GetCampersByOptionalActivitySChedule(id);
+                return Ok(campers);
             }
             catch (KeyNotFoundException ex)
             {
