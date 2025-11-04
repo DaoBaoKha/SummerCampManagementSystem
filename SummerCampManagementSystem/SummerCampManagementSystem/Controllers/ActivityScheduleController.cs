@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -75,11 +76,11 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("camp/{campId}/staff/{staffId}")]
-        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId)
+        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId, [FromQuery] ActivityScheduleType? status)
         {
             try
             {
-                var result = await _service.GetByCampAndStaffAsync(campId, staffId);
+                var result = await _service.GetByCampAndStaffAsync(campId, staffId, status);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)

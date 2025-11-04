@@ -22,7 +22,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Activity
 
     public class ActivitySummaryDto
     {
-        public int ActivityId { get; set; }
         public string Name { get; set; } = string.Empty;
+        public string ActivityType { get; set; } = string.Empty;
+
     }
 }
