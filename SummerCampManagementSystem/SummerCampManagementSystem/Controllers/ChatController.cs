@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Chat;
 using SummerCampManagementSystem.BLL.Interfaces;
-
+using static SummerCampManagementSystem.BLL.DTOs.Chat.AIChatboxDto;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -18,38 +17,51 @@ namespace SummerCampManagementSystem.API.Controllers
             _chatService = chatService;
         }
 
-        /// <summary>
-        /// send message (and history) to AI chatbox and receive answer
-        /// </summary>
-        /// <param name="requestDto">Request contains message history</param>
-        /// <returns>AI Chatbox Response</returns>
         [HttpPost]
-        [ProducesResponseType(typeof(AIChatboxDto.ChatResponseDto), 200)]
-        [ProducesResponseType(typeof(string), 400)]
-        public async Task<IActionResult> GenerateChatResponse([FromBody] AIChatboxDto.ChatRequestDto requestDto)
+        public async Task<IActionResult> SendMessage([FromBody] ChatRequestDto request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
+            var response = await _chatService.GenerateResponseAsync(request);
+            return Ok(response);
+        }
+
+        [HttpGet("history")]
+        public async Task<IActionResult> GetHistory()
+        {
+            var history = await _chatService.GetConversationHistoryAsync();
+            return Ok(history);
+        }
+
+        [HttpGet("conversation/{id}")]
+        public async Task<IActionResult> GetMessages(int id)
+        {
             try
             {
-                var response = await _chatService.GenerateResponseAsync(requestDto);
-                return Ok(response);
+                var messages = await _chatService.GetMessagesByConversationIdAsync(id);
+                return Ok(messages);
             }
-            catch (ArgumentException ex) // no message
+            catch (KeyNotFoundException ex)
             {
-                return BadRequest(new { message = ex.Message });
+                // error when user 1 try to get user b history
+                return NotFound(new { message = ex.Message });
             }
-            catch (HttpRequestException ex) // api gemini error
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteConversation(int id)
+        {
+            try
             {
-                // server error (api gemini or internet)
-                return StatusCode(500, new { message = "Lỗi khi kết nối đến dịch vụ AI.", details = ex.Message });
+                await _chatService.DeleteConversationAsync(id);
+                return NoContent();
             }
-            catch (Exception ex) // others
+            catch (KeyNotFoundException ex)
             {
-                return StatusCode(500, new { message = "Đã xảy ra lỗi không mong muốn.", details = ex.Message });
+                return NotFound(new { message = ex.Message });
             }
         }
     }

@@ -356,7 +356,6 @@ public partial class CampEaseDatabaseContext : DbContext
 
         modelBuilder.Entity<ChatMessage>(entity =>
         {
-            entity.Property(e => e.chatMessageId).ValueGeneratedNever();
             entity.Property(e => e.role).IsFixedLength();
 
             entity.HasOne(d => d.conversation).WithMany(p => p.ChatMessages)
