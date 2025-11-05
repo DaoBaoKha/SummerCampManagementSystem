@@ -106,7 +106,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.userId.ToString()),
+                //new Claim(JwtRegisteredClaimNames.Sub, user.userId.ToString()),
+                new Claim("id", user.userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.email),
                 new Claim(JwtRegisteredClaimNames.Name, user.firstName + " " + user.lastName),
                 new Claim(ClaimTypes.Role, user.role.ToString()),

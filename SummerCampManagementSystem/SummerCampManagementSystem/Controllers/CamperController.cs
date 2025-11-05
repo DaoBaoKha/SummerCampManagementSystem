@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -49,6 +50,16 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = $"Camp with id {campId} not found." });
             }
+        }
+
+        [Authorize(Roles = "User")]
+        [HttpGet("my-campers")]
+        public async Task<IActionResult> GetMyCampers()
+        {
+            var userId = int.Parse(User.FindFirst("id")!.Value);
+
+            var campers = await _camperService.GetByParentIdAsync(userId);
+            return Ok(campers);
         }
 
         [HttpGet("{camperId}/guardians")]

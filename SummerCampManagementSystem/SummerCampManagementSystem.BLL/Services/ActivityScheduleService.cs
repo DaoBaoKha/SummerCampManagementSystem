@@ -112,7 +112,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     camperGroupId = group.camperGroupId,
                     activityScheduleId = schedule.activityScheduleId,
-                    status = "Pending"
+                    //status = "Pending"
                 };
                 await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
             }
@@ -187,6 +187,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
+
+
+
 
             var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
 

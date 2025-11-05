@@ -25,7 +25,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.CamperActivities
                  .Include(ca => ca.camper)
                  .Include(ca => ca.activitySchedule)
-                .ToListAsync();
+                 .ToListAsync();
+        }
+
+        public async Task<int> CamperofOptionalActivityCount(int activityScheduleId)
+        {
+            return await _context.CamperActivities
+                .CountAsync(ca => ca.activityScheduleId == activityScheduleId);
         }
 
         public new async Task<CamperActivity?> GetByIdAsync(int id)

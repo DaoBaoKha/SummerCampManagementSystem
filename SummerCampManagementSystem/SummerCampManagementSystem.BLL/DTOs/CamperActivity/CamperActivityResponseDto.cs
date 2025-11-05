@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Activity;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using System;
 using System.Collections.Generic;
