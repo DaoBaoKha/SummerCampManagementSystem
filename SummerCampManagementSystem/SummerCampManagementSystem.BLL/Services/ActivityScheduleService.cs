@@ -42,8 +42,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Start date must be earlier than end date.");
 
             // Rule 1: Thời gian schedule phải nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
             {
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
             }
@@ -209,8 +208,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 ?? throw new KeyNotFoundException("Camp not found.");
 
             // 🔹 Rule 1: Schedule nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
 
             // 🔹 Rule 2: Không trùng thời gian core activity khác (ngoại trừ chính nó)

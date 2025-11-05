@@ -31,12 +31,21 @@ public partial class Location
     [Column(TypeName = "decimal(11, 8)")]
     public decimal? longitude { get; set; }
 
+    public int? campLocationId { get; set; }
+
     [InverseProperty("location")]
     public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
     [InverseProperty("location")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
+    [InverseProperty("campLocation")]
+    public virtual ICollection<Location> InversecampLocation { get; set; } = new List<Location>();
+
     [InverseProperty("location")]
     public virtual ICollection<RouteStop> RouteStops { get; set; } = new List<RouteStop>();
+
+    [ForeignKey("campLocationId")]
+    [InverseProperty("InversecampLocation")]
+    public virtual Location campLocation { get; set; }
 }
