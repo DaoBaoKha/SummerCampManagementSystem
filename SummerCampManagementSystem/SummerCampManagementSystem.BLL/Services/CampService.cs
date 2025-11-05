@@ -403,19 +403,23 @@ namespace SummerCampManagementSystem.BLL.Services
             var newCampEndDate = campRequest.EndDate.Value;
             var locationId = campRequest.LocationId.Value;
 
+            // make sure to change to datetime
+            DateTime newStartDateTime = newCampStartDate.ToDateTime(TimeOnly.MinValue);
+            DateTime newEndDateTime = newCampEndDate.ToDateTime(TimeOnly.MaxValue);
+
             var overlappingCamps = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.locationId == locationId &&
-                             c.campId != currentCampId && // no check current camp id
+                            c.campId != currentCampId &&
                             (c.status != CampStatus.Canceled.ToString()) &&
-                             c.startDate.HasValue && c.endDate.HasValue &&
-                            // check same time: (StartA <= EndB) AND (EndA >= StartB)
-                            (c.startDate.Value <= newCampEndDate) &&
-                            (c.endDate.Value >= newCampStartDate))
+                            c.startDate.HasValue && c.endDate.HasValue &&
+                            // check duplicate (StartA <= EndB) AND (EndA >= StartB)
+                            (c.startDate.Value <= newEndDateTime) && 
+                            (c.endDate.Value >= newStartDateTime))  
                 .ToListAsync();
 
             if (overlappingCamps.Any())
             {
-                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate} đến {overlappingCamps.First().endDate}.");
+                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate.Value.ToShortDateString()} đến {overlappingCamps.First().endDate.Value.ToShortDateString()}.");
             }
         }
     }

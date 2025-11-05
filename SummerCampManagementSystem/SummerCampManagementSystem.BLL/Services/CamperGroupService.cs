@@ -62,7 +62,11 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             bool staffConflict = await _unitOfWork.ActivitySchedules
-               .IsStaffBusyAsync(staffId, camp.startDate.Value.ToDateTime(TimeOnly.MinValue), camp.endDate.Value.ToDateTime(TimeOnly.MinValue));
+            .IsStaffBusyAsync(
+                staffId,
+                camp.startDate.Value.Date.Add(TimeOnly.MinValue.ToTimeSpan()),
+                camp.endDate.Value.Date.Add(TimeOnly.MaxValue.ToTimeSpan())
+            );
 
             if (staffConflict)
                 throw new InvalidOperationException("Staff has another activity scheduled during this time.");
