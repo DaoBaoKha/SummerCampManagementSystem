@@ -250,6 +250,8 @@ builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
 builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepository>();
 builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
 
+builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
@@ -353,7 +355,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 };
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
-            }
+            },
+
+              OnForbidden = async context =>
+              {
+                  context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                  context.Response.ContentType = "application/json";
+                  var responseBody = new 
+                  {
+                      status = 403,
+                      error = "Forbidden",
+                      Message = "You do not have permission to access this resource"
+                  };
+                  await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+              }
         };
     });
 

@@ -40,6 +40,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IAttendanceLogRepository AttendanceLogs { get; }
         public ICamperAccomodationRepository CamperAccommodations { get; }
         public IRegistrationCamperRepository RegistrationCampers { get; }
+        public IParentCamperRepository ParentCampers { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
@@ -51,7 +52,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
-            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages)
+            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers)
         {
             _context = context;
             Activities = activities;
@@ -86,6 +87,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             AttendanceLogs = attendanceLogs;
             CamperAccommodations = camperAccomodations;
             RegistrationCampers = registrationCampers;
+            ParentCampers = parentCampers;
         }
 
         public async Task<int> CommitAsync()
