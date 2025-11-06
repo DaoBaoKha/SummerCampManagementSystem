@@ -64,11 +64,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<GuardianUpdateDto, Guardian>();
 
             // Camp mappings
-            CreateMap<CampType, CampTypeDto>()
-                .ForMember(dest => dest.Id,
-                           opt => opt.MapFrom(src => src.campTypeId));
+            CreateMap<CampType, CampTypeDto>();
 
-            CreateMap<CampRequestDto, Camp>();
+            CreateMap<Camp, CampResponseDto>();
 
             // Location mappings
             CreateMap<Location, LocationDto>()
