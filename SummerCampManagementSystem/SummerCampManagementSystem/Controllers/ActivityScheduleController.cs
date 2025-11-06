@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Enums;
@@ -12,9 +14,11 @@ namespace SummerCampManagementSystem.API.Controllers
     public class ActivityScheduleController : ControllerBase
     {
         private readonly IActivityScheduleService _service;
-        public ActivityScheduleController(IActivityScheduleService service)
+        private readonly IUserContextService _userContextService;
+        public ActivityScheduleController(IActivityScheduleService service, IUserContextService userContextService)
         {
             _service = service;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
@@ -198,6 +202,23 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Staff")]
+        [HttpGet("my-schedules")]
+        public async Task<IActionResult> GetAllByStaffId()
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId();
+                var result = await _service.GetAllSchedulesByStaffIdAsync(staffId.Value);
+                return Ok(result);
+            }
+           
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });

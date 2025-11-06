@@ -7,7 +7,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     public class UnitOfWork : IUnitOfWork
     {
         private readonly CampEaseDatabaseContext _context;
-
+        public IAccommodationRepository Accommodations { get; }
         public IActivityRepository Activities { get; }
         public IActivityScheduleRepository ActivitySchedules { get; }
         public IAlbumRepository Albums { get; }
@@ -52,9 +52,10 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
-            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers)
+            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations)
         {
             _context = context;
+            Accommodations = accommodations;
             Activities = activities;
             ActivitySchedules = activitySchedules;
             Albums = albums;
