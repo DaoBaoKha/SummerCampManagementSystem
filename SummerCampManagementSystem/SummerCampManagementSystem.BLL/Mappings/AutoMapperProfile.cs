@@ -68,6 +68,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<Camp, CampResponseDto>();
 
+            CreateMap<CampRequestDto, Camp>();
+
+
             // Location mappings
             CreateMap<Location, LocationDto>()
                 .ForMember(dest => dest.Id,
