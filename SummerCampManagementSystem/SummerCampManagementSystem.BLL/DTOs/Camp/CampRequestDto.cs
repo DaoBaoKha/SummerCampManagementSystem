@@ -14,8 +14,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
         public int? MinAge { get; set; }
         public int? MaxAge { get; set; }
 
-        public DateOnly? StartDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
-        public DateOnly? EndDate { get; set; } = DateOnly.FromDateTime(DateTime.Now);
+        public DateTime? StartDate { get; set; } = DateTime.Now;
+        public DateTime? EndDate { get; set; } = DateTime.Now;
 
         public decimal? Price { get; set; } = 0;
         public string Status { get; set; } = string.Empty;

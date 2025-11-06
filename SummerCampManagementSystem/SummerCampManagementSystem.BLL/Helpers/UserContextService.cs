@@ -20,8 +20,21 @@ namespace SummerCampManagementSystem.BLL.Helpers
 
         public int? GetCurrentUserId()
         {
-            // use ClaimTypes.NameIdentifier
-            var userIdClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier);
+            var httpContext = _httpContextAccessor.HttpContext;
+            if (httpContext == null) return null;
+
+            // find using multiple possible claim types for user ID
+            var userIdClaim = httpContext.User.FindFirst("id");
+
+            if (userIdClaim == null)
+            {
+                userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+            }
+
+            if (userIdClaim == null)
+            {
+                userIdClaim = httpContext.User.FindFirst(JwtRegisteredClaimNames.Sub);
+            }
 
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {

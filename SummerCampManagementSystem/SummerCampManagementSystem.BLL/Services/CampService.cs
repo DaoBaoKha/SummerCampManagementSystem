@@ -355,22 +355,33 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Tên, mô tả, địa điểm tổ chức và địa chỉ không được để trống.");
             }
 
-            if (campRequest.RegistrationStartDate.Value >= campRequest.RegistrationEndDate.Value)
+            var reqStartDate = campRequest.StartDate.Value;
+            var reqEndDate = campRequest.EndDate.Value;
+            var reqRegEndDate = campRequest.RegistrationEndDate.Value; // DateTime
+
+            // 1. NGÀY ĐĂNG KÝ
+            if (campRequest.RegistrationStartDate.Value >= reqRegEndDate)
             {
                 throw new ArgumentException("Ngày đóng đăng ký phải sau ngày mở đăng ký.");
             }
 
-            if (campRequest.RegistrationEndDate.Value.Date >= campRequest.StartDate.Value.ToDateTime(TimeOnly.MinValue).Date)
+            // SỬA LỖI: So sánh ngày đóng đăng ký (DateTime) với ngày bắt đầu trại (DateTime)
+            // CHỈ SO SÁNH PHẦN NGÀY (Date)
+            if (reqRegEndDate.Date >= reqStartDate.Date)
             {
                 throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
             }
 
-            if (campRequest.StartDate.Value >= campRequest.EndDate.Value)
+            // 2. NGÀY TRẠI
+            if (reqStartDate >= reqEndDate) // DateTime so sánh trực tiếp
             {
                 throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
             }
 
-            if (campRequest.EndDate.Value.DayNumber - campRequest.StartDate.Value.DayNumber < 3)
+            // SỬA LỖI: Tính thời lượng trại (Sử dụng TimeSpan)
+            // Lấy TotalDays của khoảng thời gian giữa hai ngày (chỉ phần Date)
+            TimeSpan duration = reqEndDate.Date - reqStartDate.Date;
+            if (duration.TotalDays < 3)
             {
                 throw new ArgumentException("Thời lượng trại phải kéo dài ít nhất 3 ngày.");
             }
@@ -399,23 +410,25 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // check same location
-            var newCampStartDate = campRequest.StartDate.Value;
-            var newCampEndDate = campRequest.EndDate.Value;
+            var newCampStartDate = reqStartDate;
+            var newCampEndDate = reqEndDate;
             var locationId = campRequest.LocationId.Value;
+
+            DateTime newStartDateTime = newCampStartDate.Date; 
+            DateTime newEndDateTime = newCampEndDate.Date.AddDays(1).AddTicks(-1);
 
             var overlappingCamps = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.locationId == locationId &&
-                             c.campId != currentCampId && // no check current camp id
-                            (c.status != CampStatus.Canceled.ToString()) &&
+                             c.campId != currentCampId &&
+                             (c.status != CampStatus.Canceled.ToString()) &&
                              c.startDate.HasValue && c.endDate.HasValue &&
-                            // check same time: (StartA <= EndB) AND (EndA >= StartB)
-                            (c.startDate.Value <= newCampEndDate) &&
-                            (c.endDate.Value >= newCampStartDate))
+                             // check duplicate (StartA <= EndB) AND (EndA >= StartB)
+                             (c.startDate.Value <= newEndDateTime) &&
+                             (c.endDate.Value >= newStartDateTime))
                 .ToListAsync();
-
             if (overlappingCamps.Any())
             {
-                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate} đến {overlappingCamps.First().endDate}.");
+                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate.Value.ToShortDateString()} đến {overlappingCamps.First().endDate.Value.ToShortDateString()}.");
             }
         }
     }

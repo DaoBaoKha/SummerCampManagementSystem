@@ -444,6 +444,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<Location>(entity =>
         {
             entity.HasKey(e => e.locationId).HasName("PK__Location__30646B6E1B427B16");
+
+            entity.HasOne(d => d.campLocation).WithMany(p => p.InversecampLocation).HasConstraintName("FK_Location_CampLocation");
         });
 
         modelBuilder.Entity<Message>(entity =>

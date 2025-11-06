@@ -33,9 +33,11 @@ public partial class Camp
 
     public int? maxParticipants { get; set; }
 
-    public DateOnly? startDate { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? startDate { get; set; }
 
-    public DateOnly? endDate { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? endDate { get; set; }
 
     [Column(TypeName = "decimal(10, 2)")]
     public decimal? price { get; set; }
