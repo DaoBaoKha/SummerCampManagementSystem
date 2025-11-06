@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 
@@ -14,10 +15,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CamperController : ControllerBase
     {
         private readonly ICamperService _camperService;
+        private readonly IUserContextService _userContextService;
 
-        public CamperController(ICamperService camperService)
+        public CamperController(ICamperService camperService, IUserContextService userContextService)
         {
             _camperService = camperService;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
@@ -56,9 +59,8 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("my-campers")]
         public async Task<IActionResult> GetMyCampers()
         {
-            var userId = int.Parse(User.FindFirst("id")!.Value);
-
-            var campers = await _camperService.GetByParentIdAsync(userId);
+            var userId = _userContextService.GetCurrentUserId();
+            var campers = await _camperService.GetByParentIdAsync(userId.Value);
             return Ok(campers);
         }
 
@@ -90,6 +92,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "User")]             
         [HttpPost]
         public async Task<IActionResult> Create(CamperRequestDto dto)
         {
@@ -100,7 +103,8 @@ namespace SummerCampManagementSystem.API.Controllers
 
             try
             {
-                var created = await _camperService.CreateCamperAsync(dto);
+                var userId = _userContextService.GetCurrentUserId();
+                var created = await _camperService.CreateCamperAsync(dto, userId.Value);
                 return CreatedAtAction(nameof(GetById), new { id = created.CamperId }, created);
             }
             catch (ArgumentException ex)
