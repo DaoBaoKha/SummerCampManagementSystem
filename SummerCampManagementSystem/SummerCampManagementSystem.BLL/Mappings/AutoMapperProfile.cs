@@ -103,6 +103,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
                 .ForMember(dest => dest.Percent, opt => opt.MapFrom(src => src.percent));
 
+            CreateMap<Promotion, PromotionSummaryForCampDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
+                .ForMember(dest => dest.Percent, opt => opt.MapFrom(src => src.percent));
+
 
             //Registration mapping
             CreateMap<Registration, RegistrationResponseDto>()
