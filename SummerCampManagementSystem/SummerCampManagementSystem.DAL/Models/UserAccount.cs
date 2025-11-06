@@ -46,7 +46,7 @@ public partial class UserAccount
 
     public bool? isEmailConsent { get; set; }
 
-    public string? googleId { get; set; }
+    public string googleId { get; set; }
 
     [InverseProperty("supervisor")]
     public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();

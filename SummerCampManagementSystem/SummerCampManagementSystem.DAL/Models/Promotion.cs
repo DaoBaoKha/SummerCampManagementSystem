@@ -45,6 +45,10 @@ public partial class Promotion
     [Unicode(false)]
     public string code { get; set; }
 
+    public int? maxUsageCount { get; set; }
+
+    public int? currentUsageCount { get; set; }
+
     [InverseProperty("promotion")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
