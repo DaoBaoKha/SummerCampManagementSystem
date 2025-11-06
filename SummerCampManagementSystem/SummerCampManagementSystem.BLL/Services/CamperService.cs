@@ -23,13 +23,13 @@ namespace SummerCampManagementSystem.BLL.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CamperSummaryDto>> GetByParentIdAsync(int parentId)
+        public async Task<IEnumerable<CamperResponseDto>> GetByParentIdAsync(int parentId)
         {
             var campers = await _unitOfWork.ParentCampers.GetByParentIdAsync(parentId);
-            return _mapper.Map<IEnumerable<CamperSummaryDto>>(campers);
+            return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
         }
 
-        public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto)
+        public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto, int parentId)
         {
           
             if (dto.Dob >= new DateOnly(2019, 12, 1))
@@ -49,6 +49,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 camper.HealthRecord = healthRecord;
             }
+
+            var parentCamper = new ParentCamper
+            {
+                parentId = parentId,
+                camperId = camper.camperId
+            };
+
+            await _unitOfWork.ParentCampers.CreateAsync(parentCamper);
+            await _unitOfWork.CommitAsync();
 
             return _mapper.Map<CamperResponseDto>(camper);
         }
