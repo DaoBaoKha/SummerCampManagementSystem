@@ -1,6 +1,7 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Shared;
-using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.Core.Enums;
+using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto; 
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -8,8 +9,10 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<LocationResponseDto>> GetLocationsAsync();
         Task<LocationResponseDto> GetLocationByIdAsync(int id);
-        Task<SuccessResponseDto<LocationResponseDto>> CreateLocationAsync(LocationRequestDto location);
-        Task<SuccessResponseDto<LocationResponseDto>> UpdateLocationAsync(int id, LocationRequestDto location);
+        Task<SuccessResponseDto<LocationResponseDto>> CreateLocationAsync(LocationCreateDto location);
+        Task<SuccessResponseDto<LocationResponseDto>> UpdateLocationAsync(int id, LocationUpdateDto location);
         Task<MessageResponseDto> DeleteLocationAsync(int id);
+        Task<IEnumerable<LocationResponseDto>> GetLocationsByTypeAsync(LocationType type);
+        Task<IEnumerable<LocationResponseDto>> GetChildLocationsByParentIdAsync(int parentLocationId);
     }
 }
