@@ -272,6 +272,7 @@ builder.Services.AddScoped<IUserContextService, UserContextService>();
 builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
 builder.Services.AddHttpClient();
 
 // Gemini API Setting
@@ -436,6 +437,7 @@ app.UseExceptionHandler(errorApp =>
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             ArgumentException => StatusCodes.Status400BadRequest,
+            InvalidOperationException => StatusCodes.Status409Conflict, 
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -448,6 +450,7 @@ app.UseExceptionHandler(errorApp =>
             {
                 404 => "Not Found",
                 400 => "Bad Request",
+                409 => "Conflict",
                 _ => "Internal Server Error"
             },
             message = ex?.Message,
