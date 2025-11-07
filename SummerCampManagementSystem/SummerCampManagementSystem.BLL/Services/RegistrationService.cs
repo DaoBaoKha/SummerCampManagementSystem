@@ -127,8 +127,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
                 {
                     camperLink.status = RegistrationCamperStatus.Registered.ToString();
-                    // EF Core auto change status after regis status updated
-                }
+                    await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                }
             }
 
             await _unitOfWork.CommitAsync();
