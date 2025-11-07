@@ -208,21 +208,5 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
-        [HttpGet("my-schedules")]
-        public async Task<IActionResult> GetAllByStaffId()
-        {
-            try
-            {
-                var staffId = _userContextService.GetCurrentUserId();
-                var result = await _service.GetAllSchedulesByStaffIdAsync(staffId.Value);
-                return Ok(result);
-            }
-           
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
     }
 }

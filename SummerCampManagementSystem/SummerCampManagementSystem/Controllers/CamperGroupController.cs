@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -10,10 +12,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CamperGroupController : ControllerBase
     {
         private readonly ICamperGroupService _camperGroupService;
+        private readonly IUserContextService _userContextService;
 
-        public CamperGroupController(ICamperGroupService camperGroupService)
+        public CamperGroupController(ICamperGroupService camperGroupService, IUserContextService userContextService)
         {
             _camperGroupService = camperGroupService;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
