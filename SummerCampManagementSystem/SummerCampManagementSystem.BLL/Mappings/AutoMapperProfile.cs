@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
@@ -32,6 +33,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
     {
         public AutoMapperProfile()
         {
+            //Accommodation mappings
+            CreateMap<Accommodation, AccommodationResponseDto>();
+
+
+
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
             CreateMap<CamperRequestDto, Camper>();
@@ -49,6 +55,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // CamperGroup mapping
             CreateMap<CamperGroup, CamperGroupResponseDto>();
             CreateMap<CamperGroupRequestDto, CamperGroup>();
+            CreateMap<CamperGroup, CamperGroupWithCampDetailsResponseDto>()
+                .ForMember(dest => dest.CampName,
+                           opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
 
             // HealthRecord mappings
