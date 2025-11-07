@@ -9,19 +9,19 @@ using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
-    public class ParentCamperRepository : GenericRepository<ParentCamper>, IParentCamperRepository
+    public class AccommodationRepository : GenericRepository<Accommodation>, IAccommodationRepository
     {
-        public ParentCamperRepository(CampEaseDatabaseContext context) : base(context)
+        public AccommodationRepository(CampEaseDatabaseContext context) : base(context)
         {
             _context = context;
         }
-        public async Task<IEnumerable<Camper>> GetByParentIdAsync(int parentId)
+
+        public async Task<IEnumerable<Accommodation>> GetAllBySupervisorIdAsync(int supervisorId)
         {
-            return await _context.ParentCampers
-                .Where(pc => pc.parentId == parentId)
-                .Select(pc => pc.camper)
+            return await _context.Accommodations
+                .Include(a => a.camp)
+                .Where(a => a.supervisorId == supervisorId)
                 .ToListAsync();
-          
         }
     }
 }

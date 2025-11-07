@@ -25,6 +25,12 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
         }
 
+        public async Task<IEnumerable<CamperGroupWithCampDetailsResponseDto>> GetAllGroupsBySupervisorIdAsync(int supervisorId)
+        {
+            var groups = await _unitOfWork.CamperGroups.GetAllGroupsBySupervisorIdAsync(supervisorId);
+            return _mapper.Map<IEnumerable<CamperGroupWithCampDetailsResponseDto>>(groups);
+        }
+
         public async Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id)
         {
            var camperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id);
@@ -62,7 +68,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             bool staffConflict = await _unitOfWork.ActivitySchedules
-               .IsStaffBusyAsync(staffId, camp.startDate.Value.ToDateTime(TimeOnly.MinValue), camp.endDate.Value.ToDateTime(TimeOnly.MinValue));
+            .IsStaffBusyAsync(staffId, camp.startDate.Value, camp.endDate.Value);
 
             if (staffConflict)
                 throw new InvalidOperationException("Staff has another activity scheduled during this time.");

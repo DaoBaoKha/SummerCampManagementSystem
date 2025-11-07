@@ -250,6 +250,11 @@ builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
 builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepository>();
 builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
 
+builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
+
+builder.Services.AddScoped<IAccommodationRepository, AccommodationRepository>();
+builder.Services.AddScoped<IAccommodationService, AccommodationService>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
@@ -265,7 +270,10 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
 
 // Chat service
+builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
 builder.Services.AddHttpClient();
 
 // Gemini API Setting
@@ -351,7 +359,20 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 };
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
-            }
+            },
+
+              OnForbidden = async context =>
+              {
+                  context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                  context.Response.ContentType = "application/json";
+                  var responseBody = new 
+                  {
+                      status = 403,
+                      error = "Forbidden",
+                      Message = "You do not have permission to access this resource"
+                  };
+                  await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+              }
         };
     });
 
@@ -417,6 +438,7 @@ app.UseExceptionHandler(errorApp =>
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             ArgumentException => StatusCodes.Status400BadRequest,
+            InvalidOperationException => StatusCodes.Status409Conflict, 
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -429,6 +451,7 @@ app.UseExceptionHandler(errorApp =>
             {
                 404 => "Not Found",
                 400 => "Bad Request",
+                409 => "Conflict",
                 _ => "Internal Server Error"
             },
             message = ex?.Message,

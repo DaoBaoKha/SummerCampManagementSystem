@@ -24,33 +24,41 @@ namespace SummerCampManagementSystem.BLL.Services
         private async Task ValidatePromotionAsync(PromotionRequestDto promotion, int? existingId = null)
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var tomorrow = today.AddDays(1);
 
-            if (promotion.startDate.HasValue && promotion.endDate.HasValue)
+            if (promotion.StartDate.HasValue && promotion.EndDate.HasValue)
             {
-                if (promotion.endDate.Value <= promotion.startDate.Value)
+                // check if start date is before end date
+                if (promotion.EndDate.Value <= promotion.StartDate.Value)
                 {
-                    throw new InvalidOperationException("End Date must be at least one day after the Start Date, ensuring a minimum validity of 1 day.");
+                    throw new InvalidOperationException("Ngày kết thúc phải ít nhất một ngày sau Ngày bắt đầu.");
                 }
             }
 
-            if (existingId == null && promotion.startDate.HasValue && promotion.startDate.Value < tomorrow)
+            // check if StartDate is in the future (for new promotions)
+            if (existingId == null && promotion.StartDate.HasValue && promotion.StartDate.Value < today)
             {
-                throw new InvalidOperationException("Start Date must be tomorrow or later.");
+                throw new InvalidOperationException("Ngày bắt đầu phải là ngày hôm nay hoặc sau này.");
             }
+
+          
+            if (promotion.MaxUsageCount.HasValue && promotion.MaxUsageCount.Value <= 0)
+            {
+                throw new InvalidOperationException("Số lượt sử dụng tối đa phải là số dương.");
+            }
+
 
             if (!promotion.Percent.HasValue && !promotion.MaxDiscountAmount.HasValue)
             {
-                throw new InvalidOperationException("Promotion must have at least one discount value (Percent or Max Discount Amount).");
+                throw new InvalidOperationException("Khuyến mãi phải có ít nhất một giá trị giảm giá (Phần trăm hoặc Giảm giá tối đa).");
             }
 
             if (string.IsNullOrWhiteSpace(promotion.Name))
             {
-                throw new InvalidOperationException("Promotion Name is required.");
+                throw new InvalidOperationException("Tên Khuyến mãi là bắt buộc.");
             }
             if (!promotion.PromotionTypeId.HasValue)
             {
-                throw new InvalidOperationException("Promotion Type is required.");
+                throw new InvalidOperationException("Loại Khuyến mãi là bắt buộc.");
             }
 
             if (promotion.PromotionTypeId.HasValue)
@@ -58,7 +66,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 var typeExists = await _unitOfWork.PromotionTypes.GetByIdAsync(promotion.PromotionTypeId.Value);
                 if (typeExists == null)
                 {
-                    throw new KeyNotFoundException($"Promotion Type with ID {promotion.PromotionTypeId.Value} not found.");
+                    throw new KeyNotFoundException($"Không tìm thấy Loại Khuyến mãi với ID {promotion.PromotionTypeId.Value}.");
                 }
             }
 
@@ -70,16 +78,17 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (codeExists)
                 {
-                    throw new InvalidOperationException($"Promotion Code '{promotion.Code}' already exists.");
+                    throw new InvalidOperationException($"Mã Khuyến mãi '{promotion.Code}' đã tồn tại.");
                 }
             }
         }
+
         public async Task<PromotionResponseDto> CreatePromotionAsync(PromotionRequestDto promotion)
         {
             var currentUserId = _userContextService.GetCurrentUserId();
             if (!currentUserId.HasValue)
             {
-                throw new UnauthorizedAccessException("Cannot get user ID from token. Please login again.");
+                throw new UnauthorizedAccessException("Không thể lấy ID người dùng từ token. Vui lòng đăng nhập lại.");
             }
 
             await ValidatePromotionAsync(promotion);
@@ -88,6 +97,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             newPromotion.createBy = currentUserId.Value;
             newPromotion.createAt = DateTime.UtcNow;
+            newPromotion.currentUsageCount = 0; // Initialize usage count
 
             newPromotion.status = "Active";
 
@@ -101,7 +111,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (createdEntity == null)
             {
-                throw new Exception("Failed to retrieve the created promotion for mapping.");
+                throw new Exception("Không thể truy xuất Khuyến mãi đã tạo để mapping.");
             }
 
             return _mapper.Map<PromotionResponseDto>(createdEntity);
@@ -111,16 +121,20 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<PromotionResponseDto> UpdatePromotionAsync(int promotionId, PromotionRequestDto promotion)
         {
             var existingPromotion = await GetPromotionsWithIncludes()
-                .AsNoTracking() 
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.promotionId == promotionId);
 
-            if (existingPromotion == null) throw new KeyNotFoundException($"Promotion with ID {promotionId} not found.");
+            if (existingPromotion == null) throw new KeyNotFoundException($"Không tìm thấy Khuyến mãi với ID {promotionId}.");
 
             await ValidatePromotionAsync(promotion, promotionId);
 
-            // map dto into entity, keep id
+            // map dto into entity, keep id and usage count
+            var currentUsageCount = existingPromotion.currentUsageCount; // Preserve current usage count
+
             _mapper.Map(promotion, existingPromotion);
-            existingPromotion.promotionId = promotionId; 
+
+            existingPromotion.promotionId = promotionId;
+            existingPromotion.currentUsageCount = currentUsageCount; // Restore usage count
 
             _unitOfWork.Promotions.Attach(existingPromotion);
             await _unitOfWork.Promotions.UpdateAsync(existingPromotion);
@@ -167,9 +181,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(p =>
                     p.status == "Active" &&
 
-                    // valid date: endDate must be today or tomorrow
-                    // if EndDate null, it will always be valid (CONSIDERING THIS!)
+                    // valid date: endDate must be today or later
                     (!p.endDate.HasValue || p.endDate.Value >= today) &&
+
+                    // check usage limit: maxUsageCount is null OR currentUsageCount < maxUsageCount
+                    (!p.maxUsageCount.HasValue || p.currentUsageCount < p.maxUsageCount.Value) &&
 
                     // must have at least percent and maxDiscountAmount
                     (p.percent.HasValue || p.maxDiscountAmount.HasValue) &&

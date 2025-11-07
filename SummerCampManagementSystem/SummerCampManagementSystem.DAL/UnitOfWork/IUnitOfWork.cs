@@ -6,6 +6,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
 {
     public interface IUnitOfWork : IDisposable
     {
+        IAccommodationRepository Accommodations { get; }
         IActivityRepository Activities { get; }
         IActivityScheduleRepository ActivitySchedules { get; }
         IAlbumRepository Albums { get; }
@@ -24,6 +25,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICampRepository Camps { get; }
         ICampTypeRepository CampTypes { get; }
         ICamperRepository Campers { get; }
+        IChatConversationRepository ChatConversations { get; }
+        IChatMessageRepository ChatMessages { get; }
         ICampStaffAssignmentRepository CampStaffAssignments { get; }
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
@@ -36,6 +39,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IAttendanceLogRepository AttendanceLogs { get; }
         ICamperAccomodationRepository CamperAccommodations { get; }
         IRegistrationCamperRepository RegistrationCampers { get; }
+        IParentCamperRepository ParentCampers { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();

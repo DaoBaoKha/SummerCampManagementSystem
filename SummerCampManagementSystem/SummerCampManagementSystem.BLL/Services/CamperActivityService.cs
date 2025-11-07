@@ -33,6 +33,11 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<CamperActivityResponseDto>(created);
         }
 
+       public async Task<int> CamperofOptionalActivityCount(int activityScheduleId)
+        {
+            return await _unitOfWork.CamperActivities.CamperofOptionalActivityCount(activityScheduleId);
+        }
+
         public async Task<bool> DeleteAsync(int id)
         {
             var activity = await _unitOfWork.CamperActivities.GetByIdAsync(id);

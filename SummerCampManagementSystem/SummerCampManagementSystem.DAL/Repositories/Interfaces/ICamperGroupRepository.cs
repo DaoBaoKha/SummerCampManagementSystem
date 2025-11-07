@@ -6,5 +6,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         Task<bool> isSupervisor(int staffId);
         Task<IEnumerable<CamperGroup>> GetByCampIdAsync(int campId);
+        Task<IEnumerable<CamperGroup>> GetAllGroupsBySupervisorIdAsync(int supervisorId);
     }
 }

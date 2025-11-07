@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
-    public interface IParentCamperRepository : IGenericRepository<ParentCamper>
+    public interface IAccommodationRepository : IGenericRepository<Accommodation>
     {
-        Task<IEnumerable<Camper>> GetByParentIdAsync(int parentId);
-
+        Task<IEnumerable<Accommodation>> GetAllBySupervisorIdAsync(int supervisorId);
     }
 }

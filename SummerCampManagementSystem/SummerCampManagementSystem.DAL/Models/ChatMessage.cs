@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("ChatMessage")]
+[Table("ChatMessage", Schema = "dbo")]
 public partial class ChatMessage
 {
     [Key]

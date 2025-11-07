@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
 {
-    public class ActivityScheduleCreateDto : OptionalScheduleCreateDto
+    public class ActivityScheduleCreateDto 
     {
+        public int ActivityId { get; set; }
+        public int? StaffId { get; set; }
+        public int? locationId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public bool? isOptional { get; set; }

@@ -25,6 +25,30 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
         }
 
+        public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId)
+        {
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId);
+               
+            return new
+            {
+                ActivitySchedules = schedules
+              .GroupBy(a => new { a.activity.campId, a.activity.camp.name })
+              .Select(g => new
+              {
+                  g.Key.campId,
+                  campName = g.Key.name,
+                  activities = g.Select(a => new
+                  {
+                      a.activityScheduleId,
+                      a.activity.name,
+                      a.startTime,
+                      a.endTime,
+                      location = a.location.name
+                  })
+              })
+            };
+        }
+
 
         public async Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
         {
@@ -42,8 +66,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Start date must be earlier than end date.");
 
             // Rule 1: Thời gian schedule phải nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
             {
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
             }
@@ -112,7 +135,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     camperGroupId = group.camperGroupId,
                     activityScheduleId = schedule.activityScheduleId,
-                    status = "Pending"
+                    //status = "Pending"
                 };
                 await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
             }
@@ -188,6 +211,9 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
 
+
+
+
             var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
 
             return _mapper.Map<ActivityScheduleResponseDto>(result);
@@ -209,8 +235,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 ?? throw new KeyNotFoundException("Camp not found.");
 
             // 🔹 Rule 1: Schedule nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
 
             // 🔹 Rule 2: Không trùng thời gian core activity khác (ngoại trừ chính nó)
