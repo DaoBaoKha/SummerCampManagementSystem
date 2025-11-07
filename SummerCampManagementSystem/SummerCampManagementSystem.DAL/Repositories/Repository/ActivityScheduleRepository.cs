@@ -89,7 +89,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedulesByStaffIdAsync(int staffId)
         {
-            var query = _context.ActivitySchedules
+            return await _context.ActivitySchedules
                 .Include(a => a.activity)
                 .Include(a => a.location)
                 .Include(a => a.activity.camp) 

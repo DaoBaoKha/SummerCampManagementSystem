@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
@@ -11,9 +13,12 @@ namespace SummerCampManagementSystem.API.Controllers
     {
 
         private readonly IAttendanceLogService _attendanceLogService;
-        public AttendanceLogController(IAttendanceLogService attendanceLogService)
+        private readonly IUserContextService _userContextService;
+        public AttendanceLogController(IAttendanceLogService attendanceLogService, IUserContextService userContextService)
         {
             _attendanceLogService = attendanceLogService;
+            _userContextService = userContextService;
+
         }
 
         // GET: api/<AttendanceLogController>
@@ -33,6 +38,16 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound();
             return Ok(result);
         }
+
+        //[Authorize(Roles = "Staff")]
+        [HttpPost("core-activity/list-attendance")]
+        public async Task<IActionResult> CoreActivityAttendance([FromBody] AttendanceLogListRequestDto dto)
+        {
+            var staffId = _userContextService.GetCurrentUserId();
+            var result = await _attendanceLogService.CoreActivityAttendanceAsync(dto, staffId.Value);
+            return Ok(result);
+        }
+
 
         // POST api/<AttendanceLogController>
         [HttpPost]
@@ -171,5 +186,7 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
+
+
     }
 }
