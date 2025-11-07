@@ -39,6 +39,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
             newCamp.status = CampStatus.Draft.ToString();
 
+            if (newCamp.startDate.HasValue) newCamp.startDate = newCamp.startDate.Value.ToUniversalTime();
+            if (newCamp.endDate.HasValue) newCamp.endDate = newCamp.endDate.Value.ToUniversalTime();
+            if (newCamp.registrationStartDate.HasValue) newCamp.registrationStartDate = newCamp.registrationStartDate.Value.ToUniversalTime();
+            if (newCamp.registrationEndDate.HasValue) newCamp.registrationEndDate = newCamp.registrationEndDate.Value.ToUniversalTime();
+
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
 
@@ -100,12 +105,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (existingCamp == null)
             {
-                throw new Exception($"Camp with ID {campId} not found.");
+                throw new KeyNotFoundException($"Camp with ID {campId} not found.");
             }
 
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
             {
-                throw new Exception("Trạng thái hiện tại của Camp không hợp lệ.");
+                throw new InvalidOperationException("Trạng thái hiện tại của Camp không hợp lệ.");
             }
 
             bool isValidTransition = false;
@@ -230,7 +235,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (existingCamp == null)
             {
-                throw new Exception("Camp not found");
+                throw new KeyNotFoundException("Camp not found");
             }
 
             // only allow update when status is Draft or Rejected
@@ -245,6 +250,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _mapper.Map(campRequest, existingCamp);
 
+            if (existingCamp.startDate.HasValue) existingCamp.startDate = existingCamp.startDate.Value.ToUniversalTime();
+            if (existingCamp.endDate.HasValue) existingCamp.endDate = existingCamp.endDate.Value.ToUniversalTime();
+            if (existingCamp.registrationStartDate.HasValue) existingCamp.registrationStartDate = existingCamp.registrationStartDate.Value.ToUniversalTime();
+            if (existingCamp.registrationEndDate.HasValue) existingCamp.registrationEndDate = existingCamp.registrationEndDate.Value.ToUniversalTime();
 
             if (existingCamp.status == CampStatus.Rejected.ToString())
             {
@@ -290,7 +299,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new Exception($"Camp with ID {campId} not found.");
             }
 
-            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) || currentStatus != CampStatus.Draft)
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) || 
+                (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
             {
                 throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
             }
@@ -333,7 +343,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
 
         /// <param name="campRequest">Dữ liệu Camp Request.</param>
-        /// <param name="currentCampId">ID của Camp (để loại trừ chính nó khi check trùng lặp).</param>
+        /// <param name="currentCampId">id camp</param>
         private async Task RunValidationChecks(CampRequestDto campRequest, int? currentCampId = null)
         {
             // check nullables
@@ -359,27 +369,22 @@ namespace SummerCampManagementSystem.BLL.Services
             var reqEndDate = campRequest.EndDate.Value;
             var reqRegEndDate = campRequest.RegistrationEndDate.Value; // DateTime
 
-            // 1. NGÀY ĐĂNG KÝ
+            // registration date
             if (campRequest.RegistrationStartDate.Value >= reqRegEndDate)
             {
                 throw new ArgumentException("Ngày đóng đăng ký phải sau ngày mở đăng ký.");
             }
 
-            // SỬA LỖI: So sánh ngày đóng đăng ký (DateTime) với ngày bắt đầu trại (DateTime)
-            // CHỈ SO SÁNH PHẦN NGÀY (Date)
             if (reqRegEndDate.Date >= reqStartDate.Date)
             {
                 throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
             }
 
-            // 2. NGÀY TRẠI
-            if (reqStartDate >= reqEndDate) // DateTime so sánh trực tiếp
+            if (reqStartDate >= reqEndDate) 
             {
                 throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
             }
 
-            // SỬA LỖI: Tính thời lượng trại (Sử dụng TimeSpan)
-            // Lấy TotalDays của khoảng thời gian giữa hai ngày (chỉ phần Date)
             TimeSpan duration = reqEndDate.Date - reqStartDate.Date;
             if (duration.TotalDays < 3)
             {
