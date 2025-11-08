@@ -21,10 +21,13 @@ namespace SummerCampManagementSystem.BLL.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<AccommodationResponseDto>> GetAllBySupervisorIdAsync(int supervisorId)
+        public async Task<AccommodationResponseDto?> GetBySupervisorIdAsync(int supervisorId, int campId)
         {
-            var accommodations = await _unitOfWork.Accommodations.GetAllBySupervisorIdAsync(supervisorId);
-            return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var accommodation = await _unitOfWork.Accommodations.GetBySupervisorIdAsync(supervisorId, campId);
+            return accommodation == null ? null : _mapper.Map<AccommodationResponseDto>(accommodation);
         }
     }
 }

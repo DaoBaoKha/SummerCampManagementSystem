@@ -9,6 +9,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IAccommodationRepository : IGenericRepository<Accommodation>
     {
-        Task<IEnumerable<Accommodation>> GetAllBySupervisorIdAsync(int supervisorId);
+        Task<Accommodation?> GetBySupervisorIdAsync(int supervisorId, int campId);
     }
 }

@@ -25,30 +25,27 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
         }
 
-        public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId)
+        public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
         {
-            var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId);
-               
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId, campId);
+
             return new
             {
-                ActivitySchedules = schedules
-              .GroupBy(a => new { a.activity.campId, a.activity.camp.name })
-              .Select(g => new
-              {
-                  g.Key.campId,
-                  campName = g.Key.name,
-                  activities = g.Select(a => new
-                  {
-                      a.activityScheduleId,
-                      a.activity.name,
-                      a.startTime,
-                      a.endTime,
-                      location = a.location.name
-                  })
-              })
+                camp.campId,
+                campName = camp.name,
+                activities = schedules.Select(a => new
+                {
+                    a.activityScheduleId,
+                    a.activity.name,
+                    a.startTime,
+                    a.endTime,
+                    location = a.location.name
+                }).ToList()
             };
         }
-
 
         public async Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
         {
