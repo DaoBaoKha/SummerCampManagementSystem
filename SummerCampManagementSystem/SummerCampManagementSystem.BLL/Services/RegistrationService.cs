@@ -322,7 +322,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // check transaction status
             var existingPendingTransaction = await _unitOfWork.Transactions.GetQueryable()
-                .Where(t => t.registrationId == registrationId && t.status == "Pending")
+                .Where(t => t.registrationId == registrationId && t.status == TransactionStatus.Pending.ToString()) 
                 .OrderByDescending(t => t.transactionTime)
                 .FirstOrDefaultAsync();
 
@@ -420,7 +420,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         amount = finalAmount,
                         transactionTime = DateTime.UtcNow,
-                        status = "Pending",
+                        status = TransactionStatus.Pending.ToString(),
                         method = "PayOS",
                         type = "Payment",
                         registrationId = registration.registrationId
@@ -536,7 +536,6 @@ namespace SummerCampManagementSystem.BLL.Services
             if (registration.camp == null || registration.RegistrationCampers == null) return 0m; // FIX: Use RegistrationCampers
 
             // Base price (Camp Price * number of Campers)
-            // FIX: Use RegistrationCampers.Count
             int baseAmount = (int)(registration.camp.price ?? 0) * registration.RegistrationCampers.Count;
             decimal finalAmount = baseAmount;
             decimal discount = 0m;

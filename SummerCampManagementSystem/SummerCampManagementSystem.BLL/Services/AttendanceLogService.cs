@@ -34,6 +34,59 @@ namespace SummerCampManagementSystem.BLL.Services
             return attendanceLog == null ? null : _mapper.Map<AttendanceLogResponseDto>(attendanceLog);
         }
 
+        public async Task<object> CoreActivityAttendanceAsync(AttendanceLogListRequestDto dto, int staffId)
+        {
+            // Kiểm tra ActivitySchedule hợp lệ
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(dto.ActivityScheduleId)
+                ?? throw new KeyNotFoundException("Activity Schedule not found.");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId)
+                ?? throw new KeyNotFoundException("The Activity Schedule does not have any activities.");
+
+            // Nếu là optional activity thì bạn có thể check group hoặc optional join list tuỳ logic
+            if (activitySchedule.coreActivityId != null)
+                throw new InvalidOperationException("This is not a core Activity Schedule.");
+
+            int success = 0, fail = 0;
+            List<int> failedCamperIds = new();
+
+            foreach (var camperId in dto.CamperIds)
+            {
+                var camper = await _unitOfWork.Campers.GetByIdAsync(camperId);
+                if (camper == null)
+                {
+                    failedCamperIds.Add(camperId);
+                    fail++;
+                    continue;
+                }
+
+                // Tạo record attendance
+                var attendance = new AttendanceLog
+                {
+                    camperId = camperId,
+                    staffId = staffId,
+                    activityScheduleId = dto.ActivityScheduleId,
+                    participantStatus = dto.participantStatus.ToString(),
+                    timestamp = DateTime.UtcNow,
+                    checkInMethod = "Manual",
+                    eventType = "string"
+                };
+
+                await _unitOfWork.AttendanceLogs.CreateAsync(attendance);
+                success++;
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            return new
+            {
+                total = dto.CamperIds.Count,
+                success,
+                fail,
+                failedCamperIds
+            };
+        }
+
         public async Task<AttendanceLogResponseDto> CoreActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(attendanceLogDto.CamperId)
