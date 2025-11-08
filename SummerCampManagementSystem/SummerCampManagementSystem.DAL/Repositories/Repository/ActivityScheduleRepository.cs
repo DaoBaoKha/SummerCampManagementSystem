@@ -87,13 +87,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 );
         }
 
-        public async Task<IEnumerable<ActivitySchedule>> GetAllSchedulesByStaffIdAsync(int staffId)
+        public async Task<IEnumerable<ActivitySchedule>> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
         {
             return await _context.ActivitySchedules
                 .Include(a => a.activity)
                 .Include(a => a.location)
                 .Include(a => a.activity.camp) 
-                .Where(a => a.staffId == staffId)
+                .Where(a => a.staffId == staffId && a.activity.campId == campId)
                 .ToListAsync();
         }
 

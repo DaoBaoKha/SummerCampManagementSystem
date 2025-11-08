@@ -9,6 +9,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IAccommodationService
     {
-        Task<IEnumerable<AccommodationResponseDto>> GetAllBySupervisorIdAsync(int supervisorId);
+        Task<AccommodationResponseDto?> GetBySupervisorIdAsync(int supervisorId, int campId);
     }
 }

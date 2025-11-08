@@ -25,10 +25,15 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
         }
 
-        public async Task<IEnumerable<CamperGroupWithCampDetailsResponseDto>> GetAllGroupsBySupervisorIdAsync(int supervisorId)
+        public async Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
+
         {
-            var groups = await _unitOfWork.CamperGroups.GetAllGroupsBySupervisorIdAsync(supervisorId);
-            return _mapper.Map<IEnumerable<CamperGroupWithCampDetailsResponseDto>>(groups);
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null)
+                throw new KeyNotFoundException("Camp not found.");
+
+            var group = await _unitOfWork.CamperGroups.GetGroupBySupervisorIdAsync(supervisorId, campId);
+            return group == null ? null : _mapper.Map<CamperGroupWithCampDetailsResponseDto>(group);
         }
 
         public async Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id)
