@@ -11,14 +11,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
     public class CamperActivityRepository : GenericRepository<CamperActivity>, ICamperActivityRepository
     {
-        private readonly CampEaseDatabaseContext _context;
-
         public CamperActivityRepository(CampEaseDatabaseContext context) : base(context)
         {
             _context = context;
         }
-
-
 
         public new async Task<IEnumerable<CamperActivity>> GetAllAsync()
         {
@@ -46,6 +42,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.CamperActivities
                 .AnyAsync(ca => ca.camperId == camperId && ca.activityScheduleId == activityId);
+        }
+
+        public async Task<IEnumerable<int?>> GetCamperIdsInOptionalAsync(int optionalActivityId)
+        {
+            return await _context.CamperActivities
+                .Where(ca => ca.activityScheduleId == optionalActivityId)
+                .Select(ca => ca.camperId)
+                .Distinct()
+                .ToListAsync();
         }
     }
 }
