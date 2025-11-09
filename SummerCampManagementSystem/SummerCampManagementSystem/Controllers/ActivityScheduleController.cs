@@ -79,11 +79,14 @@ namespace SummerCampManagementSystem.API.Controllers
 
         }
 
-        [HttpGet("camp/{campId}/staff/{staffId}")]
-        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId, [FromQuery] ActivityScheduleType? status)
+        [Authorize(Roles = "Staff")]
+        [HttpGet("camps/{campId}")]
+        public async Task<IActionResult> GetByCampAndStaff(int campId, [FromQuery] ActivityScheduleType? status)
         {
             try
             {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
                 var result = await _service.GetByCampAndStaffAsync(campId, staffId, status);
                 return Ok(result);
             }

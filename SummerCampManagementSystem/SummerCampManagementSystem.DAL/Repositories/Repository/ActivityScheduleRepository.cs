@@ -133,7 +133,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        
-
+        public async Task<ActivitySchedule?> GetOptionalByCoreAsync(int coreActivityId)
+        {
+            return await _context.ActivitySchedules
+                .FirstOrDefaultAsync(a => a.isOptional && a.coreActivityId == coreActivityId);
+        }
     }
 }
