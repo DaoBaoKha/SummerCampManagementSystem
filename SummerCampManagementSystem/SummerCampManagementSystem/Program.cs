@@ -235,6 +235,8 @@ builder.Services.AddScoped<IRegistrationOptionalActivityRepository, Registration
 
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
+builder.Services.AddScoped<IRouteStopService, RouteStopService>();
+builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();

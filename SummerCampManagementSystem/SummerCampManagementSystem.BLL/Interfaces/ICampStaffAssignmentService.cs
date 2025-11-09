@@ -12,6 +12,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<IEnumerable<CampStaffAssignmentResponseDto>> GetAssignmentsByCampIdAsync(int campId);
 
-        Task<IEnumerable<CampStaffAssignmentResponseDto>> GetAssignmentsByStaffIdAsync(int staffId);
+        Task<IEnumerable<CampStaffSummaryDto>> GetAssignmentsByStaffIdAsync(int staffId);
     }
 }

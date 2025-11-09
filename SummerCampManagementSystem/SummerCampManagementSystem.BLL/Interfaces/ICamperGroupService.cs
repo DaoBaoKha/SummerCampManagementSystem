@@ -11,6 +11,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CamperGroupResponseDto?> UpdateCamperGroupAsync(int id, CamperGroupRequestDto camperGroup);
         Task<bool> DeleteCamperGroupAsync(int id);
         Task<CamperGroupResponseDto> AssignStaffToGroup(int camperGroupId, int staffId);
-        Task<IEnumerable<CamperGroupWithCampDetailsResponseDto>> GetAllGroupsBySupervisorIdAsync(int supervisorId);
+        Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId);
     }
 }

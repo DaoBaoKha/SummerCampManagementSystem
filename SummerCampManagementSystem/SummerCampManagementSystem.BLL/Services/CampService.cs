@@ -76,6 +76,13 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
 
+        public async Task<IEnumerable<CampResponseDto>> GetCampsByStaffIdAsync(int staffId)
+        {
+            var camps = await _unitOfWork.Camps.GetCampsByStaffIdAsync(staffId);
+
+            return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
+        }
+
         public async Task<CampResponseDto?> GetCampByIdAsync(int id)
         {
             var camp = await GetCampsWithIncludes()

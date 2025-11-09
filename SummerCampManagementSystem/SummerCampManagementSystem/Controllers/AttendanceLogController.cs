@@ -39,7 +39,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
-        //[Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff")]
         [HttpPost("core-activity/list-attendance")]
         public async Task<IActionResult> CoreActivityAttendance([FromBody] AttendanceLogListRequestDto dto)
         {
