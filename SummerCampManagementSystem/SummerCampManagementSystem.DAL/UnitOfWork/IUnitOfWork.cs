@@ -19,6 +19,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IRegistrationRepository Registrations { get; }
         IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
         IRouteRepository Routes { get; }
+        IRouteStopRepository RouteStops { get; }
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
         ICamperGroupRepository CamperGroups { get; }
