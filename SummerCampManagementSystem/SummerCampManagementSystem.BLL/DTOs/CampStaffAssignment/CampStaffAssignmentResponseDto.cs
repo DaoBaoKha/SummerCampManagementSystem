@@ -9,4 +9,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment
         public StaffSummaryDto Staff { get; set; }
         public CampSummaryDto Camp { get; set; }
     }
+
+    public class CampStaffSummaryDto
+    {
+        public CampSummaryDto Camp { get; set; }
+    }
 }

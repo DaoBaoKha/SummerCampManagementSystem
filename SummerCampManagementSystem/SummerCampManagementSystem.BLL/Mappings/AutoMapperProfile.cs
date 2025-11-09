@@ -183,6 +183,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<CampStaffAssignmentRequestDto, CampStaffAssignment>();
 
+            CreateMap<CampStaffAssignment, CampStaffSummaryDto>();
+
             //Promotion mappings
             CreateMap<Promotion, PromotionResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionId));
