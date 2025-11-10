@@ -56,6 +56,11 @@ string geminiApiKey = builder.Configuration["GeminiApi:ApiKey"]?.Trim() ?? "";
 string geminiBaseUrl = builder.Configuration["GeminiApi:ApiBaseUrl"]?.Trim() ?? "";
 string geminiModelName = builder.Configuration["GeminiApi:ModelName"]?.Trim() ?? "";
 
+// Mobile PayOS settings
+string payosMobileReturnUrl = builder.Configuration["PayOS:MobileReturnUrl"]?.Trim() ?? "";
+string payosMobileCancelUrl = builder.Configuration["PayOS:MobileCancelUrl"]?.Trim() ?? "";
+string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
+
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
@@ -103,6 +108,14 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
 
 
+        // Mobile PayOS
+        payosMobileReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosMobileCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        apiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "api-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
         // gemini
         geminiApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-api-key", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
@@ -131,6 +144,11 @@ if (builder.Environment.IsProduction())
             {"PayOS:ReturnUrl", payosReturnUrl},
             {"PayOS:CancelUrl", payosCancelUrl},
 
+            // Mobile PayOS
+            {"PayOS:MobileReturnUrl", payosMobileReturnUrl},
+            {"PayOS:MobileCancelUrl", payosMobileCancelUrl},
+            {"ApiBaseUrl", apiBaseUrl},
+
 
             // Gemini
             {"GeminiApi:ApiKey", geminiApiKey},
@@ -156,8 +174,6 @@ else
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
-
 
 
 

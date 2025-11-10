@@ -92,13 +92,11 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost("{id}/payment-link")]
-        public async Task<IActionResult> GeneratePaymentLink([FromRoute] int id, [FromBody] GeneratePaymentLinkRequestDto request)
+        public async Task<IActionResult> GeneratePaymentLink([FromRoute] int id, [FromBody] GeneratePaymentLinkRequestDto request, [FromQuery] bool isMobile = false)
         {
             try
             {
-                // take registrationId from URL (id)
-                // transfer registrationId and request body into Service
-                var response = await _registrationService.GeneratePaymentLinkAsync(id, request);
+                var response = await _registrationService.GeneratePaymentLinkAsync(id, request, isMobile);
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)

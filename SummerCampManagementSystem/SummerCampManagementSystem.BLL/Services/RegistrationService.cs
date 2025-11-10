@@ -288,7 +288,7 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         // Trong file RegistrationService.cs
 
-        public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request)
+        public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request, bool isMobile)
         {
             // load registration
             var registration = await _unitOfWork.Registrations.GetQueryable()
@@ -373,7 +373,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             if (!schedule.isOptional)
                                 throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
                             
-                            // FIX: Check if Camper is part of this registration (using the link table)
+                            // check if Camper is part of this registration (using the link table)
                             if (!registration.RegistrationCampers.Any(rc => rc.camperId == optionalChoice.CamperId))
                                 throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
 
@@ -439,6 +439,33 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     await _unitOfWork.CommitAsync();
 
+
+                    // MOBILE - WEB URL LOGIC
+                    string returnUrl;
+                    string cancelUrl;
+
+                    if (isMobile)
+                    {
+                        // use Mobile URLs
+                        string baseApiUrl = _configuration["ApiBaseUrl"]
+                            ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
+
+                        returnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                            ?? $"{baseApiUrl}/api/payment/mobile-callback";
+
+                        cancelUrl = _configuration["PayOS:MobileCancelUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                            ?? $"{baseApiUrl}/api/payment/mobile-callback?status=CANCELLED";
+                    }
+                    else
+                    {
+                        // use Web URLs
+                        returnUrl = _configuration["PayOS:ReturnUrl"]
+                            ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
+                        cancelUrl = _configuration["PayOS:CancelUrl"]
+                            ?? throw new InvalidOperationException("PayOS:CancelUrl is not configured.");
+                    }
+
+
                     // create payment link
                     var paymentData = new PaymentData(
                         orderCode: uniqueOrderCode,
@@ -448,8 +475,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.RegistrationCampers.Count, (int)finalAmountDecimal)
                         },
-                        cancelUrl: _configuration["PayOS:CancelUrl"],
-                        returnUrl: _configuration["PayOS:ReturnUrl"]
+                        cancelUrl: cancelUrl, 
+                        returnUrl: returnUrl  
                     );
 
                     CreatePaymentResult createPaymentResult = await _payOS.createPaymentLink(paymentData);
