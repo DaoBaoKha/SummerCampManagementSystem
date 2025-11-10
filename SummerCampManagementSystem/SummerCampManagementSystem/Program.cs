@@ -56,6 +56,11 @@ string geminiApiKey = builder.Configuration["GeminiApi:ApiKey"]?.Trim() ?? "";
 string geminiBaseUrl = builder.Configuration["GeminiApi:ApiBaseUrl"]?.Trim() ?? "";
 string geminiModelName = builder.Configuration["GeminiApi:ModelName"]?.Trim() ?? "";
 
+// Mobile PayOS settings
+string payosMobileReturnUrl = builder.Configuration["PayOS:MobileReturnUrl"]?.Trim() ?? "";
+string payosMobileCancelUrl = builder.Configuration["PayOS:MobileCancelUrl"]?.Trim() ?? "";
+string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
+
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
@@ -103,6 +108,14 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
 
 
+        // Mobile PayOS
+        payosMobileReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosMobileCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        apiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "api-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
         // gemini
         geminiApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-api-key", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
@@ -131,6 +144,11 @@ if (builder.Environment.IsProduction())
             {"PayOS:ReturnUrl", payosReturnUrl},
             {"PayOS:CancelUrl", payosCancelUrl},
 
+            // Mobile PayOS
+            {"PayOS:MobileReturnUrl", payosMobileReturnUrl},
+            {"PayOS:MobileCancelUrl", payosMobileCancelUrl},
+            {"ApiBaseUrl", apiBaseUrl},
+
 
             // Gemini
             {"GeminiApi:ApiKey", geminiApiKey},
@@ -156,8 +174,6 @@ else
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
-
 
 
 
@@ -235,6 +251,8 @@ builder.Services.AddScoped<IRegistrationOptionalActivityRepository, Registration
 
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
+builder.Services.AddScoped<IRouteStopService, RouteStopService>();
+builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
@@ -251,6 +269,9 @@ builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepo
 builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
 
 builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
+
+builder.Services.AddScoped<IAccommodationRepository, AccommodationRepository>();
+builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -270,6 +291,7 @@ builder.Services.AddScoped<IUserContextService, UserContextService>();
 builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
 builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
 builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
 builder.Services.AddHttpClient();
 
 // Gemini API Setting
@@ -434,6 +456,7 @@ app.UseExceptionHandler(errorApp =>
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             ArgumentException => StatusCodes.Status400BadRequest,
+            InvalidOperationException => StatusCodes.Status409Conflict, 
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -446,6 +469,7 @@ app.UseExceptionHandler(errorApp =>
             {
                 404 => "Not Found",
                 400 => "Bad Request",
+                409 => "Conflict",
                 _ => "Internal Server Error"
             },
             message = ex?.Message,

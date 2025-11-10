@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Enums;
@@ -12,9 +14,11 @@ namespace SummerCampManagementSystem.API.Controllers
     public class ActivityScheduleController : ControllerBase
     {
         private readonly IActivityScheduleService _service;
-        public ActivityScheduleController(IActivityScheduleService service)
+        private readonly IUserContextService _userContextService;
+        public ActivityScheduleController(IActivityScheduleService service, IUserContextService userContextService)
         {
             _service = service;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
@@ -75,11 +79,14 @@ namespace SummerCampManagementSystem.API.Controllers
 
         }
 
-        [HttpGet("camp/{campId}/staff/{staffId}")]
-        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId, [FromQuery] ActivityScheduleType? status)
+        [Authorize(Roles = "Staff")]
+        [HttpGet("camps/{campId}")]
+        public async Task<IActionResult> GetByCampAndStaff(int campId, [FromQuery] ActivityScheduleType? status)
         {
             try
             {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
                 var result = await _service.GetByCampAndStaffAsync(campId, staffId, status);
                 return Ok(result);
             }
@@ -203,5 +210,6 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
+
     }
 }

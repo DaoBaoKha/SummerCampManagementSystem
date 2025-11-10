@@ -25,6 +25,27 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
         }
 
+        public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId, campId);
+
+            return new
+            {
+                camp.campId,
+                campName = camp.name,
+                activities = schedules.Select(a => new
+                {
+                    a.activityScheduleId,
+                    a.activity.name,
+                    a.startTime,
+                    a.endTime,
+                    location = a.location.name
+                }).ToList()
+            };
+        }
 
         public async Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
         {
@@ -270,12 +291,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetByCampAndStaffAsync(int campId, int staffId, ActivityScheduleType? status = null)
         {
-
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException("Staff not found.");
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
 
             var schedules = await _unitOfWork.ActivitySchedules.GetByCampAndStaffAsync(campId, staffId, status);
 

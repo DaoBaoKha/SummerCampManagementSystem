@@ -82,9 +82,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-            catch (Exception)
+            catch (Exception ex) 
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An unexpected error occurred during camp creation." });
+                // detailed error for unexpected exceptions
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An unexpected error occurred during camp creation.", detail = ex.Message });
             }
         }
 

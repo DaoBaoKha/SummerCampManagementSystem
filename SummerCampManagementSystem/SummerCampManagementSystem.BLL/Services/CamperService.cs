@@ -86,13 +86,36 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperWithGuardiansResponseDto>>(guardians);
         }
 
-        public async Task<IEnumerable<CamperResponseDto>> GetCampersByOptionalActivitySChedule(int optionalActivityId)
+        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySChedule(int optionalActivityId)
         {
             var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
                 ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
           
             var campers = await _unitOfWork.Campers.GetCampersByOptionalActivityId(optionalActivityId);
-            return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
+            return _mapper.Map<IEnumerable<CamperSummaryDto>>(campers);
+        }
+
+        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId)
+        {
+            var core = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreActivityId)
+                ?? throw new KeyNotFoundException("Core activity not found.");
+
+            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleId(coreActivityId);
+
+            var optional = await _unitOfWork.ActivitySchedules.GetOptionalByCoreAsync(coreActivityId);
+
+            if(optional == null)
+            {
+                return _mapper.Map<IEnumerable<CamperSummaryDto>>(campersInCore);
+            }
+
+            var camperIdsInOptional = await _unitOfWork.CamperActivities.GetCamperIdsInOptionalAsync(optional.activityScheduleId);
+
+            var finalCampers = campersInCore
+                .Where(c => !camperIdsInOptional.Contains(c.camperId))
+                .ToList();
+
+            return _mapper.Map<IEnumerable<CamperSummaryDto>>(finalCampers);
         }
 
         public async Task<CamperResponseDto?> GetCamperByIdAsync(int id)

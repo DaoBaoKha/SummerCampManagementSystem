@@ -17,4 +17,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.AttendanceLog
         public string Note { get; set; } = "";
         public ParticipationStatus participantStatus { get; set; } 
     }
+
+    public class AttendanceLogListRequestDto
+    {
+        public int ActivityScheduleId { get; set; }
+        public List<int> CamperIds { get; set; } = new();
+        public ParticipationStatus participantStatus { get; set; }
+        public string Note { get; set; } = "";
+
+
+    }
 }

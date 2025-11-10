@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -78,17 +79,39 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpGet("activityScheduleId{id}")]
-        public async Task<IActionResult> GetCampersByOptionalActivitySchedule(int id)
+        [HttpGet("optionalActivities/{optionalActivityId}/campers")]
+        public async Task<IActionResult> GetCampersByOptionalActivitySchedule(int optionalActivityId)
         {
             try
             {
-                var campers = await _camperService.GetCampersByOptionalActivitySChedule(id);
+                var campers = await _camperService.GetCampersByOptionalActivitySChedule(optionalActivityId);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("coreActivities/{coreActivityId}/campers")]
+        public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
+        {
+            try
+            {
+                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId);
+                return Ok(campers);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
             }
         }
 

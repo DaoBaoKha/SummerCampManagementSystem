@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
@@ -32,6 +33,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
     {
         public AutoMapperProfile()
         {
+            //Accommodation mappings
+            CreateMap<Accommodation, AccommodationResponseDto>();
+
+
+
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
             CreateMap<CamperRequestDto, Camper>();
@@ -49,6 +55,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // CamperGroup mapping
             CreateMap<CamperGroup, CamperGroupResponseDto>();
             CreateMap<CamperGroupRequestDto, CamperGroup>();
+            CreateMap<CamperGroup, CamperGroupWithCampDetailsResponseDto>()
+                .ForMember(dest => dest.CampName,
+                           opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
 
             // HealthRecord mappings
@@ -64,9 +73,14 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<GuardianUpdateDto, Guardian>();
 
             // Camp mappings
-            CreateMap<CampType, CampTypeDto>();
+            CreateMap<CampType, CampTypeDto>()
+                .ForMember(dest => dest.Id,
+                          opt => opt.MapFrom(src => src.campTypeId));
 
             CreateMap<Camp, CampResponseDto>();
+
+            CreateMap<CampRequestDto, Camp>();
+
 
             // Location mappings
             CreateMap<Location, LocationDto>()
@@ -168,6 +182,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampStaffAssignmentId, opt => opt.MapFrom(src => src.campStaffAssignmentId));
 
             CreateMap<CampStaffAssignmentRequestDto, CampStaffAssignment>();
+
+            CreateMap<CampStaffAssignment, CampStaffSummaryDto>();
 
             //Promotion mappings
             CreateMap<Promotion, PromotionResponseDto>()
