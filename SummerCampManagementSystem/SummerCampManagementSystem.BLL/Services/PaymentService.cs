@@ -197,95 +197,51 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw; 
             }
         }
+
         public string ProcessPaymentMobileCallbackRaw(string rawQueryString)
         {
-            // get raw query into string
             var parsedQuery = HttpUtility.ParseQueryString(rawQueryString);
-
-            // check signature
-            if (parsedQuery["signature"] == null || parsedQuery["orderCode"] == null || parsedQuery["status"] == null)
+            if (parsedQuery["orderCode"] == null)
             {
-                throw new ArgumentException("Required callback parameters (signature, orderCode, status) are missing from the URL.");
+                throw new ArgumentException("Required callback parameter (orderCode) is missing.");
             }
 
-            var callbackData = new PayOSCallbackRequestDto
+            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            if (orderCode == 0)
             {
-                Code = parsedQuery["code"] ?? "",
-                Id = parsedQuery["id"] ?? "",
-                // Parse boolean/int an toàn
-                Cancel = bool.TryParse(parsedQuery["cancel"], out bool cancel) && cancel,
-                Status = parsedQuery["status"] ?? "",
-                OrderCode = int.TryParse(parsedQuery["orderCode"], out int orderCode) ? orderCode : 0,
-                Signature = parsedQuery["signature"] ?? ""
-            };
+                throw new ArgumentException("Invalid orderCode.");
+            }
 
-            return ProcessPaymentMobileCallback(callbackData);
+            // call async logic and wait for result
+            // .result is used here because the controller calling this method is not async
+            return ProcessPaymentMobileCallbackLogic(orderCode).Result;
         }
 
-        public string ProcessPaymentMobileCallback(PayOSCallbackRequestDto callbackData)
+        private async Task<string> ProcessPaymentMobileCallbackLogic(int orderCode)
         {
             const string BaseDeepLink = "yourapp://payment";
-
-            // use webhooktype to use verifyPaymentWebhookData
-            var callbackAsWebhook = new WebhookType(
-                code: callbackData.Code,
-                desc: "",
-                success: callbackData.Status == "PAID",
-                signature: callbackData.Signature,
-            
-            // enough constructor for webhookdata
-                data: new WebhookData(
-                orderCode: callbackData.OrderCode,
-                amount: 0, // provide a default or actual value as needed
-                description: "",
-                accountNumber: "",
-                reference: "",
-                transactionDateTime: "",
-                currency: "",
-                paymentLinkId: "",
-                code: callbackData.Code,
-                desc: "",
-                counterAccountBankId: null,
-                counterAccountBankName: null,
-                counterAccountName: null,
-                counterAccountNumber: null,
-                virtualAccountName: null,
-                virtualAccountNumber: ""
-                )
-            );
+            string queryParams = $"orderCode={orderCode}";
 
             try
             {
-                // use verifyPaymentWebhookData for signature verification
-                // this method will verify signature and throw exception
-                WebhookData verifiedData = _payOS.verifyPaymentWebhookData(callbackAsWebhook);
+                // call getPaymentLinkInformation from PayOS
+                PaymentLinkInformation linkInfo = await _payOS.getPaymentLinkInformation(orderCode);
 
-                string deepLinkPath;
-                string queryParams = $"orderCode={callbackData.OrderCode}";
-
-                if (verifiedData.code == "00") 
+                // check status
+                if (linkInfo.status == "PAID")
                 {
-                    deepLinkPath = "success";
+                    return $"{BaseDeepLink}/success?{queryParams}";
                 }
                 else
                 {
-                    deepLinkPath = "failure";
-                    queryParams += $"&status={callbackData.Status}&payosCode={verifiedData.code}";
+                    // (CANCELLED, EXPIRED, FAILED)
+                    return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}";
                 }
-
-                return $"{BaseDeepLink}/{deepLinkPath}?{queryParams}";
             }
             catch (Exception ex)
             {
-                // signature mismatch error or others
                 string errorReason = Uri.EscapeDataString(ex.Message);
-
-                if (ex.Message.Contains("Signature Mismatch"))
-                {
-                    return $"{BaseDeepLink}/failure?orderCode={callbackData.OrderCode}&reason=InvalidSignature";
-                }
-
-                return $"{BaseDeepLink}/failure?reason=SystemError&details={errorReason}";
+                return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}";
             }
         }
 
