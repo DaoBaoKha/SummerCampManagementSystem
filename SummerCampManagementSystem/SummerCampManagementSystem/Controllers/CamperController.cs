@@ -93,12 +93,14 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
         [HttpGet("coreActivities/{coreActivityId}/campers")]
         public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
         {
             try
             {
-                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId);
+                var staffId = _userContextService.GetCurrentUserId();
+                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId, staffId.Value);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)

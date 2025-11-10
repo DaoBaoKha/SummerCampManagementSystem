@@ -7,6 +7,11 @@
     <UserSecretsId>1c7a22e2-ee9d-4552-a4b6-8dabf016c8e3</UserSecretsId>
   </PropertyGroup>
 
+    <PropertyGroup>
+	    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+	    <NoWarn>1591</NoWarn>
+    </PropertyGroup>
+	
   <ItemGroup>
     <PackageReference Include="Google.Cloud.SecretManager.V1" Version="2.6.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.10" />
