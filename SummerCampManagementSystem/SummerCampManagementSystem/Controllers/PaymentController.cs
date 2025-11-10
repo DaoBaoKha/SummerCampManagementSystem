@@ -40,27 +40,25 @@ namespace SummerCampManagementSystem.API.Controllers
         // MOBILE CALLBACK
         // redirect user to deep link after processing
         [HttpGet("mobile-callback")]
-        public IActionResult PaymentMobileCallback()
+        public async Task<IActionResult> PaymentMobileCallback() 
         {
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
 
-                string deepLinkUrl = _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
+                string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
                 return Redirect(deepLinkUrl);
             }
             catch (ArgumentException ex)
             {
-                // error due to invalid input
                 string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"summercamp://payment/failure?reason=Validation&details={errorReason}");
+                return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
             }
             catch (Exception ex)
             {
-                // error due to system issue
                 string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"summercamp://payment/failure?reason=ApiError&details={errorReason}");
+                return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
             }
         }
 

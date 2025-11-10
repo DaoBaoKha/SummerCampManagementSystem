@@ -5,7 +5,6 @@ using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
-using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -198,7 +197,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
-        public string ProcessPaymentMobileCallbackRaw(string rawQueryString)
+        public async Task<string> ProcessPaymentMobileCallbackRaw(string rawQueryString)
         {
             var parsedQuery = HttpUtility.ParseQueryString(rawQueryString);
             if (parsedQuery["orderCode"] == null)
@@ -212,9 +211,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Invalid orderCode.");
             }
 
-            // call async logic and wait for result
-            // .result is used here because the controller calling this method is not async
-            return ProcessPaymentMobileCallbackLogic(orderCode).Result;
+            return await ProcessPaymentMobileCallbackLogic(orderCode);
         }
 
         private async Task<string> ProcessPaymentMobileCallbackLogic(int orderCode)
