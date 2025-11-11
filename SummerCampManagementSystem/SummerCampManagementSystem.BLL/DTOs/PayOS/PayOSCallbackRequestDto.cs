@@ -7,7 +7,7 @@
         public string Id { get; set; }
         public bool Cancel { get; set; }
         public string Status { get; set; }
-        public int OrderCode { get; set; }
+        public long OrderCode { get; set; }
         public string Signature { get; set; }
 
         // receive deeplink which client mobile send to returnUrl
