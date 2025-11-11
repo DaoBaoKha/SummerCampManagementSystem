@@ -84,7 +84,7 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                var campers = await _camperService.GetCampersByOptionalActivitySChedule(optionalActivityId);
+                var campers = await _camperService.GetCampersByOptionalActivitySchedule(optionalActivityId);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)

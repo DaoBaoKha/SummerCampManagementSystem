@@ -86,7 +86,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperWithGuardiansResponseDto>>(guardians);
         }
 
-        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySChedule(int optionalActivityId)
+        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId)
         {
             var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
                 ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
