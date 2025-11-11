@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services
@@ -25,7 +26,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Route with ID {routeStopRequestDto.routeId} not found.");
             }
 
-            var newRouteStop = _mapper.Map<DAL.Models.RouteStop>(routeStopRequestDto);
+            var newRouteStop = _mapper.Map<RouteStop>(routeStopRequestDto);
             newRouteStop.status = "Active";
             await _unitOfWork.RouteStops.CreateAsync(newRouteStop);
             await _unitOfWork.CommitAsync();
