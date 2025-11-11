@@ -286,7 +286,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return responseDtos;
         }
-        // Trong file RegistrationService.cs
 
         public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request, bool isMobile)
         {

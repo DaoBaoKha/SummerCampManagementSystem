@@ -213,6 +213,9 @@ builder.Services.AddScoped<IGuardianService, GuardianService>();
 
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
 
+builder.Services.AddScoped<IAccommodationTypeRepository, AccommodationTypeRepository>();
+builder.Services.AddScoped<IAccommodationTypeService, AccommodationTypeService>();
+
 builder.Services.AddScoped<IAlbumPhotoFaceRepository, AlbumPhotoFaceRepository>();
 
 builder.Services.AddScoped<IAlbumPhotoRepository, AlbumPhotoRepository>();

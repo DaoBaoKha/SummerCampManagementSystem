@@ -7,6 +7,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     public interface IUnitOfWork : IDisposable
     {
         IAccommodationRepository Accommodations { get; }
+        IAccommodationTypeRepository AccommodationTypes { get; }
         IActivityRepository Activities { get; }
         IActivityScheduleRepository ActivitySchedules { get; }
         IAlbumRepository Albums { get; }
