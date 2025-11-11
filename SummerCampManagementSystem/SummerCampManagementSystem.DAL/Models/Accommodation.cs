@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Accommodation")]
+[Table("Accommodation", Schema = "dbo")]
 [Index("accommodationTypeId", Name = "IX_Accommodation_accommodationTypeId")]
 [Index("campId", Name = "IX_Accommodation_campId")]
 public partial class Accommodation
@@ -27,6 +27,8 @@ public partial class Accommodation
 
     public bool? isActive { get; set; }
 
+    public int? supervisorId { get; set; }
+
     [InverseProperty("accommodation")]
     public virtual ICollection<CamperAccommodation> CamperAccommodations { get; set; } = new List<CamperAccommodation>();
 
@@ -37,4 +39,8 @@ public partial class Accommodation
     [ForeignKey("campId")]
     [InverseProperty("Accommodations")]
     public virtual Camp camp { get; set; }
+
+    [ForeignKey("supervisorId")]
+    [InverseProperty("Accommodations")]
+    public virtual UserAccount supervisor { get; set; }
 }

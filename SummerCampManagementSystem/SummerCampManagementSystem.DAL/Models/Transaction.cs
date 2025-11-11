@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Transaction")]
+[Table("Transaction", Schema = "dbo")]
 [Index("registrationId", Name = "IX_Transaction_registrationId")]
 public partial class Transaction
 {

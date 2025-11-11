@@ -1,4 +1,6 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -10,88 +12,93 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidationService _validationService;
-        public CamperGroupService(IUnitOfWork unitOfWork, IValidationService validationService)
+        private readonly IMapper _mapper;
+        public CamperGroupService(IUnitOfWork unitOfWork, IValidationService validationService, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
+            _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CamperGroup>> GetAllCamperGroupsAsync()
+        public async Task<IEnumerable<CamperGroupResponseDto>> GetAllCamperGroupsAsync()
         {
-            return await _unitOfWork.CamperGroups.GetAllAsync();
+            var groups = await _unitOfWork.CamperGroups.GetAllAsync();
+            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
+        }
+
+        public async Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
+
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null)
+                throw new KeyNotFoundException("Camp not found.");
+
+            var group = await _unitOfWork.CamperGroups.GetGroupBySupervisorIdAsync(supervisorId, campId);
+            return group == null ? null : _mapper.Map<CamperGroupWithCampDetailsResponseDto>(group);
         }
 
         public async Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id)
         {
-            var camperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id);
-            if (camperGroup == null) return null;
-
-            return new CamperGroupResponseDto
-            {
-                CamperGroupId = camperGroup.camperGroupId,
-                GroupName = camperGroup.groupName,
-                Description = camperGroup.description,
-                MaxSize = (int)camperGroup.maxSize,
-                SupervisorId = (int)camperGroup.supervisorId,
-                CampId = (int)camperGroup.campId
-            };
+           var camperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id);
+           return camperGroup == null ? null : _mapper.Map<CamperGroupResponseDto>(camperGroup);    
         }
 
         public async Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto camperGroup)
         {
-            await _validationService.ValidateEntityExistsAsync(camperGroup.SupervisorId, _unitOfWork.Users.GetByIdAsync, "Supervisor");
             await _validationService.ValidateEntityExistsAsync(camperGroup.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
 
-            var newCamperGroup = new CamperGroup
-            {
-                groupName = camperGroup.GroupName,
-                description = camperGroup.Description,
-                maxSize = camperGroup.MaxSize,
-                supervisorId = camperGroup.SupervisorId,
-                campId = camperGroup.CampId
-            };
+            var camp = await _unitOfWork.Camps.GetByIdAsync(camperGroup.CampId)
+                ?? throw new KeyNotFoundException("Camp not found.");
 
-            await _unitOfWork.CamperGroups.CreateAsync(newCamperGroup);
+            var group = _mapper.Map<CamperGroup>(camperGroup);
+
+            await _unitOfWork.CamperGroups.CreateAsync(group);
             await _unitOfWork.CommitAsync();
 
-            return new CamperGroupResponseDto 
+            return  _mapper.Map<CamperGroupResponseDto>(group);
+        }
+
+        public async Task<CamperGroupResponseDto> AssignStaffToGroup(int camperGroupId, int staffId)
+        {
+            var group = await _unitOfWork.CamperGroups.GetByIdAsync(camperGroupId)
+                ?? throw new KeyNotFoundException("Camper Group not found.");
+
+            var camp = await _unitOfWork.Camps.GetByIdAsync(group.campId.Value);
+
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
+                ?? throw new KeyNotFoundException("Staff not found.");
+
+            if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
             {
-                CamperGroupId = newCamperGroup.camperGroupId,
-                GroupName = newCamperGroup.groupName,
-                Description = newCamperGroup.description,
-                MaxSize = (int)newCamperGroup.maxSize,
-                SupervisorId = (int)newCamperGroup.supervisorId,
-                CampId = (int)newCamperGroup.campId
-            };
+                throw new InvalidOperationException("Assigned user is not a staff member.");
+            }
+
+            bool staffConflict = await _unitOfWork.ActivitySchedules
+            .IsStaffBusyAsync(staffId, camp.startDate.Value, camp.endDate.Value);
+
+            if (staffConflict)
+                throw new InvalidOperationException("Staff has another activity scheduled during this time.");
+
+            group.supervisorId = staffId;
+            await _unitOfWork.CamperGroups.UpdateAsync(group);
+            await _unitOfWork.CommitAsync();
+            return _mapper.Map<CamperGroupResponseDto>(group);
         }
 
         public async Task<CamperGroupResponseDto?> UpdateCamperGroupAsync(int id, CamperGroupRequestDto camperGroup)
         {
-            await _validationService.ValidateEntityExistsAsync(camperGroup.SupervisorId, _unitOfWork.Users.GetByIdAsync, "Supervisor");
             await _validationService.ValidateEntityExistsAsync(camperGroup.CampId, _unitOfWork.Camps.GetByIdAsync, "Camp");
 
             var existingCamperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id);
 
             if (existingCamperGroup == null) return null;
 
-            existingCamperGroup.groupName = camperGroup.GroupName;
-            existingCamperGroup.description = camperGroup.Description;
-            existingCamperGroup.maxSize = camperGroup.MaxSize;
-            existingCamperGroup.supervisorId = camperGroup.SupervisorId;
-            existingCamperGroup.campId = camperGroup.CampId;
+            _mapper.Map(camperGroup, existingCamperGroup);
 
             await _unitOfWork.CamperGroups.UpdateAsync(existingCamperGroup);
             await _unitOfWork.CommitAsync();
 
-            return new CamperGroupResponseDto
-            {
-                CamperGroupId = existingCamperGroup.camperGroupId,
-                GroupName = existingCamperGroup.groupName,
-                Description = existingCamperGroup.description,
-                MaxSize = (int)existingCamperGroup.maxSize,
-                SupervisorId = (int)existingCamperGroup.supervisorId,
-                CampId = (int)existingCamperGroup.campId
-            };
+            return _mapper.Map<CamperGroupResponseDto>(existingCamperGroup);
         }
 
         public async Task<bool> DeleteCamperGroupAsync(int id)
@@ -104,6 +111,14 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return true;
+        }
+
+        public async Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByActivityScheduleId(int activityScheduleId)
+        {
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+                ?? throw new KeyNotFoundException("Activity Schedule not found.");
+            var groups = await _unitOfWork.CamperGroups.GetGroupsByActivityScheduleIdAsync(activityScheduleId);
+            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
         }
     }
 }

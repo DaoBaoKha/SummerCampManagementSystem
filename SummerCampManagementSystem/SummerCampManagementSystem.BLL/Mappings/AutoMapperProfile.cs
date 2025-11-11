@@ -1,11 +1,16 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Accommodation;
+using SummerCampManagementSystem.BLL.DTOs.AccommodationType;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
+using SummerCampManagementSystem.BLL.DTOs.AlbumPhoto;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
+using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
@@ -19,7 +24,9 @@ using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
+using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto;
 
 namespace SummerCampManagementSystem.BLL.Mappings
 {
@@ -27,8 +34,18 @@ namespace SummerCampManagementSystem.BLL.Mappings
     {
         public AutoMapperProfile()
         {
-            // Camper mappings
+            //Accommodation mappings
+            CreateMap<Accommodation, AccommodationResponseDto>();
 
+            // AccommodationType mappings
+            CreateMap<AccommodationType, AccommodationTypeResponseDto>()
+                .ForMember(dest => dest.Id,
+                           opt => opt.MapFrom(src => src.accommodationTypeId));
+            CreateMap<AccommodationTypeRequestDto, AccommodationType>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
+            // Camper mappings
+            CreateMap<Camper, CamperSummaryDto>();
             CreateMap<CamperRequestDto, Camper>();
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
@@ -37,6 +54,17 @@ namespace SummerCampManagementSystem.BLL.Mappings
                           (DateTime.Now.DayOfYear < src.dob.Value.DayOfYear ? 1 : 0)
                         : 0
             ));
+            CreateMap<Camper, CamperWithGuardiansResponseDto>()
+                .ForMember(dest => dest.Guardians,
+                    opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
+
+            // CamperGroup mapping
+            CreateMap<CamperGroup, CamperGroupResponseDto>();
+            CreateMap<CamperGroupRequestDto, CamperGroup>();
+            CreateMap<CamperGroup, CamperGroupWithCampDetailsResponseDto>()
+                .ForMember(dest => dest.CampName,
+                           opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
+
 
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();
@@ -46,22 +74,34 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Guardian, GuardianResponseDto>()
             .ForMember(dest => dest.Campers,
                 opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.camper)));
-
-            CreateMap<Camper, CamperSummaryDto>();
+            CreateMap<Guardian, GuardianSummaryDto>();
             CreateMap<GuardianCreateDto, Guardian>();
             CreateMap<GuardianUpdateDto, Guardian>();
 
             // Camp mappings
             CreateMap<CampType, CampTypeDto>()
                 .ForMember(dest => dest.Id,
-                           opt => opt.MapFrom(src => src.campTypeId));
+                          opt => opt.MapFrom(src => src.campTypeId));
+
+            CreateMap<Camp, CampResponseDto>();
 
             CreateMap<CampRequestDto, Camp>();
+
 
             // Location mappings
             CreateMap<Location, LocationDto>()
                 .ForMember(dest => dest.Id,
                            opt => opt.MapFrom(src => src.locationId));
+
+            CreateMap<LocationCreateDto, Location>()
+            .ForMember(dest => dest.campLocationId, opt => opt.MapFrom(src => src.ParentLocationId))
+            .ForMember(dest => dest.locationType, opt => opt.MapFrom(src => src.LocationType.ToString()))
+            .ForMember(dest => dest.isActive, opt => opt.MapFrom(src => true));
+           
+            CreateMap<LocationUpdateDto, Location>()
+                .ForMember(dest => dest.campLocationId, opt => opt.MapFrom(src => src.ParentLocationId))
+                .ForMember(dest => dest.locationType, opt => opt.MapFrom(src => src.LocationType.ToString()))
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             // Promotion mappings
             CreateMap<Promotion, PromotionDto>()
@@ -83,11 +123,16 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
                 .ForMember(dest => dest.Percent, opt => opt.MapFrom(src => src.percent));
 
+            CreateMap<Promotion, PromotionSummaryForCampDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionId))
+                .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.name))
+                .ForMember(dest => dest.Percent, opt => opt.MapFrom(src => src.percent));
+
 
             //Registration mapping
             CreateMap<Registration, RegistrationResponseDto>()
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
-                .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.campers))
+                .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.RegistrationCampers.Select(rc => rc.camper)))
                 .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion))
                 .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities)); 
 
@@ -131,6 +176,21 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
             CreateMap<CamperActivityUpdateDto, CamperActivity>();
 
+            // CampStaffAssignment mappings
+            CreateMap<UserAccount, StaffSummaryDto>()
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.firstName + " " + src.lastName))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.role));
+
+            CreateMap<Camp, CampSummaryDto>();
+
+            CreateMap<CampStaffAssignment, CampStaffAssignmentResponseDto>()
+                .ForMember(dest => dest.CampStaffAssignmentId, opt => opt.MapFrom(src => src.campStaffAssignmentId));
+
+            CreateMap<CampStaffAssignmentRequestDto, CampStaffAssignment>();
+
+            CreateMap<CampStaffAssignment, CampStaffSummaryDto>();
+
             //Promotion mappings
             CreateMap<Promotion, PromotionResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionId));
@@ -162,10 +222,18 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // Location mappings
             CreateMap<LocationRequestDto, Location>();
-            CreateMap<Location, LocationResponseDto>();
 
-            CreateMap<AttendanceLog, AttendanceLogDto>()
+            CreateMap<Location, LocationResponseDto>()
+                .ForMember(dest => dest.LocationId, opt => opt.MapFrom(src => src.locationId))
+                .ForMember(dest => dest.ParentLocationId, opt => opt.MapFrom(src => src.campLocationId))
+                .ForMember(dest => dest.ParentLocationName,
+                           opt => opt.MapFrom(src => src.campLocation != null ? src.campLocation.name : null));
+
+            // AttendanceLog mappings
+            CreateMap<AttendanceLog, AttendanceLogResponseDto>()
           .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.firstName + " " + src.staff.lastName));
+            CreateMap<AttendanceLogRequestDto, AttendanceLog>()
+                .ForMember(dest => dest.checkInMethod, opt => opt.MapFrom(_ => "Manual"));
          
 
             CreateMap<Location, LocationDto>()
@@ -180,6 +248,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp.name))
                 .ForMember(dest => dest.PhotoCount, opt => opt.MapFrom(src => src.AlbumPhotos.Count));
 
+            // AlbumPhoto mappings
+            CreateMap<AlbumPhoto, AlbumPhotoResponseDto>();
+            CreateMap<AlbumPhotoRequestDto, AlbumPhoto>();
+
             // Transaction mappings 
             CreateMap<Transaction, TransactionResponseDto>()
                 .ForMember(dest => dest.RegistrationId, opt => opt.MapFrom(src => src.registrationId))
@@ -189,7 +261,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
 
             // UserAccount mappings
-            CreateMap<UserAccount, UserResponseDto>();
+            CreateMap<UserAccount, UserResponseDto>()
+                .ForMember(
+                    dest => dest.DateOfBirth,  // UserResponseDto
+                    opt => opt.MapFrom(src => src.dob) // UserAccount
+                );
             CreateMap<UserProfileUpdateDto, UserAccount>();
         }
     }

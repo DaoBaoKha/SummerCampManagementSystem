@@ -1,7 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -13,10 +16,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CamperController : ControllerBase
     {
         private readonly ICamperService _camperService;
+        private readonly IUserContextService _userContextService;
 
-        public CamperController(ICamperService camperService)
+        public CamperController(ICamperService camperService, IUserContextService userContextService)
         {
             _camperService = camperService;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
@@ -48,9 +53,71 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (Exception ex)
             {
                 return NotFound(new { message = $"Camp with id {campId} not found." });
-            }  
+            }
         }
 
+        [Authorize(Roles = "User")]
+        [HttpGet("my-campers")]
+        public async Task<IActionResult> GetMyCampers()
+        {
+            var userId = _userContextService.GetCurrentUserId();
+            var campers = await _camperService.GetByParentIdAsync(userId.Value);
+            return Ok(campers);
+        }
+
+        [HttpGet("{camperId}/guardians")]
+        public async Task<IActionResult> GetGuardiansByCamperId(int camperId)
+        {
+            try
+            {
+                var guardians = await _camperService.GetGuardiansByCamperId(camperId);
+                return Ok(guardians);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("optionalActivities/{optionalActivityId}/campers")]
+        public async Task<IActionResult> GetCampersByOptionalActivitySchedule(int optionalActivityId)
+        {
+            try
+            {
+                var campers = await _camperService.GetCampersByOptionalActivitySchedule(optionalActivityId);
+                return Ok(campers);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Staff")]
+        [HttpGet("coreActivities/{coreActivityId}/campers")]
+        public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId();
+                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId, staffId.Value);
+                return Ok(campers);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "User")]             
         [HttpPost]
         public async Task<IActionResult> Create(CamperRequestDto dto)
         {
@@ -61,7 +128,8 @@ namespace SummerCampManagementSystem.API.Controllers
 
             try
             {
-                var created = await _camperService.CreateCamperAsync(dto);
+                var userId = _userContextService.GetCurrentUserId();
+                var created = await _camperService.CreateCamperAsync(dto, userId.Value);
                 return CreatedAtAction(nameof(GetById), new { id = created.CamperId }, created);
             }
             catch (ArgumentException ex)

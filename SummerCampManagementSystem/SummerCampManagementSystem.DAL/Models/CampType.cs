@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("CampType")]
+[Table("CampType", Schema = "dbo")]
 public partial class CampType
 {
     [Key]

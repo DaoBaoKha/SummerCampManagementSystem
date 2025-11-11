@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Vehicle")]
+[Table("Vehicle", Schema = "dbo")]
 [Index("vehicleType", Name = "IX_Vehicle_vehicleType")]
 public partial class Vehicle
 {
@@ -28,9 +28,6 @@ public partial class Vehicle
 
     [StringLength(50)]
     public string status { get; set; }
-
-    [InverseProperty("vehicle")]
-    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     [InverseProperty("vehicle")]
     public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();

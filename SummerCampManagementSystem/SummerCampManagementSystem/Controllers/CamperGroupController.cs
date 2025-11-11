@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -10,10 +12,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CamperGroupController : ControllerBase
     {
         private readonly ICamperGroupService _camperGroupService;
+        private readonly IUserContextService _userContextService;
 
-        public CamperGroupController(ICamperGroupService camperGroupService)
+        public CamperGroupController(ICamperGroupService camperGroupService, IUserContextService userContextService)
         {
             _camperGroupService = camperGroupService;
+            _userContextService = userContextService;
         }
 
         [HttpGet]
@@ -31,15 +35,50 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(camperGroup);
         }
 
+        [HttpGet("activityScheduleId/{id}")]
+        public async Task<IActionResult> GetCamperGroupsByActivityScheduleId(int id)
+        {
+            try
+            {
+                var camperGroups = await _camperGroupService.GetGroupsByActivityScheduleId(id);
+                return Ok(camperGroups);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto camperGroup)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
+            try
+            {
+                var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
 
-            return CreatedAtAction(nameof(GetCamperGroupById),
-                new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+                return CreatedAtAction(nameof(GetCamperGroupById),
+                    new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+
         }
 
         [HttpPut("{id}")]
@@ -54,6 +93,29 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(updatedCamperGroup);
         }
 
+        [HttpPut("{camperGroupId}/assign-staff/{staffId}")]
+        public async Task<IActionResult> AssignStaffToGroup(int camperGroupId, int staffId)
+        {
+            try
+            {
+                var updatedCamperGroup = await _camperGroupService.AssignStaffToGroup(camperGroupId, staffId);
+                return Ok(updatedCamperGroup);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamperGroup(int id)
         {
@@ -61,5 +123,7 @@ namespace SummerCampManagementSystem.API.Controllers
             if (!result) return NotFound();
             return NoContent();
         }
+
+
     }
 }

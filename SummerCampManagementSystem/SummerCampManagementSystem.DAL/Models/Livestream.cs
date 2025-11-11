@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Livestream")]
+[Table("Livestream", Schema = "dbo")]
 [Index("hostId", Name = "IX_Livestream_hostId")]
 public partial class Livestream
 {
@@ -25,7 +25,7 @@ public partial class Livestream
     public int? hostId { get; set; }
 
     [InverseProperty("livestream")]
-    public virtual ICollection<LivestreamUser> LivestreamUsers { get; set; } = new List<LivestreamUser>();
+    public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
     [ForeignKey("hostId")]
     [InverseProperty("Livestreams")]

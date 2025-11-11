@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("UserAccount")]
+[Table("UserAccount", Schema = "dbo")]
 public partial class UserAccount
 {
     [Key]
@@ -44,6 +44,13 @@ public partial class UserAccount
 
     public DateOnly? dob { get; set; }
 
+    public bool? isEmailConsent { get; set; }
+
+    public string googleId { get; set; }
+
+    [InverseProperty("supervisor")]
+    public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();
+
     [InverseProperty("staff")]
     public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
@@ -65,8 +72,8 @@ public partial class UserAccount
     [InverseProperty("createByNavigation")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
-    [InverseProperty("sender")]
-    public virtual ICollection<ChatMessageAI> ChatMessageAIs { get; set; } = new List<ChatMessageAI>();
+    [InverseProperty("user")]
+    public virtual ICollection<ChatConversation> ChatConversations { get; set; } = new List<ChatConversation>();
 
     [InverseProperty("user")]
     public virtual ICollection<ChatRoomUser> ChatRoomUsers { get; set; } = new List<ChatRoomUser>();
@@ -76,12 +83,6 @@ public partial class UserAccount
 
     [InverseProperty("user")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-    [InverseProperty("campStaff")]
-    public virtual ICollection<Incident> Incidents { get; set; } = new List<Incident>();
-
-    [InverseProperty("user")]
-    public virtual ICollection<LivestreamUser> LivestreamUsers { get; set; } = new List<LivestreamUser>();
 
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();

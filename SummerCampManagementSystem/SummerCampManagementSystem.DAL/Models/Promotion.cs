@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Promotion")]
+[Table("Promotion", Schema = "dbo")]
 [Index("createBy", Name = "IX_Promotion_createBy")]
 [Index("promotionTypeId", Name = "IX_Promotion_promotionTypeId")]
 public partial class Promotion
@@ -44,6 +44,10 @@ public partial class Promotion
     [StringLength(50)]
     [Unicode(false)]
     public string code { get; set; }
+
+    public int? maxUsageCount { get; set; }
+
+    public int? currentUsageCount { get; set; }
 
     [InverseProperty("promotion")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();

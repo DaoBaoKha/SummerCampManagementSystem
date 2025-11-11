@@ -99,7 +99,11 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[ChatMessageAI]",
+         "Name": "[dbo].[ChatConversation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatMessage]",
          "ObjectType": 0
       },
       {
@@ -139,15 +143,7 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Incident]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Livestream]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[LivestreamUser]",
          "ObjectType": 0
       },
       {

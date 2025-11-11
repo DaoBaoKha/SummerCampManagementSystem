@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("TransportSchedule")]
+[Table("TransportSchedule", Schema = "dbo")]
 public partial class TransportSchedule
 {
     [Key]
@@ -34,9 +34,6 @@ public partial class TransportSchedule
     public string status { get; set; }
 
     public string cancelReasons { get; set; }
-
-    [InverseProperty("transportSchedule")]
-    public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     [ForeignKey("driverId")]
     [InverseProperty("TransportSchedules")]

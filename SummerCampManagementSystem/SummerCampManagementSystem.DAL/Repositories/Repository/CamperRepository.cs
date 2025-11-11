@@ -30,19 +30,53 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .FirstOrDefaultAsync(c => c.camperId == id);
         }
 
-        public async Task<Registration?> GetRegistrationByCamperIdAsync(int camperId)
+        public async Task<IEnumerable<Camper>> GetGuardiansByCamperId(int camperId)
         {
             var camper = await _context.Campers
-                .Include(c => c.registrations)
-                .FirstOrDefaultAsync(c => c.camperId == camperId);
+                .Include(c => c.CamperGuardians)
+                .ThenInclude(cg => cg.guardian)
+                .Where(c => c.camperId == camperId)
+                .ToListAsync();
+            return camper;
+        }
+        public async Task<Registration?> GetRegistrationByCamperIdAsync(int camperId)
+        {
+            // FIX: Truy vấn thông qua bảng trung gian RegistrationCampers để lấy Registration
+            var registrationCamperLink = await _context.RegistrationCampers
+                .Include(rc => rc.registration) // Eager load the Registration object
+                .FirstOrDefaultAsync(rc => rc.camperId == camperId);
 
-            return camper?.registrations.FirstOrDefault();
+            // Trả về đối tượng Registration từ liên kết
+            return registrationCamperLink?.registration;
         }
 
         public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
         {
+            // FIX: Truy vấn Camper thông qua bảng trung gian RegistrationCamper
             return await _context.Campers
-                .Where(c => c.registrations.Any(r => r.campId == campId))
+                .Where(c => c.RegistrationCampers.Any(rc => rc.registration.campId == campId))
+                .ToListAsync();
+        }
+
+        public async Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId)
+        {
+            return await _context.Campers
+                .AnyAsync(c => c.camperId == camperId && c.group.supervisorId == staffId);
+        }
+
+        public async Task<IEnumerable<Camper>> GetCampersByOptionalActivityId(int optionalActivityId)
+        {
+            return await _context.Campers
+                .Where(c => c.CamperActivities.Any(oa => oa.activityScheduleId == optionalActivityId))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId, int staffId)
+        {
+            return await _context.GroupActivities
+                .Where(ga => ga.activityScheduleId == activityScheduleId
+                          && ga.camperGroup.supervisorId == staffId)
+                .SelectMany(ga => ga.camperGroup.Campers)
                 .ToListAsync();
         }
     }

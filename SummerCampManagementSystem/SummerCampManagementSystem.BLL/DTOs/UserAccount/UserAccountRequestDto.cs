@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.UserAccount
         [StringLength(255)]
         public string Avatar { get; set; } = string.Empty;
 
-        public DateOnly? Dob { get; set; }
+        public DateOnly Dob { get; set; }
     }
 
     public class UserAdminUpdateDto
@@ -33,5 +33,17 @@ namespace SummerCampManagementSystem.BLL.DTOs.UserAccount
         public string Role { get; set; } = string.Empty;
 
         public bool IsActive { get; set; }
+    }
+
+    public class ChangePasswordRequestDto
+    {
+        [Required(ErrorMessage = "Mật khẩu hiện tại là bắt buộc.")]
+        public string CurrentPassword { get; set; }
+
+        [Required(ErrorMessage = "Mật khẩu mới là bắt buộc.")]
+        public string NewPassword { get; set; }
+
+        [Compare("NewPassword", ErrorMessage = "Mật khẩu xác nhận không khớp.")]
+        public string ConfirmNewPassword { get; set; }
     }
 }

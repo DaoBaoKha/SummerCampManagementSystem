@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.Core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,5 +20,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByCampAsync(int campId);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByDateAsync(DateTime fromDate, DateTime toDate);
         Task<ActivityScheduleResponseDto> UpdateCoreScheduleAsync(int id, ActivityScheduleCreateDto dto);
+        Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId);
     }
 }

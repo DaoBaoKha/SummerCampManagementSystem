@@ -76,7 +76,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
-        private string HashPassword(string password)
+        public string HashPassword(string password)
         {
             using var sha256 = SHA256.Create();
             var bytes = Encoding.UTF8.GetBytes(password);
@@ -84,7 +84,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return Convert.ToBase64String(hash);
         }
 
-        private bool VerifyPassword(string enteredPassword, string hashedPassword)
+        public bool VerifyPassword(string enteredPassword, string hashedPassword)
         {
             string hashedEnteredPassword = HashPassword(enteredPassword);
             return hashedEnteredPassword == hashedPassword;
@@ -106,7 +106,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, user.userId.ToString()),
+                //new Claim(JwtRegisteredClaimNames.Sub, user.userId.ToString()),
+                new Claim("id", user.userId.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.email),
                 new Claim(JwtRegisteredClaimNames.Name, user.firstName + " " + user.lastName),
                 new Claim(ClaimTypes.Role, user.role.ToString()),
@@ -176,6 +177,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
+                avatar = string.Empty,
                 dob = model.Dob,
                 role = UserRole.User.ToString(), // Default role
                 isActive = false,
@@ -384,5 +386,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             };
         }
+
     }
 }

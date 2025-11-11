@@ -25,6 +25,27 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
         }
 
+        public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId, campId);
+
+            return new
+            {
+                camp.campId,
+                campName = camp.name,
+                activities = schedules.Select(a => new
+                {
+                    a.activityScheduleId,
+                    a.activity.name,
+                    a.startTime,
+                    a.endTime,
+                    location = a.location.name
+                }).ToList()
+            };
+        }
 
         public async Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
         {
@@ -38,9 +59,11 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            if (dto.StartTime >= dto.EndTime)
+                throw new InvalidOperationException("Start date must be earlier than end date.");
+
             // Rule 1: Thời gian schedule phải nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
             {
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
             }
@@ -109,7 +132,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     camperGroupId = group.camperGroupId,
                     activityScheduleId = schedule.activityScheduleId,
-                    status = "Pending"
+                    //status = "Pending"
                 };
                 await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
             }
@@ -178,12 +201,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
             schedule.startTime = coreSlot.startTime;
             schedule.endTime = coreSlot.endTime;
-            schedule.roomId = coreSlot.activityScheduleId.ToString();
+            schedule.coreActivityId = coreSlot.activityScheduleId;
 
 
 
             await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
+
+
+
 
             var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
 
@@ -206,8 +232,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 ?? throw new KeyNotFoundException("Camp not found.");
 
             // 🔹 Rule 1: Schedule nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value.ToDateTime(TimeOnly.MinValue) ||
-                dto.EndTime > camp.endDate.Value.ToDateTime(TimeOnly.MaxValue))
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
 
             // 🔹 Rule 2: Không trùng thời gian core activity khác (ngoại trừ chính nó)
@@ -266,12 +291,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetByCampAndStaffAsync(int campId, int staffId)
         {
-
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException("Staff not found.");
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
 
             var schedules = await _unitOfWork.ActivitySchedules.GetByCampAndStaffAsync(campId, staffId);
 
@@ -292,9 +315,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
 
             var joinedOptionalCoreIds = schedules
-                .Where(s => !string.IsNullOrWhiteSpace(s.roomId))
-                .Select(s => int.Parse(s.roomId))
+                .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
+                .Select(s => s.coreActivityId)        // lấy giá trị int
                 .ToHashSet();
+
 
             var filteredSchedules = schedules
                 .Where(s => !joinedOptionalCoreIds.Contains(s.activityScheduleId))

@@ -14,6 +14,7 @@ using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Net.Mime;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -50,6 +51,16 @@ string payosApiKey = builder.Configuration["PayOS:ApiKey"]?.Trim() ?? "";
 string payosChecksumKey = builder.Configuration["PayOS:ChecksumKey"]?.Trim() ?? "";
 string payosReturnUrl = builder.Configuration["PayOS:ReturnUrl"]?.Trim() ?? "";
 string payosCancelUrl = builder.Configuration["PayOS:CancelUrl"]?.Trim() ?? "";
+
+// Gemini settings (local default)
+string geminiApiKey = builder.Configuration["GeminiApi:ApiKey"]?.Trim() ?? "";
+string geminiBaseUrl = builder.Configuration["GeminiApi:ApiBaseUrl"]?.Trim() ?? "";
+string geminiModelName = builder.Configuration["GeminiApi:ModelName"]?.Trim() ?? "";
+
+// Mobile PayOS settings
+string payosMobileReturnUrl = builder.Configuration["PayOS:MobileReturnUrl"]?.Trim() ?? "";
+string payosMobileCancelUrl = builder.Configuration["PayOS:MobileCancelUrl"]?.Trim() ?? "";
+string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
 
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
@@ -98,6 +109,22 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
 
 
+        // Mobile PayOS
+        payosMobileReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosMobileCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        apiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "api-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
+        // gemini
+        geminiApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-api-key", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        geminiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        geminiModelName = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-model-name", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
 
         var inMemorySettings = new Dictionary<string, string>
         {
@@ -116,7 +143,18 @@ if (builder.Environment.IsProduction())
             {"PayOS:ApiKey", payosApiKey},
             {"PayOS:ChecksumKey", payosChecksumKey},
             {"PayOS:ReturnUrl", payosReturnUrl},
-            {"PayOS:CancelUrl", payosCancelUrl}
+            {"PayOS:CancelUrl", payosCancelUrl},
+
+            // Mobile PayOS
+            {"PayOS:MobileReturnUrl", payosMobileReturnUrl},
+            {"PayOS:MobileCancelUrl", payosMobileCancelUrl},
+            {"ApiBaseUrl", apiBaseUrl},
+
+
+            // Gemini
+            {"GeminiApi:ApiKey", geminiApiKey},
+            {"GeminiApi:ApiBaseUrl", geminiBaseUrl},
+            {"GeminiApi:ModelName", geminiModelName}
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
@@ -137,8 +175,6 @@ else
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
-
 
 
 
@@ -168,13 +204,19 @@ builder.Services.AddScoped<IPromotionTypeService, PromotionTypeService>();
 
 builder.Services.AddScoped<ICamperRepository, CamperRepository>();
 builder.Services.AddScoped<ICamperService, CamperService>();
-
+builder.Services.AddScoped<ICampStaffAssignmentRepository, CampStaffAssignmentRepository>();
+builder.Services.AddScoped<ICampStaffAssignmentService, CampStaffAssignmentService>();
 
 
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
+
+builder.Services.AddScoped<IAccommodationTypeRepository, AccommodationTypeRepository>();
+builder.Services.AddScoped<IAccommodationTypeService, AccommodationTypeService>();
+
+builder.Services.AddScoped<IAlbumPhotoFaceRepository, AlbumPhotoFaceRepository>();
 
 builder.Services.AddScoped<IAlbumPhotoRepository, AlbumPhotoRepository>();
 builder.Services.AddScoped<IAlbumPhotoService, AlbumPhotoService>();
@@ -213,6 +255,8 @@ builder.Services.AddScoped<IRegistrationOptionalActivityRepository, Registration
 
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
+builder.Services.AddScoped<IRouteStopService, RouteStopService>();
+builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
@@ -221,6 +265,17 @@ builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
 
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+
+builder.Services.AddScoped<IAttendanceLogRepository, AttendanceLogRepository>();
+builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
+
+builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepository>();
+builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
+
+builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
+
+builder.Services.AddScoped<IAccommodationRepository, AccommodationRepository>();
+builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -235,6 +290,29 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
+
+// Chat service
+builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();
+builder.Services.AddScoped<IChatMessageRepository, ChatMessageRepository>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
+builder.Services.AddHttpClient();
+
+// Gemini API Setting
+var geminiApiSettings = new GeminiApiSettings
+{
+    ApiKey = geminiApiKey,
+    ApiBaseUrl = geminiBaseUrl,
+    ModelName = geminiModelName
+};
+
+builder.Services.Configure<GeminiApiSettings>(opts =>
+{
+    opts.ApiKey = geminiApiSettings.ApiKey;
+    opts.ApiBaseUrl = geminiApiSettings.ApiBaseUrl;
+    opts.ModelName = geminiApiSettings.ModelName;
+});
+
 
 // Email service
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -303,11 +381,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 };
 
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
-            }
+            },
+
+              OnForbidden = async context =>
+              {
+                  context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                  context.Response.ContentType = "application/json";
+                  var responseBody = new 
+                  {
+                      status = 403,
+                      error = "Forbidden",
+                      Message = "You do not have permission to access this resource"
+                  };
+                  await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+              }
         };
     });
 
 // swagger
+var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -336,6 +428,8 @@ builder.Services.AddSwaggerGen(option =>
             new string[]{}
         }
     });
+
+    option.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
 var app = builder.Build();
@@ -369,6 +463,7 @@ app.UseExceptionHandler(errorApp =>
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             ArgumentException => StatusCodes.Status400BadRequest,
+            InvalidOperationException => StatusCodes.Status409Conflict, 
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -381,6 +476,7 @@ app.UseExceptionHandler(errorApp =>
             {
                 404 => "Not Found",
                 400 => "Bad Request",
+                409 => "Conflict",
                 _ => "Internal Server Error"
             },
             message = ex?.Message,

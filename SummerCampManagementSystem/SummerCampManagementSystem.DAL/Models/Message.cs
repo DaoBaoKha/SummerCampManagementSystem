@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("Message")]
+[Table("Message", Schema = "dbo")]
 [Index("chatRoomId", Name = "IX_Message_chatRoomId")]
 [Index("receiverId", Name = "IX_Message_receiverId")]
 [Index("senderId", Name = "IX_Message_senderId")]
