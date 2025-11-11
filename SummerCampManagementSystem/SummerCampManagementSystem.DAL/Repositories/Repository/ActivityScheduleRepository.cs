@@ -107,6 +107,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     a.activity.campId == campId &&
                     (
                         (a.staffId == staffId && a.coreActivityId != null) ||
+                        (a.staffId == staffId && a.activity.activityType == ActivityType.Resting.ToString()) ||
                         a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId)
                     )
                     && a.status.ToLower() == "pendingattendance"

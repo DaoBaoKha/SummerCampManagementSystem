@@ -33,7 +33,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/activities")]
         public async Task<IActionResult> GetAllByStaffId(int campId)
         {
@@ -56,7 +56,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/group")]
         public async Task<IActionResult> GetAllGroupsBySupervisorId(int campId)
         {
@@ -76,7 +76,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/accomodation")]
         public async Task<IActionResult> GetAllBySupervisorIdAsync(int campId)
         {
@@ -96,7 +96,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("my-camps")]
         public async Task<IActionResult> GetMyCamps()
         {

@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
+using SummerCampManagementSystem.Core.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,10 +14,9 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<AttendanceLogResponseDto?> GetAttendanceLogByIdAsync(int id);
         Task<AttendanceLogResponseDto> CoreActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
         Task<AttendanceLogResponseDto> OptionalActivityAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
-        Task<AttendanceLogResponseDto> CheckinAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
-        Task<AttendanceLogResponseDto> CheckoutAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
+        Task<object> Checkin_CheckoutAttendanceAsync(AttendanceLogListRequestDto attendanceLogDto, int StaffId, RegistrationCamperStatus status);
         Task<AttendanceLogResponseDto> RestingAttendanceAsync(AttendanceLogRequestDto attendanceLogDto);
-        Task<object> CoreActivityAttendanceAsync(AttendanceLogListRequestDto dto, int staffId);
+        Task<object> CoreActivityAttendanceAsync(AttendanceLogListRequestDto dto, int staffId, bool commit = true);
 
     }
 }
