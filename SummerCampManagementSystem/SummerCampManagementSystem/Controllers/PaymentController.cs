@@ -52,7 +52,8 @@ namespace SummerCampManagementSystem.API.Controllers
                 string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
                 _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}"); // log when success
-                return Redirect(deepLinkUrl);
+
+                return RedirectPermanent(deepLinkUrl);
             }
             catch (ArgumentException ex) 
             {
@@ -96,7 +97,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
                 _logger.LogInformation($"Confirm: PayOS trả về cho Website = {webResult}");
 
-                _logger.LogInformation("Confirm: Đang lấy PayOS:MobileReturnUrl (Mobile)...");
+/*                _logger.LogInformation("Confirm: Đang lấy PayOS:MobileReturnUrl (Mobile)...");
 
                 string mobileReturnUrlTemplate = _configuration["PayOS:MobileReturnUrl"]
                     ?? throw new InvalidOperationException("PayOS:MobileReturnUrl is not configured.");
@@ -113,13 +114,13 @@ namespace SummerCampManagementSystem.API.Controllers
 
                 _logger.LogInformation($"Confirm: PayOS trả về cho Mobile = {mobileResult}");
 
-                _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");
+                _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");*/
 
                 return Ok(new
                 {
                     message = "PayOS URLs confirmation processed.",
                     website_confirmation = new { url = webReturnUrl, result = webResult },
-                    mobile_confirmation = new { url = mobileReturnUrl, result = mobileResult }
+                    //mobile_confirmation = new { url = mobileReturnUrl, result = mobileResult }
                 });
             }
             catch (Exception ex)
