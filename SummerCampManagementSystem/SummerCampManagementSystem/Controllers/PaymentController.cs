@@ -10,11 +10,13 @@ namespace SummerCampManagementSystem.API.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(IPaymentService paymentService, IConfiguration configuration)
+        public PaymentController(IPaymentService paymentService, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _paymentService = paymentService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("payos-webhook")]
@@ -40,23 +42,29 @@ namespace SummerCampManagementSystem.API.Controllers
         // MOBILE CALLBACK
         // redirect user to deep link after processing
         [HttpGet("mobile-callback")]
-        public async Task<IActionResult> PaymentMobileCallback() 
+        public async Task<IActionResult> PaymentMobileCallback()
         {
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}"); // log when start processing
 
                 string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
+                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}"); // log when success
                 return Redirect(deepLinkUrl);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException ex) 
             {
+                _logger.LogError(ex, $"Mobile Callback LỖI 1 (ArgumentException): {ex.Message}");
+
                 string errorReason = Uri.EscapeDataString(ex.Message);
                 return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
             }
-            catch (Exception ex)
+            catch (Exception ex) 
             {
+                _logger.LogError(ex, $"Mobile Callback LỖI 2 (Exception): {ex.Message}");
+
                 string errorReason = Uri.EscapeDataString(ex.Message);
                 return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
             }
@@ -95,17 +103,21 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Website Callback: Nhận được query: {rawQueryString}"); // log when start processing
 
                 var resultDto = await _paymentService.ProcessPaymentWebsiteCallbackRaw(rawQueryString);
 
+                _logger.LogInformation($"Website Callback: Xử lý thành công, kết quả: {resultDto.Status} - {resultDto.Message}"); // log when success
                 return Ok(resultDto);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 1 (ArgumentException): {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 2 (Exception): {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
             }

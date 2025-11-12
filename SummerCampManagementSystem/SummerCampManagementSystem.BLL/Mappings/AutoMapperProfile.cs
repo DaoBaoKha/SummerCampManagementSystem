@@ -37,6 +37,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Accommodation mappings
             CreateMap<Accommodation, AccommodationResponseDto>();
 
+            CreateMap<AccommodationRequestDto, Accommodation>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
             // AccommodationType mappings
             CreateMap<AccommodationType, AccommodationTypeResponseDto>()
                 .ForMember(dest => dest.Id,
