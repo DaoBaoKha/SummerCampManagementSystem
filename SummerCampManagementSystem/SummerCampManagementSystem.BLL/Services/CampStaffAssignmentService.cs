@@ -115,5 +115,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return assignments; 
         }
+
+        public async Task<bool> IsStaffAssignedToCampAsync(int staffId, int campId)
+        {
+            var existingAssignment = await _unitOfWork.CampStaffAssignments.GetQueryable()
+                .FirstOrDefaultAsync(csa =>
+                    csa.staffId == staffId &&
+                    csa.campId == campId);
+
+            return existingAssignment != null;
+        }
     }
 }

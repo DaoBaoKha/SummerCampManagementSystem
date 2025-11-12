@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SummerCampManagementSystem.BLL.DTOs.Accommodation
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Accommodation
 {
     public class AccommodationResponseDto
     {
-        public int CampId { get; set; }
-        public string? CampName { get; set; }
-        public int AccommodationId { get; set; }
-        public string? Name { get; set; }
-        public int Capacity { get; set; }
+        public int accommodationId { get; set; }
+
+        public int campId { get; set; }
+
+        public int accommodationTypeId { get; set; }
+
+        public string name { get; set; }
+
+        public int? capacity { get; set; }
+
+        public bool? isActive { get; set; }
+
+        public int? supervisorId { get; set; }
     }
 }
