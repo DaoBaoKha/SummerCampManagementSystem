@@ -47,26 +47,58 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
-                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}"); // log when start processing
+                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}");
 
                 string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
-                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}"); // log when success
-                return Redirect(deepLinkUrl);
+                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}");
+
+                // return a simple HTML page that redirects to the deep link
+                string html = $@"
+            <html>
+                <head>
+                    <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
+                </head>
+                <body>
+                    <p>Redirecting to app...</p>
+                </body>
+            </html>";
+
+                return Content(html, "text/html");
             }
-            catch (ArgumentException ex) 
+            catch (ArgumentException ex)
             {
                 _logger.LogError(ex, $"Mobile Callback LỖI 1 (ArgumentException): {ex.Message}");
+                string errorUrl = $"yourapp://payment/failure?reason=Validation&details={Uri.EscapeDataString(ex.Message)}";
 
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
+                string html = $@"
+            <html>
+                <head>
+                    <meta http-equiv='refresh' content='0; url={errorUrl}' />
+                </head>
+                <body>
+                    <p>Redirecting to app...</p>
+                </body>
+            </html>";
+
+                return Content(html, "text/html");
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
                 _logger.LogError(ex, $"Mobile Callback LỖI 2 (Exception): {ex.Message}");
+                string errorUrl = $"yourapp://payment/failure?reason=ApiError&details={Uri.EscapeDataString(ex.Message)}";
 
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
+                string html = $@"
+            <html>
+                <head>
+                    <meta http-equiv='refresh' content='0; url={errorUrl}' />
+                </head>
+                <body>
+                    <p>Redirecting to app...</p>
+                </body>
+            </html>";
+
+                return Content(html, "text/html");
             }
         }
 
