@@ -205,7 +205,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Required callback parameter (orderCode) is missing.");
             }
 
-            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            long orderCode = long.TryParse(parsedQuery["orderCode"], out long oc) ? oc : 0;
             if (orderCode == 0)
             {
                 throw new ArgumentException("Invalid orderCode.");
@@ -214,7 +214,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return await ProcessPaymentMobileCallbackLogic(orderCode);
         }
 
-        private async Task<string> ProcessPaymentMobileCallbackLogic(int orderCode)
+        private async Task<string> ProcessPaymentMobileCallbackLogic(long orderCode)
         {
             const string BaseDeepLink = "yourapp://payment";
             string queryParams = $"orderCode={orderCode}";
@@ -269,9 +269,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (parsedQuery["orderCode"] == null)
             {
                 throw new ArgumentException("Required callback parameter (orderCode) is missing from the URL.");
-            }   
+            }
 
-            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            long orderCode = long.TryParse(parsedQuery["orderCode"], out long oc) ? oc : 0;
             var response = new WebCallbackResponseDto { OrderCode = orderCode };
 
             try
