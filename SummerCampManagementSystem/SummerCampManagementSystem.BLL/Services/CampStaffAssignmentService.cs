@@ -2,6 +2,7 @@
 using AutoMapper.QueryableExtensions; 
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -124,6 +125,17 @@ namespace SummerCampManagementSystem.BLL.Services
                     csa.campId == campId);
 
             return existingAssignment != null;
+        }
+
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampIdAsync(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+           var availableStaffs = await _unitOfWork.CampStaffAssignments
+                .GetAvailableStaffByCampIdAsync(camp.startDate, camp.endDate);
+
+            return _mapper.Map<IEnumerable<StaffSummaryDto>>(availableStaffs);
         }
     }
 }
