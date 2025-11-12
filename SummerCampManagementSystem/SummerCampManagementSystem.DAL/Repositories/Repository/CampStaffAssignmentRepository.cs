@@ -16,7 +16,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             var allStaff = await _context.UserAccounts
                     .Include(u => u.CampStaffAssignments)
                         .ThenInclude(csa => csa.camp)
-                    .Where(u => u.role == "Staff")
+                    .Where(u => u.role == "Staff" || u.role == "Manager")
                     .ToListAsync();
 
              var available = allStaff.Where(s =>

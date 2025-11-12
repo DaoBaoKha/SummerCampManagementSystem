@@ -53,8 +53,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
         {
             // FIX: Truy vấn Camper thông qua bảng trung gian RegistrationCamper
-            return await _context.Campers
-                .Where(c => c.RegistrationCampers.Any(rc => rc.registration.campId == campId))
+            return await _context.RegistrationCampers
+                .Where(rc => rc.registration.campId == campId
+                        && rc.status != "PendingApproval")
+                .Select(rc => rc.camper)
                 .ToListAsync();
         }
 

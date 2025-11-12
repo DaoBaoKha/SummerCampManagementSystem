@@ -219,5 +219,18 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("{activityScheduleId}/status")]
+        public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)
+        {
+           try
+           {
+                var updatedActivity = await _service.ChangeStatusActivitySchedule(activityScheduleId, status);
+                return Ok(updatedActivity);
+           }
+           catch (KeyNotFoundException ex)
+           {
+                return NotFound(new { message = ex.Message });
+           }
+        }
     }
 }

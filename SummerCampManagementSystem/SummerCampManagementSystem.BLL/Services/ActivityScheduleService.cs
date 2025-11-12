@@ -5,6 +5,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using System.Diagnostics;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -356,6 +357,19 @@ namespace SummerCampManagementSystem.BLL.Services
             var schedules = await _unitOfWork.ActivitySchedules
                 .GetActivitySchedulesByDateAsync(fromDate, toDate);
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+            ?? throw new KeyNotFoundException("ActivitySchedule not found");
+
+            schedule.status = status.ToString();
+            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<ActivityScheduleResponseDto>(schedule);
+
         }
     }
 }
