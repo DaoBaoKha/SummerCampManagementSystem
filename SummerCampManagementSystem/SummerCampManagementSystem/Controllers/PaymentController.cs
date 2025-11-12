@@ -44,61 +44,126 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("mobile-callback")]
         public async Task<IActionResult> PaymentMobileCallback()
         {
+            string deepLinkUrl = string.Empty;
+
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
-                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}"); // log when start processing
+                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}");
 
-                string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
+               
+                deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
-                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}"); // log when success
-                return Redirect(deepLinkUrl);
+                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}");
+
+                string html = $@"
+                    <html>
+                        <head>
+                            <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
+                            <title>Redirecting...</title>
+                        </head>
+                        <body>
+                            <p>Redirecting to your app...</p>
+                            <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
+                        </body>
+                    </html>";
+
+                return Content(html, "text/html");
             }
-            catch (ArgumentException ex) 
+            catch (ArgumentException ex)
             {
-                _logger.LogError(ex, $"Mobile Callback LỖI 1 (ArgumentException): {ex.Message}");
+                _logger.LogError(ex, $"Mobile Callback Validation Error: {ex.Message}");
 
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
+                deepLinkUrl = $"yourapp://payment/failure?reason=Validation&details={Uri.EscapeDataString(ex.Message)}";
+
+                string html = $@"
+                    <html>
+                        <head>
+                            <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
+                            <title>Redirecting...</title>
+                        </head>
+                        <body>
+                            <p>Redirecting to your app...</p>
+                            <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
+                        </body>
+                    </html>";
+
+                return Content(html, "text/html");
             }
-            catch (Exception ex) 
+            catch (Exception ex)
             {
-                _logger.LogError(ex, $"Mobile Callback LỖI 2 (Exception): {ex.Message}");
+                _logger.LogError(ex, $"Mobile Callback Exception: {ex.Message}");
 
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
+                deepLinkUrl = $"yourapp://payment/failure?reason=ApiError&details={Uri.EscapeDataString(ex.Message)}";
+
+                string html = $@"
+                <html>
+                    <head>
+                        <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
+                        <title>Redirecting...</title>
+                    </head>
+                    <body>
+                        <p>Redirecting to your app...</p>
+                        <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
+                    </body>
+                </html>";
+
+                return Content(html, "text/html");
             }
         }
 
         [HttpGet("confirm-urls")]
         public async Task<IActionResult> ConfirmPayOSUrls()
         {
+            _logger.LogInformation("--- BẮT ĐẦU CHẠY CONFIRM-URLS ---");
             try
             {
+                _logger.LogInformation("Confirm: Đang lấy ApiBaseUrl...");
+
                 string baseApiUrl = _configuration["ApiBaseUrl"]
                     ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
-                // website confirmation
+                _logger.LogInformation($"Confirm: ApiBaseUrl = {baseApiUrl}");
+
+
+                string webhookUrl = $"{baseApiUrl}/api/payment/payos-webhook";
+
+                _logger.LogInformation($"Confirm: Đang gửi xác nhận Webhook URL đến PayOS: {webhookUrl}");
+                string webhookResult = await _paymentService.ConfirmUrlAsync(webhookUrl);
+                _logger.LogInformation($"Confirm: PayOS trả về cho Webhook = {webhookResult}");
+
+
+                _logger.LogInformation("Confirm: Đang lấy PayOS:ReturnUrl (Website)...");
+
                 string webReturnUrl = _configuration["PayOS:ReturnUrl"]
                     ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
 
-                string webResult = await _paymentService.ConfirmUrlAsync(webReturnUrl);
+                _logger.LogInformation($"Confirm: Website URL = {webReturnUrl}");
 
-                // mobile confirmation
-                string mobileReturnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
-                    ?? $"{baseApiUrl}/api/payment/mobile-callback";
+                _logger.LogInformation("Confirm: Đang gửi xác nhận Website URL đến PayOS...");
 
-                string mobileResult = await _paymentService.ConfirmUrlAsync(mobileReturnUrl);
+
+                _logger.LogInformation("Confirm: Đang lấy PayOS:MobileReturnUrl (Mobile)...");
+
+                string mobileReturnUrlTemplate = _configuration["PayOS:MobileReturnUrl"]
+                    ?? throw new InvalidOperationException("PayOS:MobileReturnUrl is not configured.");
+
+                string mobileReturnUrl = mobileReturnUrlTemplate.Replace("{API_BASE_URL}", baseApiUrl);
+
+                _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");
 
                 return Ok(new
                 {
                     message = "PayOS URLs confirmation processed.",
-                    website_confirmation = new { url = webReturnUrl, result = webResult },
-                    mobile_confirmation = new { url = mobileReturnUrl, result = mobileResult }
+                    webhook_confirmation = new { url = webhookUrl, result = webhookResult },
+                    website_return_url_check = new { url = webReturnUrl },
+                    mobile_return_url_check = new { url = mobileReturnUrl }
                 });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "--- LỖI 500 KHI CHẠY CONFIRM-URLS ---");
+
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }
