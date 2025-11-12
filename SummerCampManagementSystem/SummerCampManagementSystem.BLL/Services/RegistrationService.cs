@@ -446,14 +446,8 @@ namespace SummerCampManagementSystem.BLL.Services
                     if (isMobile)
                     {
                         // use Mobile URLs
-                        string baseApiUrl = _configuration["ApiBaseUrl"]
-                            ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
-
-                        returnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
-                            ?? $"{baseApiUrl}/api/payment/mobile-callback";
-
-                        cancelUrl = _configuration["PayOS:MobileCancelUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
-                            ?? $"{baseApiUrl}/api/payment/mobile-callback?status=CANCELLED";
+                        returnUrl = "yourapp://payment/callback"; // Hoặc bất cứ deep link nào app của bạn đăng ký
+                        cancelUrl = "yourapp://payment/callback"; // Dùng chung một link
                     }
                     else
                     {
