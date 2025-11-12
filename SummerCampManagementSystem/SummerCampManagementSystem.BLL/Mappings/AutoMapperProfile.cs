@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
+using SummerCampManagementSystem.BLL.DTOs.AccommodationType;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
@@ -36,7 +37,15 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Accommodation mappings
             CreateMap<Accommodation, AccommodationResponseDto>();
 
+            CreateMap<AccommodationRequestDto, Accommodation>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
 
+            // AccommodationType mappings
+            CreateMap<AccommodationType, AccommodationTypeResponseDto>()
+                .ForMember(dest => dest.Id,
+                           opt => opt.MapFrom(src => src.accommodationTypeId));
+            CreateMap<AccommodationTypeRequestDto, AccommodationType>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
 
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
@@ -182,6 +191,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampStaffAssignmentId, opt => opt.MapFrom(src => src.campStaffAssignmentId));
 
             CreateMap<CampStaffAssignmentRequestDto, CampStaffAssignment>();
+
+            CreateMap<CampStaffAssignment, CampStaffSummaryDto>();
 
             //Promotion mappings
             CreateMap<Promotion, PromotionResponseDto>()

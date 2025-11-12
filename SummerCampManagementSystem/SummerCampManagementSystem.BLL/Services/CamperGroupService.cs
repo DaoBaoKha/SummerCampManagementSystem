@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -110,6 +111,14 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return true;
+        }
+
+        public async Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByActivityScheduleId(int activityScheduleId)
+        {
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+                ?? throw new KeyNotFoundException("Activity Schedule not found.");
+            var groups = await _unitOfWork.CamperGroups.GetGroupsByActivityScheduleIdAsync(activityScheduleId);
+            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
         }
     }
 }

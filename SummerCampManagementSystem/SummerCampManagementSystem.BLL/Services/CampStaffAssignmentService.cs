@@ -106,14 +106,24 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
 
-        public async Task<IEnumerable<CampStaffAssignmentResponseDto>> GetAssignmentsByStaffIdAsync(int staffId)
+        public async Task<IEnumerable<CampStaffSummaryDto>> GetAssignmentsByStaffIdAsync(int staffId)
         {
             var assignments = await _unitOfWork.CampStaffAssignments.GetQueryable()
                 .Where(csa => csa.staffId == staffId)
-                .ProjectTo<CampStaffAssignmentResponseDto>(_mapper.ConfigurationProvider) 
+                .ProjectTo<CampStaffSummaryDto>(_mapper.ConfigurationProvider) 
                 .ToListAsync();
 
             return assignments; 
+        }
+
+        public async Task<bool> IsStaffAssignedToCampAsync(int staffId, int campId)
+        {
+            var existingAssignment = await _unitOfWork.CampStaffAssignments.GetQueryable()
+                .FirstOrDefaultAsync(csa =>
+                    csa.staffId == staffId &&
+                    csa.campId == campId);
+
+            return existingAssignment != null;
         }
     }
 }

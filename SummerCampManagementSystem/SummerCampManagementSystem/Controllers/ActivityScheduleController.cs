@@ -79,12 +79,23 @@ namespace SummerCampManagementSystem.API.Controllers
 
         }
 
-        [HttpGet("camp/{campId}/staff/{staffId}")]
-        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId, [FromQuery] ActivityScheduleType? status)
+        /// <summary>
+        /// Get activity schedules with status "PendingAttendance" by campid and staffid
+        /// </summary>
+
+        /// <remarks>
+        /// cái get này sẽ get những optional activity schedule mà staff đó đc phân hoặc core activity schedule của group mà có quản lý
+        /// </remarks>
+
+        [Authorize(Roles = "Staff")]
+        [HttpGet("attendances/camps/{campId}")]
+        public async Task<IActionResult> GetByCampAndStaff(int campId)
         {
             try
             {
-                var result = await _service.GetByCampAndStaffAsync(campId, staffId, status);
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                var result = await _service.GetByCampAndStaffAsync(campId, staffId);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)

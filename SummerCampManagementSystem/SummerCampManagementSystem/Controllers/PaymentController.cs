@@ -10,11 +10,13 @@ namespace SummerCampManagementSystem.API.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(IPaymentService paymentService, IConfiguration configuration)
+        public PaymentController(IPaymentService paymentService, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _paymentService = paymentService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("payos-webhook")]
@@ -37,32 +39,34 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        // MOBILE CALLBACK
+        // redirect user to deep link after processing
         [HttpGet("mobile-callback")]
-        public IActionResult PaymentMobileCallback()
+        public async Task<IActionResult> PaymentMobileCallback()
         {
             try
             {
-                // take all query string
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}"); // log when start processing
 
+                string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
-                string deepLinkUrl = _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
-
-                // do 302 redirect
+                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}"); // log when success
                 return Redirect(deepLinkUrl);
             }
-            catch (ArgumentException ex)
+            catch (ArgumentException ex) 
             {
-                // validation errors
+                _logger.LogError(ex, $"Mobile Callback LỖI 1 (ArgumentException): {ex.Message}");
+
                 string errorReason = Uri.EscapeDataString(ex.Message);
                 return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
             }
-            catch (Exception ex)
+            catch (Exception ex) 
             {
-                // exceptions
+                _logger.LogError(ex, $"Mobile Callback LỖI 2 (Exception): {ex.Message}");
+
                 string errorReason = Uri.EscapeDataString(ex.Message);
-                const string fallbackDeepLink = "yourapp://payment/failure?reason=API_ERROR";
-                return Redirect(fallbackDeepLink + $"&details={errorReason}");
+                return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
             }
         }
 
@@ -71,25 +75,32 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                // take url callback from config on gg cloud
-                string returnUrl = _configuration["PayOS:ReturnUrl"] ??
-                                   throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
+                string baseApiUrl = _configuration["ApiBaseUrl"]
+                    ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
-                string result = await _paymentService.ConfirmUrlAsync(returnUrl);
+                // website confirmation
+                string webReturnUrl = _configuration["PayOS:ReturnUrl"]
+                    ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
 
-                // PayOS SDK return confirm result
+                string webResult = await _paymentService.ConfirmUrlAsync(webReturnUrl);
+
+                // mobile confirmation
+                string mobileReturnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                    ?? $"{baseApiUrl}/api/payment/mobile-callback";
+
+                string mobileResult = await _paymentService.ConfirmUrlAsync(mobileReturnUrl);
+
                 return Ok(new
                 {
-                    message = "PayOS URL confirmed successfully.",
-                    urlConfirmed = returnUrl,
-                    payOSResult = result
+                    message = "PayOS URLs confirmation processed.",
+                    website_confirmation = new { url = webReturnUrl, result = webResult },
+                    mobile_confirmation = new { url = mobileReturnUrl, result = mobileResult }
                 });
             }
             catch (Exception ex)
             {
-                // exception if payos deny (like not HTTPS)
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Error confirming PayOS URL. Check console log for detail.", detail = ex.Message });
+                    new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }
         }
 
@@ -99,17 +110,21 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Website Callback: Nhận được query: {rawQueryString}"); // log when start processing
 
                 var resultDto = await _paymentService.ProcessPaymentWebsiteCallbackRaw(rawQueryString);
 
+                _logger.LogInformation($"Website Callback: Xử lý thành công, kết quả: {resultDto.Status} - {resultDto.Message}"); // log when success
                 return Ok(resultDto);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 1 (ArgumentException): {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 2 (Exception): {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
             }

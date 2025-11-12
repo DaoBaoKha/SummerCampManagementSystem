@@ -70,5 +70,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(c => c.CamperActivities.Any(oa => oa.activityScheduleId == optionalActivityId))
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId, int staffId)
+        {
+            return await _context.GroupActivities
+                .Where(ga => ga.activityScheduleId == activityScheduleId
+                          && ga.camperGroup.supervisorId == staffId)
+                .SelectMany(ga => ga.camperGroup.Campers)
+                .ToListAsync();
+        }
     }
 }

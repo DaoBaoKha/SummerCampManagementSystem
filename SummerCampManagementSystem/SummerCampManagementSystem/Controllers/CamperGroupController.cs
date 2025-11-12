@@ -35,6 +35,25 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(camperGroup);
         }
 
+        [HttpGet("activityScheduleId/{id}")]
+        public async Task<IActionResult> GetCamperGroupsByActivityScheduleId(int id)
+        {
+            try
+            {
+                var camperGroups = await _camperGroupService.GetGroupsByActivityScheduleId(id);
+                return Ok(camperGroups);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto camperGroup)
         {

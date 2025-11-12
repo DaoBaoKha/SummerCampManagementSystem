@@ -13,5 +13,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         new Task<CamperActivity?> GetByIdAsync(int id);
         Task<bool> IsApprovedAsync(int camperId, int activityId);
         Task<int> CamperofOptionalActivityCount(int activityScheduleId);
+        Task<IEnumerable<int?>> GetCamperIdsInOptionalAsync(int optionalActivityId);
     }
 }

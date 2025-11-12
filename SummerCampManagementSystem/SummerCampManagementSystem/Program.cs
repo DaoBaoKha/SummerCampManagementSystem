@@ -14,6 +14,7 @@ using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Net.Mime;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -55,6 +56,11 @@ string payosCancelUrl = builder.Configuration["PayOS:CancelUrl"]?.Trim() ?? "";
 string geminiApiKey = builder.Configuration["GeminiApi:ApiKey"]?.Trim() ?? "";
 string geminiBaseUrl = builder.Configuration["GeminiApi:ApiBaseUrl"]?.Trim() ?? "";
 string geminiModelName = builder.Configuration["GeminiApi:ModelName"]?.Trim() ?? "";
+
+// Mobile PayOS settings
+string payosMobileReturnUrl = builder.Configuration["PayOS:MobileReturnUrl"]?.Trim() ?? "";
+string payosMobileCancelUrl = builder.Configuration["PayOS:MobileCancelUrl"]?.Trim() ?? "";
+string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
 
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
@@ -103,6 +109,14 @@ if (builder.Environment.IsProduction())
             .Payload.Data.ToStringUtf8().Trim();
 
 
+        // Mobile PayOS
+        payosMobileReturnUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-return-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        payosMobileCancelUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "payos-mobile-cancel-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+        apiBaseUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "api-base-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
         // gemini
         geminiApiKey = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-api-key", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
@@ -131,6 +145,11 @@ if (builder.Environment.IsProduction())
             {"PayOS:ReturnUrl", payosReturnUrl},
             {"PayOS:CancelUrl", payosCancelUrl},
 
+            // Mobile PayOS
+            {"PayOS:MobileReturnUrl", payosMobileReturnUrl},
+            {"PayOS:MobileCancelUrl", payosMobileCancelUrl},
+            {"ApiBaseUrl", apiBaseUrl},
+
 
             // Gemini
             {"GeminiApi:ApiKey", geminiApiKey},
@@ -156,8 +175,6 @@ else
 builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
     options.UseSqlServer(connectionString)
            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
-
-
 
 
 
@@ -195,6 +212,9 @@ builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
+
+builder.Services.AddScoped<IAccommodationTypeRepository, AccommodationTypeRepository>();
+builder.Services.AddScoped<IAccommodationTypeService, AccommodationTypeService>();
 
 builder.Services.AddScoped<IAlbumPhotoFaceRepository, AlbumPhotoFaceRepository>();
 
@@ -235,6 +255,8 @@ builder.Services.AddScoped<IRegistrationOptionalActivityRepository, Registration
 
 builder.Services.AddScoped<IRouteService, RouteService>();
 builder.Services.AddScoped<IRouteRepository, RouteRepository>();
+builder.Services.AddScoped<IRouteStopService, RouteStopService>();
+builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
@@ -377,6 +399,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // swagger
+var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(option =>
 {
@@ -405,6 +428,8 @@ builder.Services.AddSwaggerGen(option =>
             new string[]{}
         }
     });
+
+    option.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
 var app = builder.Build();
