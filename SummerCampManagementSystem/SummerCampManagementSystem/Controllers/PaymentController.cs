@@ -73,22 +73,47 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("confirm-urls")]
         public async Task<IActionResult> ConfirmPayOSUrls()
         {
+            _logger.LogInformation("--- BẮT ĐẦU CHẠY CONFIRM-URLS ---");
             try
             {
+                _logger.LogInformation("Confirm: Đang lấy ApiBaseUrl...");
+
                 string baseApiUrl = _configuration["ApiBaseUrl"]
                     ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
-                // website confirmation
+                _logger.LogInformation($"Confirm: ApiBaseUrl = {baseApiUrl}");
+
+                _logger.LogInformation("Confirm: Đang lấy PayOS:ReturnUrl (Website)...");
+
                 string webReturnUrl = _configuration["PayOS:ReturnUrl"]
                     ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
 
+                _logger.LogInformation($"Confirm: Website URL = {webReturnUrl}");
+
+                _logger.LogInformation("Confirm: Đang gửi xác nhận Website URL đến PayOS...");
+
                 string webResult = await _paymentService.ConfirmUrlAsync(webReturnUrl);
 
-                // mobile confirmation
-                string mobileReturnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
-                    ?? $"{baseApiUrl}/api/payment/mobile-callback";
+                _logger.LogInformation($"Confirm: PayOS trả về cho Website = {webResult}");
+
+                _logger.LogInformation("Confirm: Đang lấy PayOS:MobileReturnUrl (Mobile)...");
+
+                string mobileReturnUrlTemplate = _configuration["PayOS:MobileReturnUrl"]
+                    ?? throw new InvalidOperationException("PayOS:MobileReturnUrl is not configured.");
+
+                _logger.LogInformation($"Confirm: Mobile URL Template = {mobileReturnUrlTemplate}");
+
+                string mobileReturnUrl = mobileReturnUrlTemplate.Replace("{API_BASE_URL}", baseApiUrl);
+
+                _logger.LogInformation($"Confirm: Mobile URL (đã thay thế) = {mobileReturnUrl}");
+
+                _logger.LogInformation("Confirm: Đang gửi xác nhận Mobile URL đến PayOS...");
 
                 string mobileResult = await _paymentService.ConfirmUrlAsync(mobileReturnUrl);
+
+                _logger.LogInformation($"Confirm: PayOS trả về cho Mobile = {mobileResult}");
+
+                _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");
 
                 return Ok(new
                 {
@@ -99,6 +124,8 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "--- LỖI 500 KHI CHẠY CONFIRM-URLS ---");
+
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }
