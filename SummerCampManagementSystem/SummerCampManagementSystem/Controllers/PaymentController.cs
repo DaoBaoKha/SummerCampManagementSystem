@@ -75,25 +75,32 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                // take url callback from config on gg cloud
-                string returnUrl = _configuration["PayOS:ReturnUrl"] ??
-                                   throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
+                string baseApiUrl = _configuration["ApiBaseUrl"]
+                    ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
-                string result = await _paymentService.ConfirmUrlAsync(returnUrl);
+                // website confirmation
+                string webReturnUrl = _configuration["PayOS:ReturnUrl"]
+                    ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
 
-                // PayOS SDK return confirm result
+                string webResult = await _paymentService.ConfirmUrlAsync(webReturnUrl);
+
+                // mobile confirmation
+                string mobileReturnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                    ?? $"{baseApiUrl}/api/payment/mobile-callback";
+
+                string mobileResult = await _paymentService.ConfirmUrlAsync(mobileReturnUrl);
+
                 return Ok(new
                 {
-                    message = "PayOS URL confirmed successfully.",
-                    urlConfirmed = returnUrl,
-                    payOSResult = result
+                    message = "PayOS URLs confirmation processed.",
+                    website_confirmation = new { url = webReturnUrl, result = webResult },
+                    mobile_confirmation = new { url = mobileReturnUrl, result = mobileResult }
                 });
             }
             catch (Exception ex)
             {
-                // exception if payos deny (like not HTTPS)
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Error confirming PayOS URL. Check console log for detail.", detail = ex.Message });
+                    new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }
         }
 
