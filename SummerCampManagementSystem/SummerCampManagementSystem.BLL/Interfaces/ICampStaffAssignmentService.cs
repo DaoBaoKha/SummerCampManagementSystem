@@ -1,4 +1,6 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
+using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -15,5 +17,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<CampStaffSummaryDto>> GetAssignmentsByStaffIdAsync(int staffId);
 
         Task<bool> IsStaffAssignedToCampAsync(int staffId, int campId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampIdAsync(int campId);
     }
 }
