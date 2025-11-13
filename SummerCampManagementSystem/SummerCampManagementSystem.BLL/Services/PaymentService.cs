@@ -216,7 +216,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private async Task<string> ProcessPaymentMobileCallbackLogic(long orderCode)
         {
-            const string BaseDeepLink = "yourapp://payment";
+            const string BaseDeepLink = "summercamp://payment";
             string queryParams = $"orderCode={orderCode}";
 
             try
