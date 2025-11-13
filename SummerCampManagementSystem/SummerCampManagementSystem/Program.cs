@@ -277,6 +277,8 @@ builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
 builder.Services.AddScoped<IAccommodationRepository, AccommodationRepository>();
 builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 
+builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianRepository>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);

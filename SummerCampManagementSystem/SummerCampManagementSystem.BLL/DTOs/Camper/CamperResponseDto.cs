@@ -18,7 +18,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public int Age { get; set; }
         public int? GroupId { get; set; }
         public string? avatar { get; set; }
-
         public HealthRecordResponseDto? HealthRecord { get; set; }
     }
 
@@ -32,6 +31,16 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public string? avatar { get; set; }
     }
 
+    public class CamperWithRegistrationStatus
+    {
+        public int CamperId { get; set; }
+        public string? CamperName { get; set; }
+        public string? Gender { get; set; }
+        public DateOnly? Dob { get; set; }
+        public int? GroupId { get; set; }
+        public string? avatar { get; set; }
+        public string CamperRegistrationStatus { get; set; } = null!;
+    }
 
     public class CamperWithGuardiansResponseDto
     {

@@ -13,6 +13,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetAllSchedule()
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.staff)
+                .ToListAsync();
+        }
         public async Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end, int? excludeScheduleId = null)
         {
             if (campId == null)
@@ -101,6 +107,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(a => a.activity)
+                .Include(a => a.staff)
                 .Include(a => a.GroupActivities)
                     .ThenInclude(ga => ga.camperGroup)
                 .Where(a =>

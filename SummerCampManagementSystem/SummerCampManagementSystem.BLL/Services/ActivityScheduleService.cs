@@ -22,7 +22,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync()
         {
-            var activities = await _unitOfWork.ActivitySchedules.GetAllAsync();
+            var activities = await _unitOfWork.ActivitySchedules.GetAllSchedule();
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
         }
 

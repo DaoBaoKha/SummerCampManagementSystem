@@ -15,19 +15,40 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ICamperService _camperService;
 
-        public GuardianService(IUnitOfWork unitOfWork, IMapper mapper)
+        public GuardianService(IUnitOfWork unitOfWork, IMapper mapper, ICamperService camperService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _camperService = camperService;
         }
 
-        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto)
+        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int parentId)
         {
+            if (dto.Dob >= new DateOnly(2007, 12, 1))
+                throw new ArgumentException("Date of birth must be before 01/12/2007.");
+
             var guardian = _mapper.Map<Guardian>(dto);
             await _unitOfWork.Guardians.CreateAsync(guardian);
             await _unitOfWork.CommitAsync();
-            return _mapper.Map<GuardianResponseDto>(guardian);
+
+            var campers = await _camperService.GetByParentIdAsync(parentId);
+            if (!campers.Any())
+                throw new KeyNotFoundException($"No campers found for parentId {parentId}");
+
+            var camperGuardians = campers.Select(c => new CamperGuardian
+            {
+                guardianId = guardian.guardianId,
+                camperId = c.CamperId
+            }).ToList();
+
+            await _unitOfWork.CamperGuardians.AddRangeAsync(camperGuardians);
+            await _unitOfWork.CommitAsync();
+
+            var currentGuardian = await _unitOfWork.Guardians.GetByIdAsync(guardian.guardianId);
+
+            return _mapper.Map<GuardianResponseDto>(currentGuardian);
         }
 
         public async Task<bool> DeleteAsync(int id)

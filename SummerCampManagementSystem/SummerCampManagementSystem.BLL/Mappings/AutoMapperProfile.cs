@@ -155,9 +155,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName));
 
-            CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>();
+            CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + src.staff.firstName));
 
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
@@ -234,7 +236,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // AttendanceLog mappings
             CreateMap<AttendanceLog, AttendanceLogResponseDto>()
-          .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.firstName + " " + src.staff.lastName));
+          .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName));
             CreateMap<AttendanceLogRequestDto, AttendanceLog>()
                 .ForMember(dest => dest.checkInMethod, opt => opt.MapFrom(_ => "Manual"));
          

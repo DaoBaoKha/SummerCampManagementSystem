@@ -5,6 +5,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IActivityScheduleRepository : IGenericRepository<ActivitySchedule>
     {
+        Task<IEnumerable<ActivitySchedule>> GetAllSchedule();
         Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end, int? excludeScheduleId = null);
         Task<bool> ExistsInSameTimeAndLocationAsync(int locationId, DateTime start, DateTime end, int? excludeScheduleId = null);
         Task<bool> IsStaffBusyAsync(int staffId, DateTime start, DateTime end, int? excludeScheduleId = null);

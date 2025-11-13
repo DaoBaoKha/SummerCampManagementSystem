@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -11,9 +13,11 @@ namespace SummerCampManagementSystem.API.Controllers
     public class GuardianController : ControllerBase
     {
         private readonly IGuardianService _service;
-        public GuardianController(IGuardianService service)
+        private readonly IUserContextService _userContextService;
+        public GuardianController(IGuardianService service, IUserContextService userContextService)
         {
             _service = service;
+            _userContextService = userContextService;
         }
         // GET: api/<GuardianController>
         [HttpGet]
@@ -34,6 +38,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         // POST api/<GuardianController>
+        [Authorize(Roles = "User")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto)
         {
@@ -41,8 +46,22 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.GuardianId }, result);
+
+            try
+            {
+                var parentId = _userContextService.GetCurrentUserId();
+                var result = await _service.CreateAsync(dto, parentId.Value);
+                return CreatedAtAction(nameof(GetById), new { id = result.GuardianId }, result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+
+            }
         }
 
         // PUT api/<GuardianController>/5
