@@ -133,7 +133,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return await _unitOfWork.RegistrationCampers.GetQueryable()
                 .Where(rc => rc.registration.campId == campId
-                          && rc.registration.status != "PendingApproval")
+                          && rc.registration.status != "PendingApproval"
+                          && rc.registration.status != "Rejected")
                 .Select(rc => new CamperWithRegistrationStatus
                 {
                     CamperId = rc.camper.camperId,
@@ -146,7 +147,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .ToListAsync();
         }
 
-        public async Task<CamperWithRegistrationStatus?> GetCamperByCampAndCamperWithStatus(int campId, int camperId)
+        public async Task<CamperWithRegistrationStatus?> GetCamperByCampAndIdWithStatus(int campId, int camperId)
         {
             // Kiểm tra camp tồn tại
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
@@ -157,8 +158,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var result = await _unitOfWork.RegistrationCampers.GetQueryable()
                 .Where(rc =>
                     rc.registration.campId == campId &&
-                    rc.camper.camperId == camperId &&
-                    rc.registration.status != "PendingApproval")
+                    rc.camper.camperId == camperId
+                   )
                 .Select(rc => new CamperWithRegistrationStatus
                 {
                     CamperId = rc.camper.camperId,

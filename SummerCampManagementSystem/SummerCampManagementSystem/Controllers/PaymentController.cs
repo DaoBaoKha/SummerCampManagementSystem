@@ -112,6 +112,8 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+
+
         [HttpGet("confirm-urls")]
         public async Task<IActionResult> ConfirmPayOSUrls()
         {
@@ -121,49 +123,30 @@ namespace SummerCampManagementSystem.API.Controllers
                 _logger.LogInformation("Confirm: Đang lấy ApiBaseUrl...");
 
                 string baseApiUrl = _configuration["ApiBaseUrl"]
-                    ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
+                           ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
                 _logger.LogInformation($"Confirm: ApiBaseUrl = {baseApiUrl}");
-
 
                 string webhookUrl = $"{baseApiUrl}/api/payment/payos-webhook";
 
                 _logger.LogInformation($"Confirm: Đang gửi xác nhận Webhook URL đến PayOS: {webhookUrl}");
+
                 string webhookResult = await _paymentService.ConfirmUrlAsync(webhookUrl);
+
                 _logger.LogInformation($"Confirm: PayOS trả về cho Webhook = {webhookResult}");
-
-
-                _logger.LogInformation("Confirm: Đang lấy PayOS:ReturnUrl (Website)...");
-
-                string webReturnUrl = _configuration["PayOS:ReturnUrl"]
-                    ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
-
-                _logger.LogInformation($"Confirm: Website URL = {webReturnUrl}");
-
-                _logger.LogInformation("Confirm: Đang gửi xác nhận Website URL đến PayOS...");
-
-
-                _logger.LogInformation("Confirm: Đang lấy PayOS:MobileReturnUrl (Mobile)...");
-
-                string mobileReturnUrlTemplate = _configuration["PayOS:MobileReturnUrl"]
-                    ?? throw new InvalidOperationException("PayOS:MobileReturnUrl is not configured.");
-
-                string mobileReturnUrl = mobileReturnUrlTemplate.Replace("{API_BASE_URL}", baseApiUrl);
 
                 _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");
 
                 return Ok(new
                 {
-                    message = "PayOS URLs confirmation processed.",
-                    webhook_confirmation = new { url = webhookUrl, result = webhookResult },
-                    website_return_url_check = new { url = webReturnUrl },
-                    mobile_return_url_check = new { url = mobileReturnUrl }
+                    message = "PayOS Webhook URL confirmation processed.",
+                    webhook_confirmation = new { url = webhookUrl, result = webhookResult }
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "--- LỖI 500 KHI CHẠY CONFIRM-URLS ---");
-
+                // Trả về lỗi chi tiết nếu có
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }

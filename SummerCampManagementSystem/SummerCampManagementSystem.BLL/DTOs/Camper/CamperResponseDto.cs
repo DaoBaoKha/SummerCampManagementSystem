@@ -18,9 +18,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public int Age { get; set; }
         public int? GroupId { get; set; }
         public string? avatar { get; set; }
-
-        public string CamperRegistrationStatus { get; set; } = null!;
-
         public HealthRecordResponseDto? HealthRecord { get; set; }
     }
 

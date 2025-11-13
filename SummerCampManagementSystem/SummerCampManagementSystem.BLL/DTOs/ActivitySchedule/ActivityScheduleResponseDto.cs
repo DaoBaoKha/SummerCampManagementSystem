@@ -13,6 +13,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int ActivityScheduleId { get; set; }
          public ActivitySummaryDto Activity { get; set; }
         public int StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public string Status { get; set; }
