@@ -12,6 +12,8 @@ namespace SummerCampManagementSystem.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly ILogger<PaymentController> _logger;
 
+        private const string BaseDeepLink = "summercamp://payment";
+
         public PaymentController(IPaymentService paymentService, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _paymentService = paymentService;
@@ -42,73 +44,38 @@ namespace SummerCampManagementSystem.API.Controllers
         // MOBILE CALLBACK
         // redirect user to deep link after processing
         [HttpGet("mobile-callback")]
+        [ProducesResponseType(StatusCodes.Status302Found)] // this is a redirect
         public async Task<IActionResult> PaymentMobileCallback()
         {
-            string deepLinkUrl = string.Empty;
+            string deepLinkUrl;
 
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
                 _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}");
 
-               
+                // service return the deep link to redirect
                 deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
 
                 _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}");
 
-                string html = $@"
-                    <html>
-                        <head>
-                            <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
-                            <title>Redirecting...</title>
-                        </head>
-                        <body>
-                            <p>Redirecting to your app...</p>
-                            <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
-                        </body>
-                    </html>";
-
-                return Content(html, "text/html");
+                return Redirect(deepLinkUrl);
             }
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, $"Mobile Callback Validation Error: {ex.Message}");
 
-                deepLinkUrl = $"yourapp://payment/failure?reason=Validation&details={Uri.EscapeDataString(ex.Message)}";
-
-                string html = $@"
-                    <html>
-                        <head>
-                            <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
-                            <title>Redirecting...</title>
-                        </head>
-                        <body>
-                            <p>Redirecting to your app...</p>
-                            <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
-                        </body>
-                    </html>";
-
-                return Content(html, "text/html");
+                // failure deep link with reason and details
+                deepLinkUrl = $"{BaseDeepLink}/failure?reason=Validation&details={Uri.EscapeDataString(ex.Message)}";
+                return Redirect(deepLinkUrl);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Mobile Callback Exception: {ex.Message}");
 
-                deepLinkUrl = $"yourapp://payment/failure?reason=ApiError&details={Uri.EscapeDataString(ex.Message)}";
-
-                string html = $@"
-                <html>
-                    <head>
-                        <meta http-equiv='refresh' content='0; url={deepLinkUrl}' />
-                        <title>Redirecting...</title>
-                    </head>
-                    <body>
-                        <p>Redirecting to your app...</p>
-                        <p>If not redirected, <a href='{deepLinkUrl}'>click here</a>.</p>
-                    </body>
-                </html>";
-
-                return Content(html, "text/html");
+                // failure deep link with reason and details
+                deepLinkUrl = $"{BaseDeepLink}/failure?reason=ApiError&details={Uri.EscapeDataString(ex.Message)}";
+                return Redirect(deepLinkUrl);
             }
         }
 
