@@ -30,9 +30,19 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCamperGroupById(int id)
         {
-            var camperGroup = await _camperGroupService.GetCamperGroupByIdAsync(id);
-            if (camperGroup == null) return NotFound();
-            return Ok(camperGroup);
+            try 
+            {
+                var camperGroup = await _camperGroupService.GetCamperGroupByIdAsync(id);
+                return Ok(camperGroup);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
         }
 
         [HttpGet("activityScheduleId/{id}")]
@@ -54,10 +64,33 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetGroupsByCampId(int campId)
+        {
+            try
+            {
+                var groups = await _camperGroupService.GetGroupsByCampIdAsync(campId);
+                return Ok(groups);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto camperGroup)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                   ?? "Dữ liệu yêu cầu không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
 
             try
             {
@@ -96,6 +129,13 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpPut("{camperGroupId}/assign-staff/{staffId}")]
         public async Task<IActionResult> AssignStaffToGroup(int camperGroupId, int staffId)
         {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                   ?? "Dữ liệu yêu cầu không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+
             try
             {
                 var updatedCamperGroup = await _camperGroupService.AssignStaffToGroup(camperGroupId, staffId);
@@ -119,9 +159,19 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamperGroup(int id)
         {
-            var result = await _camperGroupService.DeleteCamperGroupAsync(id);
-            if (!result) return NotFound();
-            return NoContent();
+            try
+            {
+                await _camperGroupService.DeleteCamperGroupAsync(id);
+                return NoContent(); 
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message }); 
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
         }
 
 
