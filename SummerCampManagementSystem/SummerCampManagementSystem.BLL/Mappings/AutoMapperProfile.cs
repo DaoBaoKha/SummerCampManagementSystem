@@ -62,7 +62,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
 
             // CamperGroup mapping
-            CreateMap<CamperGroup, CamperGroupResponseDto>();
+            CreateMap<CamperGroup, CamperGroupResponseDto>()
+                 .ForMember(dest => dest.SupervisorName, opt => opt.MapFrom(src => src.supervisor.lastName + " " + src.supervisor.firstName));
             CreateMap<CamperGroupRequestDto, CamperGroup>();
             CreateMap<CamperGroup, CamperGroupWithCampDetailsResponseDto>()
                 .ForMember(dest => dest.CampName,

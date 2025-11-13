@@ -59,6 +59,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<ActivitySchedule?> GetByIdWithActivityAsync(int id)
         {
             return await _context.ActivitySchedules
+                .Include (s => s.staff)
                 .Include(s => s.activity)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
