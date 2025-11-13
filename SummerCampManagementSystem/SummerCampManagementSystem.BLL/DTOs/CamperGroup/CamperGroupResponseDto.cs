@@ -23,4 +23,15 @@
         public int MaxAge { get; set; }
 
     }
+
+    public class CamperGroupWithCampDetailsResponseDto 
+    {
+        public int CampId { get; set; }
+        public string CampName { get; set; } = string.Empty;
+        public int CamperGroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+        public int MinAge { get; set; }
+        public int MaxAge { get; set; }
+
+    }
 }

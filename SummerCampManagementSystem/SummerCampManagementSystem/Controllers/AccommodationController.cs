@@ -12,7 +12,7 @@ namespace SummerCampManagementSystem.API.Controllers
     public class AccommodationController : ControllerBase
     {
         private readonly IAccommodationService _accommodationService;
-        private readonly IUserContextService _userContextService;
+        private readonly IUserContextService _userContextService;   
         public AccommodationController(IAccommodationService accommodationService, IUserContextService userContextService)
         {
             _accommodationService = accommodationService;
@@ -166,6 +166,6 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-
+       
     }
-}   
+}

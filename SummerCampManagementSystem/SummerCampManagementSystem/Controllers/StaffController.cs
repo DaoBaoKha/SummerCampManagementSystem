@@ -61,11 +61,11 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetAllGroupsBySupervisorId(int campId)
         {
             try
-            {
+        {
                 var staffId = _userContextService.GetCurrentUserId();
                 var camperGroups = await _camperGroupService.GetGroupBySupervisorIdAsync(staffId.Value, campId);
-                return Ok(camperGroups);
-            }
+            return Ok(camperGroups);
+        }
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
@@ -84,8 +84,8 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var staffId = _userContextService.GetCurrentUserId();
                 var accommodations = await _accommodationService.GetBySupervisorIdAsync(staffId.Value, campId);
-                return Ok(accommodations);
-            }
+            return Ok(accommodations);
+        }
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
