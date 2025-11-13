@@ -50,15 +50,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return registrationCamperLink?.registration;
         }
 
-        public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
-        {
-            // FIX: Truy vấn Camper thông qua bảng trung gian RegistrationCamper
-            return await _context.RegistrationCampers
-                .Where(rc => rc.registration.campId == campId
-                        && rc.status != "PendingApproval")
-                .Select(rc => rc.camper)
-                .ToListAsync();
-        }
 
         public async Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId)
         {

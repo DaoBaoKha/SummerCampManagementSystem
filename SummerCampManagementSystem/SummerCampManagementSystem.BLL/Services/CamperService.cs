@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -125,12 +126,53 @@ namespace SummerCampManagementSystem.BLL.Services
 
         }
 
-        public async Task<IEnumerable<CamperResponseDto?>> GetCampersByCampId(int campId)
+        public async Task<IEnumerable<CamperWithRegistrationStatus>> GetCampersByCampWithStatus(int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException($"Camp with id {campId} not found.");
-            var campers = await _unitOfWork.Campers.GetCampersByCampId(campId);
-            return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
+
+            return await _unitOfWork.RegistrationCampers.GetQueryable()
+                .Where(rc => rc.registration.campId == campId
+                          && rc.registration.status != "PendingApproval")
+                .Select(rc => new CamperWithRegistrationStatus
+                {
+                    CamperId = rc.camper.camperId,
+                    CamperName = rc.camper.camperName,
+                    Gender = rc.camper.gender,
+                    Dob = rc.camper.dob,
+                    avatar = rc.camper.avatar,
+                    CamperRegistrationStatus = rc.status
+                })
+                .ToListAsync();
+        }
+
+        public async Task<CamperWithRegistrationStatus?> GetCamperByCampAndCamperWithStatus(int campId, int camperId)
+        {
+            // Kiểm tra camp tồn tại
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException($"Camp with id {campId} not found.");
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new KeyNotFoundException($"Camper with id {camperId} not found.");
+
+            var result = await _unitOfWork.RegistrationCampers.GetQueryable()
+                .Where(rc =>
+                    rc.registration.campId == campId &&
+                    rc.camper.camperId == camperId &&
+                    rc.registration.status != "PendingApproval")
+                .Select(rc => new CamperWithRegistrationStatus
+                {
+                    CamperId = rc.camper.camperId,
+                    CamperName = rc.camper.camperName,
+                    Gender = rc.camper.gender,
+                    Dob = rc.camper.dob,
+                    avatar = rc.camper.avatar,
+                    CamperRegistrationStatus = rc.status
+                })
+                .FirstOrDefaultAsync();
+
+            if (result == null)
+                throw new KeyNotFoundException($"Camper with id {camperId} not found in camp {campId} or registration pending approval. ");
+            return result;
         }
 
         public async Task<bool> UpdateCamperAsync(int id, CamperRequestDto dto)
