@@ -37,6 +37,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICamperActivityRepository CamperActivities { get; }
         IHealthRecordRepository HealthRecords { get; }
         ITransactionRepository Transactions { get; }
+        ITransportScheduleRepository TransportSchedules { get; }
         ILocationRepository Locations { get; }
         IGroupActivityRepository GroupActivities { get; }
         IAttendanceLogRepository AttendanceLogs { get; }

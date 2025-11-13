@@ -27,12 +27,19 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCampById(int id)
         {
-            var camp = await _campService.GetCampByIdAsync(id);
-            if (camp == null)
+            try
             {
-                return NotFound(new { message = $"Camp with ID {id} not found." });
+                var camp = await _campService.GetCampByIdAsync(id);
+                return Ok(camp);
             }
-            return Ok(camp);
+            catch (Exception ex) when (ex.Message.Contains("not found"))
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the camp." });
+            }
         }
 
         [HttpGet("status")]
@@ -113,6 +120,56 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (Exception)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating the camp." });
+            }
+        }
+
+        [HttpPut("{campId}/approve")]
+        [Authorize]
+        // [Authorize(Roles = "Manager")] 
+        public async Task<IActionResult> ApproveCamp(int campId)
+        {
+            try
+            {
+                // approve camp
+                var approvedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Published);
+                return Ok(approvedCamp);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex) // error in business flow
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
+            }
+        }
+
+        [HttpPut("{campId}/reject")]
+        [Authorize]
+        // [Authorize(Roles = "Manager")] 
+        public async Task<IActionResult> RejectCamp(int campId)
+        {
+            try
+            {
+                // reject camp
+                var rejectedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Rejected);
+                return Ok(rejectedCamp);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex) // error in business flow
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
             }
         }
 
