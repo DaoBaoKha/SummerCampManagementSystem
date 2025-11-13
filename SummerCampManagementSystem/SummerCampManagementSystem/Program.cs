@@ -193,8 +193,6 @@ builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 
-//builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();
-//builder.Services.AddScoped<IParentCamperService, ParentCamperService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
@@ -265,6 +263,7 @@ builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
 
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
+builder.Services.AddScoped<ITransportScheduleRepository, TransportScheduleRepository>();
 
 builder.Services.AddScoped<IAttendanceLogRepository, AttendanceLogRepository>();
 builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
