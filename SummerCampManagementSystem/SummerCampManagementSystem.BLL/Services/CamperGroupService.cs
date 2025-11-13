@@ -22,11 +22,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<CamperGroupResponseDto>> GetAllCamperGroupsAsync()
         {
-            var groups = await _unitOfWork.CamperGroups.GetAllAsync();
+            var groups = await _unitOfWork.CamperGroups.GetAllCamperGroups();
             return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
         }
 
-        public async Task<CamperGroupWithCampDetailsResponseDto> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
+        public async Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
             if (camp == null)
@@ -42,12 +42,12 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<CamperGroupWithCampDetailsResponseDto>(group);
         }
 
-        public async Task<CamperGroupResponseDto> GetCamperGroupByIdAsync(int id)
+        public async Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id)
         {
-            var camperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id)
+            var camperGroup = await _unitOfWork.CamperGroups.GetCamperGroupById(id)
                 ?? throw new KeyNotFoundException($"Camper Group with ID {id} not found.");
 
-            return _mapper.Map<CamperGroupResponseDto>(camperGroup);
+            return camperGroup == null ? null : _mapper.Map<CamperGroupResponseDto>(camperGroup);
         }
 
         public async Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto camperGroup)
@@ -131,6 +131,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 ?? throw new KeyNotFoundException($"Camp with ID {campId} not found.");
 
             var groups = await _unitOfWork.CamperGroups.GetQueryable()
+                .Include(g => g.supervisor)
                 .Where(g => g.campId == campId)
                 .ToListAsync();
 

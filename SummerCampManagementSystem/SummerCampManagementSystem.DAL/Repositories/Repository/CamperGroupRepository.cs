@@ -11,6 +11,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
+        public async Task<IEnumerable<CamperGroup>> GetAllCamperGroups()
+        {
+            return await _context.CamperGroups
+                .Include(g => g.supervisor)
+                .Include(g => g.Campers)
+                .ToListAsync();
+        }
+
+        public async Task<CamperGroup?> GetCamperGroupById(int id)
+        {
+            return await _context.CamperGroups
+                .Include(g => g.supervisor)
+                .Where(g => g.camperGroupId == id)
+                .FirstOrDefaultAsync();
+        }
         public async Task<bool> isSupervisor(int staffId)
         {
             return await _context.CamperGroups
@@ -21,6 +36,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<CamperGroup>> GetByCampIdAsync(int campId)
         {
             return await _context.CamperGroups
+                .Include(g => g.supervisor)
                 .Include(g => g.Campers)
                 .Where(g => g.campId == campId)
                 .ToListAsync();
@@ -29,6 +45,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<CamperGroup?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
         {
             return await _context.CamperGroups
+                .Include(g => g.supervisor)
                 .Include(g => g.camp)
                 .FirstOrDefaultAsync(g => g.supervisorId == supervisorId && g.campId == campId);
         }
@@ -36,6 +53,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<CamperGroup>> GetGroupsByActivityScheduleIdAsync(int activityScheduleId)
         {
             return await _context.GroupActivities
+                .Include(ga => ga.camperGroup.supervisor)
                 .Include(ga => ga.camperGroup)
                 .Where(g => g.activityScheduleId == activityScheduleId)
                 .Select(ga => ga.camperGroup)
