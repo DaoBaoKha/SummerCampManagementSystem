@@ -78,17 +78,21 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<CampResponseDto>> GetCampsByStaffIdAsync(int staffId)
         {
-            var camps = await _unitOfWork.Camps.GetCampsByStaffIdAsync(staffId);
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
+                ?? throw new KeyNotFoundException($"Staff with ID {staffId} not found.");
+
+            var camps = await _unitOfWork.Camps.GetCampsByStaffIdAsync(staffId)
+                ?? throw new KeyNotFoundException($"No camps found for staff ID {staffId}.");
 
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
 
         public async Task<CampResponseDto?> GetCampByIdAsync(int id)
         {
-            var camp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == id);
+            var camp = await _unitOfWork.Camps.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException($"Camp with ID {id} not found.");
 
-            return camp == null ? null : _mapper.Map<CampResponseDto>(camp);
+            return _mapper.Map<CampResponseDto>(camp);
         }
 
         public async Task<IEnumerable<CampResponseDto>> GetCampsByTypeAsync(int campTypeId)
@@ -225,6 +229,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã quy định.");
             }
 
+            if (newStatus == CampStatus.Published) // approve other schedules
+            {
+                await ApproveCampAndSchedulesAsync(campId);
+            }
+            else if (newStatus == CampStatus.Rejected) // reject other schedules
+            {
+                await RejectCampAndSchedulesAsync(campId);
+            }
+
             existingCamp.status = newStatus.ToString();
 
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
@@ -338,6 +351,8 @@ namespace SummerCampManagementSystem.BLL.Services
             return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
         }
 
+        #region Private Methods
+
         // help method to include related entities
         private IQueryable<Camp> GetCampsWithIncludes()
         {
@@ -348,9 +363,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(c => c.promotion);
         }
 
-
-        /// <param name="campRequest">Dữ liệu Camp Request.</param>
-        /// <param name="currentCampId">id camp</param>
         private async Task RunValidationChecks(CampRequestDto campRequest, int? currentCampId = null)
         {
             // check nullables
@@ -443,5 +455,77 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate.Value.ToShortDateString()} đến {overlappingCamps.First().endDate.Value.ToShortDateString()}.");
             }
         }
+
+        private async Task ApproveCampAndSchedulesAsync(int campId)
+        {
+      
+            string approvedStatus = TransportScheduleStatus.NotYet.ToString();
+
+            // APPROVE ALL ACTIVITY SCHEDULES
+            var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                                        .Include(s => s.activity)
+                                        .Where(s => s.activity.campId == campId)
+                                        .ToListAsync();
+
+            foreach (var schedule in activitySchedules)
+            {
+                schedule.status = approvedStatus;
+                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            }
+
+            // APPROVE ALL TRANSPORT SCHEDULES
+            var campRouteIds = await _unitOfWork.Routes.GetQueryable()
+                                                     .Where(r => r.campId == campId)
+                                                     .Select(r => r.routeId)
+                                                     .ToListAsync();
+
+            var transportSchedules = await _unitOfWork.TransportSchedules.GetQueryable()
+                                         .Where(s => s.routeId.HasValue && campRouteIds.Contains(s.routeId.Value))
+                                         .ToListAsync();
+
+            foreach (var schedule in transportSchedules)
+            {
+                schedule.status = approvedStatus;
+                await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
+            }
+        }
+
+        private async Task RejectCampAndSchedulesAsync(int campId)
+        {
+            string rejectedStatus = TransportScheduleStatus.Rejected.ToString();
+            string draftStatus = TransportScheduleStatus.Draft.ToString();
+
+            // REJECT ALL ACTIVITY SCHEDULES WITH STATUS = 'Draft'
+            var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                                        .Include(s => s.activity)
+                                        .Where(s => s.activity.campId == campId && s.status == draftStatus)
+                                        .ToListAsync();
+
+            foreach (var schedule in activitySchedules)
+            {
+                schedule.status = rejectedStatus;
+                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            }
+
+            // REJECT ALL TRANSPORT SCHEDULES WITH STATUS = 'Draft'
+            var campRouteIds = await _unitOfWork.Routes.GetQueryable()
+                                                     .Where(r => r.campId == campId)
+                                                     .Select(r => r.routeId)
+                                                     .ToListAsync();
+
+            var transportSchedules = await _unitOfWork.TransportSchedules.GetQueryable()
+                                         .Where(s => s.routeId.HasValue &&
+                                                     campRouteIds.Contains(s.routeId.Value) &&
+                                                     s.status == draftStatus)
+                                         .ToListAsync();
+
+            foreach (var schedule in transportSchedules)
+            {
+                schedule.status = rejectedStatus;
+                await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
+            }
+        }
+
+        #endregion
     }
 }
