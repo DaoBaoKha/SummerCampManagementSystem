@@ -16,8 +16,18 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedule()
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
                 .Include(s => s.staff)
                 .ToListAsync();
+        }
+
+        
+        public async Task<ActivitySchedule?> GetScheduleById(int id)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
         public async Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end, int? excludeScheduleId = null)
         {
@@ -35,6 +45,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetOptionalScheduleByCampIdAsync(int campId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Where(s => s.activity.campId == campId && s.coreActivityId != null)
                 .ToListAsync();
@@ -43,6 +55,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetCoreScheduleByCampIdAsync(int campId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Where(s => s.activity.campId == campId && s.coreActivityId == null)
                 .ToListAsync();
@@ -51,6 +65,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetScheduleByCampIdAsync(int campId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Where(s => s.activity.campId == campId)
                 .ToListAsync();
@@ -59,6 +75,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<ActivitySchedule?> GetByIdWithActivityAsync(int id)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
                 .Include (s => s.staff)
                 .Include(s => s.activity)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
@@ -97,6 +114,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.staff)
                 .Include(a => a.activity)
                 .Include(a => a.location)
                 .Include(a => a.activity.camp) 
@@ -107,6 +125,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetByCampAndStaffAsync(int campId, int staffId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
                 .Include(a => a.activity)
                 .Include(a => a.staff)
                 .Include(a => a.GroupActivities)
@@ -126,6 +145,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(a => a.staff)
                 .Include(s => s.activity)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
                 .Where(s => s.activity.campId == campId)
@@ -135,6 +156,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetActivitySchedulesByDateAsync(DateTime fromDate, DateTime toDate)
         {
             return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Where(s => s.startTime >= fromDate && s.endTime <= toDate)
                 .ToListAsync();

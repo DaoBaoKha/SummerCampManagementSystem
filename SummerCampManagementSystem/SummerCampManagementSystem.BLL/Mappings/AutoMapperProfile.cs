@@ -157,10 +157,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             //ActivitySchedule mappings
             CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
-                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName));
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName))
+                .ForMember(dest => dest.locationName, opt => opt.MapFrom(src => src.location.name));
 
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
-                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + src.staff.firstName));
+                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>();
+                
 
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))

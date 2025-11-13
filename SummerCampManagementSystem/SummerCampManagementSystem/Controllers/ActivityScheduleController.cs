@@ -28,6 +28,23 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var result = await _service.GetScheduleByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
 
         [HttpPost("core")]
         public async Task<IActionResult> CreateCore([FromBody] ActivityScheduleCreateDto dto)
