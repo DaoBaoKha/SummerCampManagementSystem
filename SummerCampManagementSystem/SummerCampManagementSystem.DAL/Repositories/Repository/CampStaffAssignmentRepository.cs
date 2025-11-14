@@ -26,5 +26,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return available;
         }
+        public async Task<IEnumerable<UserAccount>> GetAllStaffWithCampAssignmentsAsync()
+        {
+            return await _context.UserAccounts
+                .Include(u => u.CampStaffAssignments)
+                    .ThenInclude(csa => csa.camp)
+                .Where(u => u.role == "Staff")
+                .ToListAsync();
+        }
+   
     }
 }

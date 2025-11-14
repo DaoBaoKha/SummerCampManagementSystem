@@ -309,7 +309,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
 
-        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int camperId, int campId)
+        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                 ?? throw new KeyNotFoundException("Camper not found.");

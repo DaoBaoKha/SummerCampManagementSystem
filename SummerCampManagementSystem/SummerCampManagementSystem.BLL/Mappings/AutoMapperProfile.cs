@@ -187,7 +187,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // CampStaffAssignment mappings
             CreateMap<UserAccount, StaffSummaryDto>()
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.firstName + " " + src.lastName))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.lastName + " " + src.firstName))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.role));
 
             CreateMap<Camp, CampSummaryDto>();
