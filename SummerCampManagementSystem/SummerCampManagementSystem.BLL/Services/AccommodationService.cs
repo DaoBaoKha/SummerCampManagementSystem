@@ -6,11 +6,6 @@ using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -36,7 +31,8 @@ namespace SummerCampManagementSystem.BLL.Services
             await RunSupervisorValidation((int)accommodationRequestDto.supervisorId, accommodationRequestDto.campId);
 
             var accommodationEntity = _mapper.Map<Accommodation>(accommodationRequestDto);
-            accommodationEntity.isActive = true;
+            
+            accommodationEntity.isActive = true; 
 
             await _unitOfWork.Accommodations.CreateAsync(accommodationEntity);
             await _unitOfWork.CommitAsync();
@@ -44,15 +40,13 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<AccommodationResponseDto>(accommodationEntity);
         }
 
-        public async Task<bool> DeactivateAccommodationAsync(int accommodationId)
+        public async Task<bool> UpdateAccommodationStatusAsync(int accommodationId, bool isActive)
         {
             var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
-
-            accommodation.isActive = false;
+            accommodation.isActive = isActive;
             await _unitOfWork.Accommodations.UpdateAsync(accommodation);
             await _unitOfWork.CommitAsync();
-
             return true;
         }
 
@@ -117,6 +111,16 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return _mapper.Map<AccommodationResponseDto>(existingAccommodation);
+        }
+
+
+        public async Task<IEnumerable<AccommodationResponseDto>> GetActiveAccommodationsAsync()
+        {
+            var accommodations = await GetAccommodationsWithIncludes()
+                .Where(a => a.isActive == true)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
         #region Private Methods
 
