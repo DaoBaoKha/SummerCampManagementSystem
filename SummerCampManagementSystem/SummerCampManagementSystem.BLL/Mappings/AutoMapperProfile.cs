@@ -35,10 +35,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             //Accommodation mappings
-            CreateMap<Accommodation, AccommodationResponseDto>();
+            CreateMap<Accommodation, AccommodationResponseDto>()
+                .ForMember(dest => dest.supervisor,
+                           opt => opt.MapFrom(src => src.supervisor != null
+                               ? new SupervisorDto
+                               {
+                                   UserId = src.supervisor.userId,
+                                   FullName = src.supervisor.lastName + " " + src.supervisor.firstName
+                               }
+                               : null));
 
             CreateMap<AccommodationRequestDto, Accommodation>()
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
 
             // AccommodationType mappings
             CreateMap<AccommodationType, AccommodationTypeResponseDto>()
@@ -86,8 +95,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<CampType, CampTypeDto>()
                 .ForMember(dest => dest.Id,
                           opt => opt.MapFrom(src => src.campTypeId));
-
-            CreateMap<Camp, CampResponseDto>();
 
             CreateMap<CampRequestDto, Camp>();
 
