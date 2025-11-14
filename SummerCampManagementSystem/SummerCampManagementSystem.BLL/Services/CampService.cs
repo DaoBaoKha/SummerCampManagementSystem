@@ -89,8 +89,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CampResponseDto?> GetCampByIdAsync(int id)
         {
-            var camp = await _unitOfWork.Camps.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Camp with ID {id} not found.");
+            var camp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == id);
 
             return _mapper.Map<CampResponseDto>(camp);
         }

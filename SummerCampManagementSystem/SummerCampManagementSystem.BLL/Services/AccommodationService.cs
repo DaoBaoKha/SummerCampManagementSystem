@@ -58,7 +58,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<AccommodationResponseDto?> GetAccommodationByIdAsync(int accommodationId)
         {
-            var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
+            var accommodation = await GetAccommodationsWithIncludes()
+                .FirstOrDefaultAsync(a => a.accommodationId == accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
 
             return _mapper.Map<AccommodationResponseDto>(accommodation);
@@ -69,7 +70,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-            var accommodations = await _unitOfWork.Accommodations.GetQueryable()
+            var accommodations = await GetAccommodationsWithIncludes()
                 .Where(a => a.campId == campId)
                 .ToListAsync();
 
@@ -78,7 +79,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<AccommodationResponseDto>> GetAllAccommodationsAsync()
         {
-            var accommodations = await _unitOfWork.Accommodations.GetAllAsync();
+            var accommodations = await GetAccommodationsWithIncludes().ToListAsync();
 
             return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
@@ -185,8 +186,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = supervisorId, CampId = campId };
                 await _campStaffAssignmentService.AssignStaffToCampAsync(assignmentDto);
             }
-        }        
+        }
 
+        private IQueryable<Accommodation> GetAccommodationsWithIncludes()
+        {
+            return _unitOfWork.Accommodations.GetQueryable()
+                .Include(a => a.supervisor); 
+                                             
+        }
         #endregion
     }
 }

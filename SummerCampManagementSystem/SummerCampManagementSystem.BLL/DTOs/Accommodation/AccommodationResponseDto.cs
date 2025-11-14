@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SummerCampManagementSystem.BLL.DTOs.UserAccount;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,6 +21,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Accommodation
 
         public bool? isActive { get; set; }
 
-        public int? supervisorId { get; set; }
+        public SupervisorDto supervisor { get; set; }
     }
 }
