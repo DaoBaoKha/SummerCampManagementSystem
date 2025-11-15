@@ -137,5 +137,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return _mapper.Map<IEnumerable<StaffSummaryDto>>(availableStaffs);
         }
+
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampForActivity(int campId)
+        {
+            var staff = await _unitOfWork.CampStaffAssignments
+         .GetAvailableStaffByCampForActivityAsync(campId);
+
+            return _mapper.Map<IEnumerable<StaffSummaryDto>>(staff);
+        }
     }
 }

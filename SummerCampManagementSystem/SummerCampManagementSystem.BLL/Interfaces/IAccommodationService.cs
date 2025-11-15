@@ -15,12 +15,13 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<AccommodationResponseDto> UpdateAccommodationAsync(int accommodationId, AccommodationRequestDto accommodationRequestDto);
 
-        Task<bool> DeactivateAccommodationAsync(int accommodationId);  
+        Task<bool> UpdateAccommodationStatusAsync(int accommodationId, bool isActive);
 
         Task<IEnumerable<AccommodationResponseDto>> GetAccommodationsByCampIdAsync(int campId);
 
         Task<AccommodationResponseDto?> GetAccommodationByIdAsync(int accommodationId);
 
         Task<IEnumerable<AccommodationResponseDto>> GetAllAccommodationsAsync();
+        Task<IEnumerable<AccommodationResponseDto>> GetActiveAccommodationsAsync();
     }
 }

@@ -44,6 +44,20 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpGet("active")]
+        public async Task<IActionResult> GetAllActiveAccommodations()
+        {
+            try
+            {
+                var accommodations = await _accommodationService.GetActiveAccommodationsAsync();
+                return Ok(accommodations);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
+            }
+        }
+
         [HttpGet("camp/{campId}")]
         public async Task<IActionResult> GetAccommodationsByCampId(int campId)
         {
@@ -82,7 +96,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> CreateAccommodation([FromBody] BLL.DTOs.Accommodation.AccommodationRequestDto accommodationRequestDto)
+        public async Task<IActionResult> CreateAccommodation([FromBody] AccommodationRequestDto accommodationRequestDto)
         {
             if (!ModelState.IsValid)
             {
@@ -144,28 +158,24 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPut("deactivate/{accommodationId}")]
-        public async Task<IActionResult> DeactivateAccommodation(int accommodationId)
+
+        [HttpPatch("{accommodationId}/status")]
+        public async Task<IActionResult> UpdateAccommodationStatus(int accommodationId, [FromQuery] bool isActive)
         {
             try
             {
-                var result = await _accommodationService.DeactivateAccommodationAsync(accommodationId);
-                return Ok(result);
+                var updatedAccommodation = await _accommodationService.UpdateAccommodationStatusAsync(accommodationId, isActive);
+                return Ok(updatedAccommodation);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
             catch (Exception ex)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
             }
-        }
 
-       
+        }
     }
 }

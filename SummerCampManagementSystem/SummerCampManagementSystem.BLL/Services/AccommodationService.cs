@@ -36,7 +36,8 @@ namespace SummerCampManagementSystem.BLL.Services
             await RunSupervisorValidation((int)accommodationRequestDto.supervisorId, accommodationRequestDto.campId);
 
             var accommodationEntity = _mapper.Map<Accommodation>(accommodationRequestDto);
-            accommodationEntity.isActive = true;
+            
+            accommodationEntity.isActive = true; 
 
             await _unitOfWork.Accommodations.CreateAsync(accommodationEntity);
             await _unitOfWork.CommitAsync();
@@ -44,21 +45,20 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<AccommodationResponseDto>(accommodationEntity);
         }
 
-        public async Task<bool> DeactivateAccommodationAsync(int accommodationId)
+        public async Task<bool> UpdateAccommodationStatusAsync(int accommodationId, bool isActive)
         {
             var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
-
-            accommodation.isActive = false;
+            accommodation.isActive = isActive;
             await _unitOfWork.Accommodations.UpdateAsync(accommodation);
             await _unitOfWork.CommitAsync();
-
             return true;
         }
 
         public async Task<AccommodationResponseDto?> GetAccommodationByIdAsync(int accommodationId)
         {
-            var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
+            var accommodation = await GetAccommodationsWithIncludes()
+                .FirstOrDefaultAsync(a => a.accommodationId == accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
 
             return _mapper.Map<AccommodationResponseDto>(accommodation);
@@ -69,7 +69,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-            var accommodations = await _unitOfWork.Accommodations.GetQueryable()
+            var accommodations = await GetAccommodationsWithIncludes()
                 .Where(a => a.campId == campId)
                 .ToListAsync();
 
@@ -78,7 +78,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<AccommodationResponseDto>> GetAllAccommodationsAsync()
         {
-            var accommodations = await _unitOfWork.Accommodations.GetAllAsync();
+            var accommodations = await GetAccommodationsWithIncludes().ToListAsync();
 
             return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
@@ -116,6 +116,16 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return _mapper.Map<AccommodationResponseDto>(existingAccommodation);
+        }
+
+
+        public async Task<IEnumerable<AccommodationResponseDto>> GetActiveAccommodationsAsync()
+        {
+            var accommodations = await GetAccommodationsWithIncludes()
+                .Where(a => a.isActive == true)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
         #region Private Methods
 
@@ -185,8 +195,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = supervisorId, CampId = campId };
                 await _campStaffAssignmentService.AssignStaffToCampAsync(assignmentDto);
             }
-        }        
+        }
 
+        private IQueryable<Accommodation> GetAccommodationsWithIncludes()
+        {
+            return _unitOfWork.Accommodations.GetQueryable()
+                .Include(a => a.supervisor); 
+                                             
+        }
         #endregion
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
+using System.Text;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -66,7 +67,7 @@ namespace SummerCampManagementSystem.API.Controllers
                 _logger.LogError(ex, $"Mobile Callback Validation Error: {ex.Message}");
 
                 // failure deep link with reason and details
-                deepLinkUrl = $"{BaseDeepLink}/failure?reason=Validation&details={Uri.EscapeDataString(ex.Message)}";
+                deepLinkUrl = BuildDeepLink("failure", 0, $"Validation: {ex.Message}");
                 return Redirect(deepLinkUrl);
             }
             catch (Exception ex)
@@ -74,7 +75,7 @@ namespace SummerCampManagementSystem.API.Controllers
                 _logger.LogError(ex, $"Mobile Callback Exception: {ex.Message}");
 
                 // failure deep link with reason and details
-                deepLinkUrl = $"{BaseDeepLink}/failure?reason=ApiError&details={Uri.EscapeDataString(ex.Message)}";
+                deepLinkUrl = BuildDeepLink("failure", 0, $"ApiError: {ex.Message}");
                 return Redirect(deepLinkUrl);
             }
         }
@@ -144,5 +145,22 @@ namespace SummerCampManagementSystem.API.Controllers
                     new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
             }
         }
+
+        #region Private Methods
+
+        private string BuildDeepLink(string resultType, long orderCode, string reason)
+        {
+            var queryBuilder = new StringBuilder();
+            queryBuilder.Append($"orderCode={orderCode}");
+
+            if (!string.IsNullOrEmpty(reason))
+            {
+                queryBuilder.Append($"&reason={Uri.EscapeDataString(reason)}");
+            }
+
+            return $"{BaseDeepLink}/{resultType}?{queryBuilder.ToString()}";
+        }
+
+        #endregion
     }
 }

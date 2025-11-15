@@ -35,10 +35,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             //Accommodation mappings
-            CreateMap<Accommodation, AccommodationResponseDto>();
+            CreateMap<Accommodation, AccommodationResponseDto>()
+                .ForMember(dest => dest.supervisor,
+                           opt => opt.MapFrom(src => src.supervisor != null
+                               ? new SupervisorDto
+                               {
+                                   UserId = src.supervisor.userId,
+                                   FullName = src.supervisor.lastName + " " + src.supervisor.firstName
+                               }
+                               : null));
 
             CreateMap<AccommodationRequestDto, Accommodation>()
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
 
             // AccommodationType mappings
             CreateMap<AccommodationType, AccommodationTypeResponseDto>()
@@ -86,8 +95,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<CampType, CampTypeDto>()
                 .ForMember(dest => dest.Id,
                           opt => opt.MapFrom(src => src.campTypeId));
-
-            CreateMap<Camp, CampResponseDto>();
 
             CreateMap<CampRequestDto, Camp>();
 
@@ -187,7 +194,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // CampStaffAssignment mappings
             CreateMap<UserAccount, StaffSummaryDto>()
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.firstName + " " + src.lastName))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.lastName + " " + src.firstName))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.role));
 
             CreateMap<Camp, CampSummaryDto>();
