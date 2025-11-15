@@ -17,7 +17,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<CampStaffSummaryDto>> GetAssignmentsByStaffIdAsync(int staffId);
 
         Task<bool> IsStaffAssignedToCampAsync(int staffId, int campId);
-        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampIdAsync(int campId);
-        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampForActivity(int campId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffManagerByCampIdAsync(int campId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampId(int campId);
     }
 }

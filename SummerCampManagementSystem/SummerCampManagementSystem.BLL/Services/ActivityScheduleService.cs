@@ -109,11 +109,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // 4.2 Staff không được là supervisor của CamperGroup nào
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
 
 
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 // 4.3 Staff không được trùng lịch với activity khác
                 bool staffConflict = await _unitOfWork.ActivitySchedules
@@ -191,11 +191,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // 4.2 Staff không được là supervisor của CamperGroup nào
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
 
 
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 // 4.3 Staff không được trùng lịch với activity khác
                 bool staffConflict = await _unitOfWork.ActivitySchedules
@@ -271,9 +271,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Assigned user is not a staff member.");
 
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 bool staffConflict = await _unitOfWork.ActivitySchedules
                     .IsStaffBusyAsync(dto.StaffId.Value, dto.StartTime, dto.EndTime, excludeScheduleId: id);

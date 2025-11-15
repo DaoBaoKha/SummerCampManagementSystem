@@ -64,11 +64,11 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetAllGroupsBySupervisorId(int campId)
         {
             try
-        {
+            {
                 var staffId = _userContextService.GetCurrentUserId();
                 var camperGroups = await _camperGroupService.GetGroupBySupervisorIdAsync(staffId.Value, campId);
-            return Ok(camperGroups);
-        }
+                return Ok(camperGroups);
+            }
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
@@ -87,8 +87,8 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var staffId = _userContextService.GetCurrentUserId();
                 var accommodations = await _accommodationService.GetBySupervisorIdAsync(staffId.Value, campId);
-            return Ok(accommodations);
-        }
+                return Ok(accommodations);
+            }
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
@@ -117,14 +117,14 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                var result = await _staffService.GetAvailableActivityStaff(campId, activityScheduleId);
+                var result = await _staffService.GetAvailableActivityStaffs(campId, activityScheduleId);
                 return Ok(result);
             }
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
             }
-            catch(ArgumentException arEx)
+            catch (ArgumentException arEx)
             {
                 return BadRequest(new { message = arEx.Message });
             }
@@ -133,6 +133,44 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
-    
+
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-group-staff")]
+        public async Task<IActionResult> GetAvailableGroupStaff(int campId)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableGroupStaffs(campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-accomodation-staff")]
+        public async Task<IActionResult> GetAvailableAccomodationStaff(int campId)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableAccomodationStaffs(campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+
+        }
     }
 }

@@ -9,6 +9,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IStaffService
     {
-        Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaff(int campId, int activityScheduleId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaffs(int campId, int activityScheduleId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableGroupStaffs(int campId);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableAccomodationStaffs(int campId);
     }
 }

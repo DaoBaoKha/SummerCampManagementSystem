@@ -80,7 +80,7 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                var availableStaffs = await _assignmentService.GetAvailableStaffByCampIdAsync(campId);
+                var availableStaffs = await _assignmentService.GetAvailableStaffManagerByCampIdAsync(campId);
                 return Ok(availableStaffs);
             }
             catch (KeyNotFoundException ex)

@@ -24,7 +24,36 @@ namespace SummerCampManagementSystem.BLL.Services
             _campStaffAssignmentService = campStaffAssignmentService;
         }
 
-        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaff(int campId, int activityScheduleId)
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableGroupStaffs(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampId(campId);
+            var available = new List<StaffSummaryDto>();
+
+
+            foreach (var staff in staffInCamp)
+            {
+                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
+                    continue;
+
+                if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
+                   staff.UserId,
+                   camp.startDate.Value,
+                   camp.endDate.Value))
+                    continue;
+
+                if (await _unitOfWork.Accommodations.isSupervisorOfAccomodation(staff.UserId, campId))
+                    continue;
+
+                available.Add(staff);
+            }
+            return available;
+        }
+
+
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaffs(int campId, int activityScheduleId)
         {
             var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
                 ?? throw new KeyNotFoundException("Activity Schedule not found.");
@@ -35,14 +64,14 @@ namespace SummerCampManagementSystem.BLL.Services
             if (activity.campId != campId)
                 throw new ArgumentException($"Activity Schedule {activityScheduleId} does not belong to the camp {campId}");
 
-            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampForActivity(campId);
+            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampId(campId);
 
             var available = new List<StaffSummaryDto>();
 
 
             foreach (var staff in staffInCamp)
             {
-                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId))
+                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
                     continue;
 
                 if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
@@ -56,5 +85,27 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             return available;
         }
+
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableAccomodationStaffs(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+               ?? throw new KeyNotFoundException("Camp not found.");
+
+            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampId(campId);
+            var available = new List<StaffSummaryDto>();
+
+
+            foreach (var staff in staffInCamp)
+            {
+                if (await _unitOfWork.Accommodations.isSupervisorOfAccomodation(staff.UserId, campId))
+                    continue;
+
+                available.Add(staff);
+            }
+            return available;
+        }
+
+
+
     }
 }
