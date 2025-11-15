@@ -25,11 +25,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(g => g.supervisor)
                 .FirstOrDefaultAsync(g => g.camperGroupId == id);
         }
-        public async Task<bool> isSupervisor(int staffId)
+        public async Task<bool> isSupervisor(int staffId, int campId)
         {
             return await _context.CamperGroups
                 .AnyAsync(a =>
-                    a.supervisorId == staffId);
+                    a.supervisorId == staffId &&
+                    a.campId == campId);
         }
 
         public async Task<IEnumerable<CamperGroup>> GetByCampIdAsync(int campId)

@@ -11,7 +11,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             _context = context;
         }
 
-        public async Task<IEnumerable<UserAccount>> GetAvailableStaffByCampIdAsync(DateTime? start, DateTime? end)
+        public async Task<IEnumerable<UserAccount>> GetAvailableStaffManagerByCampIdAsync(DateTime? start, DateTime? end)
         {
             var allStaff = await _context.UserAccounts
                     .Include(u => u.CampStaffAssignments)
@@ -26,7 +26,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return available;
         }
-        public async Task<IEnumerable<UserAccount>> GetAvailableStaffByCampForActivityAsync(int campId)
+        public async Task<IEnumerable<UserAccount>> GetAvailableStaffByCampId(int campId)
         {
             var camp = await _context.Camps
                 .Where(c => c.campId == campId)

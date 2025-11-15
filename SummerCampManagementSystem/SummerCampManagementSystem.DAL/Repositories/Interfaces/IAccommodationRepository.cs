@@ -10,5 +10,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     public interface IAccommodationRepository : IGenericRepository<Accommodation>
     {
         Task<Accommodation?> GetBySupervisorIdAsync(int supervisorId, int campId);
+        Task<bool> isSupervisorOfAccomodation(int supervisorId, int campId);
     }
 }
