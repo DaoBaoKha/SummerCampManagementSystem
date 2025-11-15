@@ -111,6 +111,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "Admin, Manager")]
         [HttpGet("camps/{campId}/available-activity-staff/{activityScheduleId}")]
         public async Task<IActionResult> GetAvailableActivityStaff(int campId, int activityScheduleId)
         {
@@ -122,6 +123,10 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (KeyNotFoundException knfEx)
             {
                 return NotFound(new { message = knfEx.Message });
+            }
+            catch(ArgumentException arEx)
+            {
+                return BadRequest(new { message = arEx.Message });
             }
             catch (Exception ex)
             {

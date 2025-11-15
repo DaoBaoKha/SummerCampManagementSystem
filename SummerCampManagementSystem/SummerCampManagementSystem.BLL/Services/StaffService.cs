@@ -26,8 +26,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaff(int campId, int activityScheduleId)
         {
-            var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
                 ?? throw new KeyNotFoundException("Activity Schedule not found.");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId)
+                ?? throw new KeyNotFoundException("Activity not found.");
+
+            if (activity.campId != campId)
+                throw new ArgumentException($"Activity Schedule {activityScheduleId} does not belong to the camp {campId}");
 
             var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampForActivity(campId);
 
@@ -41,8 +47,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
                    staff.UserId,
-                   activity.startTime.Value,
-                   activity.endTime.Value))
+                   activitySchedule.startTime.Value,
+                   activitySchedule.endTime.Value))
                     continue;
 
                 available.Add(staff);

@@ -140,21 +140,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffByCampForActivity(int campId)
         {
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+            var staff = await _unitOfWork.CampStaffAssignments
+         .GetAvailableStaffByCampForActivityAsync(campId);
 
-            var (start, end) = (camp.startDate, camp.endDate);
-            var allStaff = await _unitOfWork.CampStaffAssignments.GetAllStaffWithCampAssignmentsAsync();
-
-            // Lọc staff có camp trùng thời gian
-            var available = allStaff.Where(s =>
-                !s.CampStaffAssignments.Any(csa =>
-                    csa.campId != campId &&
-                    csa.camp.startDate <= end &&
-                    csa.camp.endDate >= start))
-                .ToList();
-
-            return _mapper.Map<IEnumerable<StaffSummaryDto>>(available);
+            return _mapper.Map<IEnumerable<StaffSummaryDto>>(staff);
         }
     }
 }

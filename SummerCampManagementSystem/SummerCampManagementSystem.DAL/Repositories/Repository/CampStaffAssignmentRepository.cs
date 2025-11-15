@@ -26,14 +26,27 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return available;
         }
-        public async Task<IEnumerable<UserAccount>> GetAllStaffWithCampAssignmentsAsync()
+        public async Task<IEnumerable<UserAccount>> GetAvailableStaffByCampForActivityAsync(int campId)
         {
+            var camp = await _context.Camps
+                .Where(c => c.campId == campId)
+                .Select(c => new { c.startDate, c.endDate })
+                .FirstOrDefaultAsync();
+
+            if (camp == null)
+                throw new KeyNotFoundException("Camp not found.");
+
+            var (start, end) = (camp.startDate, camp.endDate);
+
             return await _context.UserAccounts
-                .Include(u => u.CampStaffAssignments)
-                    .ThenInclude(csa => csa.camp)
                 .Where(u => u.role == "Staff")
+                .Where(u =>
+                    !u.CampStaffAssignments.Any(csa =>
+                        csa.campId != campId &&
+                        csa.camp.startDate <= end &&
+                        csa.camp.endDate >= start))
                 .ToListAsync();
         }
-   
+
     }
 }
