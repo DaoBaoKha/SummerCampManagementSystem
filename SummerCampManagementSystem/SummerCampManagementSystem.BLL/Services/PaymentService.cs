@@ -5,6 +5,7 @@ using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -197,6 +198,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
+
         public async Task<string> ProcessPaymentMobileCallbackRaw(string rawQueryString)
         {
             var parsedQuery = HttpUtility.ParseQueryString(rawQueryString);
@@ -211,13 +213,25 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Invalid orderCode.");
             }
 
-            return await ProcessPaymentMobileCallbackLogic(orderCode);
+            string orderCodeString = orderCode.ToString();
+            var transaction = await _unitOfWork.Transactions.GetQueryable()
+                .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
+
+            int? registrationId = transaction?.registrationId;
+
+            return await ProcessPaymentMobileCallbackLogic(orderCode, registrationId); 
         }
 
-        private async Task<string> ProcessPaymentMobileCallbackLogic(long orderCode)
+
+        private async Task<string> ProcessPaymentMobileCallbackLogic(long orderCode, int? registrationId)
         {
             const string BaseDeepLink = "summercamp://payment";
+
             string queryParams = $"orderCode={orderCode}";
+            if (registrationId.HasValue)
+            {
+                queryParams += $"&registrationId={registrationId.Value}";
+            }
 
             try
             {
@@ -227,21 +241,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 // check status
                 if (linkInfo.status == "PAID")
                 {
-                    return $"{BaseDeepLink}/success?{queryParams}";
+                    return $"{BaseDeepLink}/success?{queryParams}"; 
                 }
                 else
                 {
                     // (CANCELLED, EXPIRED, FAILED)
-                    return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}";
+                    return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}"; 
                 }
             }
             catch (Exception ex)
             {
                 string errorReason = Uri.EscapeDataString(ex.Message);
-                return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}";
+                return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}"; 
             }
         }
-
         /// <summary>
         /// send confirm url callback to payos server
         /// </summary>
