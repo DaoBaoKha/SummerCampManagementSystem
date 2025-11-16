@@ -62,6 +62,10 @@ string payosMobileReturnUrl = builder.Configuration["PayOS:MobileReturnUrl"]?.Tr
 string payosMobileCancelUrl = builder.Configuration["PayOS:MobileCancelUrl"]?.Trim() ?? "";
 string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
 
+//Supabase settings
+string supabaseUrl = builder.Configuration["Supabase:Url"]?.Trim() ?? "";
+string supabaseKey = builder.Configuration["Supabase:Key"]?.Trim() ?? "";
+
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
@@ -125,6 +129,16 @@ if (builder.Environment.IsProduction())
         geminiModelName = client.AccessSecretVersion(new SecretVersionName(projectId, "gemini-model-name", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
 
+        //Supabase
+        supabaseUrl = client
+       .AccessSecretVersion(new SecretVersionName(projectId, "supabase-url", "latest"))
+       .Payload.Data.ToStringUtf8().Trim();
+
+        supabaseKey = client
+            .AccessSecretVersion(new SecretVersionName(projectId, "supabase-key", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
+
+
 
         var inMemorySettings = new Dictionary<string, string>
         {
@@ -154,7 +168,13 @@ if (builder.Environment.IsProduction())
             // Gemini
             {"GeminiApi:ApiKey", geminiApiKey},
             {"GeminiApi:ApiBaseUrl", geminiBaseUrl},
-            {"GeminiApi:ModelName", geminiModelName}
+            {"GeminiApi:ModelName", geminiModelName},
+
+            // Supabase
+            {"Supabase:Url", supabaseUrl},
+            {"Supabase:Key", supabaseKey}
+
+
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
@@ -180,6 +200,11 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 
 // singleton services
 builder.Services.AddSingleton(sp => new PayOS(payosClientId, payosApiKey, payosChecksumKey));
+
+var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
+await supabase.InitializeAsync();
+
+builder.Services.AddSingleton(supabase);
 
 
 // DI
@@ -279,6 +304,8 @@ builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianRepository>();
 
 builder.Services.AddScoped<IStaffService, StaffService>();
+
+builder.Services.AddScoped<IUploadSupabaseService, UploadSupabaseService>();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
