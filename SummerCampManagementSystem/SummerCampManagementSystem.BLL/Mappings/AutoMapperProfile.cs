@@ -35,7 +35,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
         public AutoMapperProfile()
         {
             //Accommodation mappings
-            CreateMap<Accommodation, AccommodationResponseDto>();
+            CreateMap<Accommodation, AccommodationResponseDto>()
+                .ForMember(dest => dest.supervisor,
+                           opt => opt.MapFrom(src => src.supervisor != null
+                               ? new SupervisorDto
+                               {
+                                   UserId = src.supervisor.userId,
+                                   FullName = src.supervisor.lastName + " " + src.supervisor.firstName
+                               }
+                               : null));
+
+            CreateMap<AccommodationRequestDto, Accommodation>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
 
             // AccommodationType mappings
             CreateMap<AccommodationType, AccommodationTypeResponseDto>()
@@ -59,7 +71,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
 
             // CamperGroup mapping
-            CreateMap<CamperGroup, CamperGroupResponseDto>();
+            CreateMap<CamperGroup, CamperGroupResponseDto>()
+                 .ForMember(dest => dest.SupervisorName, opt => opt.MapFrom(src => src.supervisor.lastName + " " + src.supervisor.firstName));
             CreateMap<CamperGroupRequestDto, CamperGroup>();
             CreateMap<CamperGroup, CamperGroupWithCampDetailsResponseDto>()
                 .ForMember(dest => dest.CampName,
@@ -82,8 +95,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<CampType, CampTypeDto>()
                 .ForMember(dest => dest.Id,
                           opt => opt.MapFrom(src => src.campTypeId));
-
-            CreateMap<Camp, CampResponseDto>();
 
             CreateMap<CampRequestDto, Camp>();
 
@@ -152,9 +163,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName))
+                .ForMember(dest => dest.locationName, opt => opt.MapFrom(src => src.location.name));
 
-            CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>();
+            CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
+                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>();
+                
 
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
@@ -179,7 +194,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // CampStaffAssignment mappings
             CreateMap<UserAccount, StaffSummaryDto>()
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
-                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.firstName + " " + src.lastName))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.lastName + " " + src.firstName))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.role));
 
             CreateMap<Camp, CampSummaryDto>();
@@ -231,7 +246,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // AttendanceLog mappings
             CreateMap<AttendanceLog, AttendanceLogResponseDto>()
-          .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.firstName + " " + src.staff.lastName));
+          .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName));
             CreateMap<AttendanceLogRequestDto, AttendanceLog>()
                 .ForMember(dest => dest.checkInMethod, opt => opt.MapFrom(_ => "Manual"));
          

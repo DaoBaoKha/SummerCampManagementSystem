@@ -10,6 +10,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     public interface IGenericRepository<T> where T : class
     {
         Task<List<T>> GetAllAsync();
+        Task AddRangeAsync(IEnumerable<T> entities);
         Task CreateAsync(T entity);
         Task UpdateAsync(T entity);
         Task RemoveAsync(T entity);

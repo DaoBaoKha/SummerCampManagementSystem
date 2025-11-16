@@ -42,17 +42,31 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("camp/{campId}")]
-        public async Task<IActionResult> GetByCampId(int campId)
+        public async Task<IActionResult> GetCampersByCampWithStatus(int campId)
         {
             try
             {
-                var camper = await _camperService.GetCampersByCampId(campId);
+                var camper = await _camperService.GetCampersByCampWithStatus(campId);
                 return Ok(camper);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
 
             }
-            catch (Exception ex)
+        }
+
+        [HttpGet("{camperId}/camp/{campId}")]
+        public async Task<IActionResult> GetCamperByIdAndCampId(int camperId, int campId)
+        {
+            try
             {
-                return NotFound(new { message = $"Camp with id {campId} not found." });
+                var camper = await _camperService.GetCamperByCampAndIdWithStatus(camperId, campId);
+                return Ok(camper);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
         }
 

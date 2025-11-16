@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.Interfaces;
 
@@ -71,6 +72,21 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             var assignments = await _assignmentService.GetAssignmentsByStaffIdAsync(staffId);
             return Ok(assignments); 
+        }
+
+       // [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("availableStaff/{campId}")]
+        public async Task<IActionResult> GetAvailableStaffByCampId(int campId)
+        {
+            try
+            {
+                var availableStaffs = await _assignmentService.GetAvailableStaffManagerByCampIdAsync(campId);
+                return Ok(availableStaffs);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
 
