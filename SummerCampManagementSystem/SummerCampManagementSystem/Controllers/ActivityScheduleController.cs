@@ -28,6 +28,23 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            try
+            {
+                var result = await _service.GetScheduleByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
 
         [HttpPost("core")]
         public async Task<IActionResult> CreateCore([FromBody] ActivityScheduleCreateDto dto)
@@ -108,12 +125,12 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpGet("camper/{camperId}/camp/{campId}")]
-        public async Task<IActionResult> GetByCamperAndCamp(int camperId, int campId)
+        [HttpGet("/camp/{campId}/camper/{camperId}")]
+        public async Task<IActionResult> GetByCamperAndCamp(int campId, int camperId)
         {
             try
             {
-                var result = await _service.GetSchedulesByCamperAndCampAsync(camperId, campId);
+                var result = await _service.GetSchedulesByCamperAndCampAsync(campId, camperId);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)
@@ -219,5 +236,18 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("{activityScheduleId}/status")]
+        public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)
+        {
+           try
+           {
+                var updatedActivity = await _service.ChangeStatusActivitySchedule(activityScheduleId, status);
+                return Ok(updatedActivity);
+           }
+           catch (KeyNotFoundException ex)
+           {
+                return NotFound(new { message = ex.Message });
+           }
+        }
     }
 }

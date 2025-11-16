@@ -22,5 +22,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(a => a.camp)
                 .FirstOrDefaultAsync(a => a.supervisorId == supervisorId && a.campId == campId);
         }
+
+        public async Task<bool> isSupervisorOfAccomodation(int supervisorId, int campId)
+        {
+            return await _context.Accommodations
+                .AnyAsync(a => a.supervisorId == supervisorId && a.campId == campId);
+                
+        }
     }
 }

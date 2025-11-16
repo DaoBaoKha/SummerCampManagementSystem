@@ -11,8 +11,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<GuardianResponseDto>> GetAllAsync();
         Task<GuardianResponseDto?> GetByIdAsync(int id);
-        Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto);
         Task<bool> UpdateAsync(int id, GuardianUpdateDto dto);
         Task<bool> DeleteAsync(int id);
+        Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int parentId);
     }
 }

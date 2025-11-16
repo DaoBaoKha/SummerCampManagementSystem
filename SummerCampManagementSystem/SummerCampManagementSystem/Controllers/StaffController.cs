@@ -16,6 +16,7 @@ namespace SummerCampManagementSystem.API.Controllers
         private readonly IActivityScheduleService _activityScheduleService;
         private readonly ICamperGroupService _camperGroupService;
         private readonly ICampService _campService;
+        private readonly IStaffService _staffService;
         private readonly IUserContextService _userContextService;
 
         public StaffController(
@@ -23,6 +24,7 @@ namespace SummerCampManagementSystem.API.Controllers
             IActivityScheduleService activityScheduleService,
             ICamperGroupService camperGroupService,
             IUserContextService userContextService,
+            IStaffService staffService,
             ICampService campService)
         {
             _accommodationService = accommodationService;
@@ -30,10 +32,11 @@ namespace SummerCampManagementSystem.API.Controllers
             _camperGroupService = camperGroupService;
             _userContextService = userContextService;
             _campService = campService;
+            _staffService = staffService;
         }
 
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/activities")]
         public async Task<IActionResult> GetAllByStaffId(int campId)
         {
@@ -56,7 +59,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/group")]
         public async Task<IActionResult> GetAllGroupsBySupervisorId(int campId)
         {
@@ -76,7 +79,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/accomodation")]
         public async Task<IActionResult> GetAllBySupervisorIdAsync(int campId)
         {
@@ -96,7 +99,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("my-camps")]
         public async Task<IActionResult> GetMyCamps()
         {
@@ -106,6 +109,68 @@ namespace SummerCampManagementSystem.API.Controllers
 
             var result = await _campService.GetCampsByStaffIdAsync(staffId.Value);
             return Ok(result);
+        }
+
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-activity-staff/{activityScheduleId}")]
+        public async Task<IActionResult> GetAvailableActivityStaff(int campId, int activityScheduleId)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableActivityStaffs(campId, activityScheduleId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (ArgumentException arEx)
+            {
+                return BadRequest(new { message = arEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-group-staff")]
+        public async Task<IActionResult> GetAvailableGroupStaff(int campId)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableGroupStaffs(campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-accomodation-staff")]
+        public async Task<IActionResult> GetAvailableAccomodationStaff(int campId)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableAccomodationStaffs(campId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+
         }
     }
 }

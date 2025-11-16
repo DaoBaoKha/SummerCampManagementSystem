@@ -8,6 +8,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     {
         private readonly CampEaseDatabaseContext _context;
         public IAccommodationRepository Accommodations { get; }
+        public IAccommodationTypeRepository AccommodationTypes { get; }
         public IActivityRepository Activities { get; }
         public IActivityScheduleRepository ActivitySchedules { get; }
         public IAlbumRepository Albums { get; }
@@ -33,9 +34,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
+        public ICamperGuardianRepository CamperGuardians { get; }
         public ICamperActivityRepository CamperActivities { get; }
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
+        public ITransportScheduleRepository TransportSchedules { get; }
         public ILocationRepository Locations { get; }
         public IGroupActivityRepository GroupActivities { get; }
         public IAttendanceLogRepository AttendanceLogs { get; }
@@ -54,44 +57,48 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
             ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
-            ,IRouteStopRepository routeStops)
+            ,IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
+            ITransportScheduleRepository transportSchedules)
         {
             _context = context;
             Accommodations = accommodations;
+            AccommodationTypes = accommodationTypes;
             Activities = activities;
             ActivitySchedules = activitySchedules;
             Albums = albums;
             AlbumPhotos = albumPhotos;
             AlbumPhotoFaces = albumPhotoFaces;
+            AttendanceLogs = attendanceLogs;
             Blogs = blogs;
-            Users = userRepository;
-            UserAccounts = userAccounts;
-            RefreshTokens = refreshTokenRepository;
-            Vehicles = vehicles;
-            VehicleTypes = vehicleTypes;
             Camps = campRepository;
             CampTypes = campTypes;
             CamperGroups = camperGroups;
             Campers = campers;
+            CamperAccommodations = camperAccomodations;
+            CamperGuardians = camperGuardians;
+            CamperActivities = camperActivities;
             CampStaffAssignments = campStaffAssignments;
             ChatConversations = chatConversations;
             ChatMessages = chatMessages;
+            Guardians = guardians;
+            GroupActivities = groupActivities;
+            HealthRecords = healthRecords;
+            Locations = locations;
+            Promotions = promotions;
+            PromotionTypes = promotionTypes;
+            ParentCampers = parentCampers;
             Registrations = registrations;
             RegistrationOptionalActivities = registrationOptionalActivities;
             Routes = routes;
             RouteStops = routeStops;
-            Promotions = promotions;
-            PromotionTypes = promotionTypes;
-            Guardians = guardians;
-            CamperActivities = camperActivities;
-            HealthRecords = healthRecords;
-            Transactions = transactions;
-            Locations = locations;
-            GroupActivities = groupActivities;
-            AttendanceLogs = attendanceLogs;
-            CamperAccommodations = camperAccomodations;
             RegistrationCampers = registrationCampers;
-            ParentCampers = parentCampers;
+            RefreshTokens = refreshTokenRepository;
+            Transactions = transactions;
+            TransportSchedules = transportSchedules;
+            Users = userRepository;
+            UserAccounts = userAccounts;
+            Vehicles = vehicles;
+            VehicleTypes = vehicleTypes;
         }
 
         public async Task<int> CommitAsync()

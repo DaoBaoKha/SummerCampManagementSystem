@@ -7,6 +7,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     public interface IUnitOfWork : IDisposable
     {
         IAccommodationRepository Accommodations { get; }
+        IAccommodationTypeRepository AccommodationTypes { get; }
         IActivityRepository Activities { get; }
         IActivityScheduleRepository ActivitySchedules { get; }
         IAlbumRepository Albums { get; }
@@ -32,9 +33,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }
+        ICamperGuardianRepository CamperGuardians { get; }
         ICamperActivityRepository CamperActivities { get; }
         IHealthRecordRepository HealthRecords { get; }
         ITransactionRepository Transactions { get; }
+        ITransportScheduleRepository TransportSchedules { get; }
         ILocationRepository Locations { get; }
         IGroupActivityRepository GroupActivities { get; }
         IAttendanceLogRepository AttendanceLogs { get; }

@@ -13,6 +13,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int ActivityScheduleId { get; set; }
          public ActivitySummaryDto Activity { get; set; }
         public int StaffId { get; set; }
+        public string StaffName { get; set; } = string.Empty;
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public string Status { get; set; }
@@ -21,6 +22,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int? maxCapacity { get; set; }
         public bool IsOptional { get; set; }
         public int? locationId { get; set; }
+        public string locationName { get; set; } = string.Empty;
         public int? CurrentCapacity { get; set; }
 
     }

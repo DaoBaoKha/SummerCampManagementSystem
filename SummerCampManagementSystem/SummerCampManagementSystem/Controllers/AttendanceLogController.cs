@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -44,7 +45,7 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> CoreActivityAttendance([FromBody] AttendanceLogListRequestDto dto)
         {
             var staffId = _userContextService.GetCurrentUserId();
-            var result = await _attendanceLogService.CoreActivityAttendanceAsync(dto, staffId.Value);
+            var result = await _attendanceLogService.CoreActivityAttendanceAsync(dto, staffId.Value, true);
             return Ok(result);
         }
 
@@ -106,36 +107,21 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("checkin-activity")]
-        public async Task<IActionResult> CheckInActivityLog([FromBody] AttendanceLogRequestDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                var result = await _attendanceLogService.CheckinAttendanceAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
+        /// <summary>
+        /// attendance log for check-in and check-out activity
+        /// </summary>
 
+        /// <remarks>
+        /// api "attendances/camps/{campId}" mà có activityType = check-in hoặc check-out thì gọi api này
+        /// </remarks>
+
+        ///<param name="status">Chọn checkin hoặc checkout thôi
+        ///</param>
+
+        [Authorize(Roles = "Staff")]
         [HttpPost]
-        [Route("checkout-activity")]
-        public async Task<IActionResult> CheckOutActivityLog([FromBody] AttendanceLogRequestDto dto)
+        [Route("checkin_checkout-activity")]
+        public async Task<IActionResult> CheckIn_CheckoutActivityLog([FromBody] AttendanceLogListRequestDto dto, [FromQuery] RegistrationCamperStatus status)
         {
             if (!ModelState.IsValid)
             {
@@ -143,8 +129,9 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             try
             {
-                var result = await _attendanceLogService.CheckoutAttendanceAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
+                var staffId = _userContextService.GetCurrentUserId();
+                var result = await _attendanceLogService.Checkin_CheckoutAttendanceAsync(dto, staffId.Value, status);
+                return Ok(result);
             }
             catch (KeyNotFoundException ex)
             {
