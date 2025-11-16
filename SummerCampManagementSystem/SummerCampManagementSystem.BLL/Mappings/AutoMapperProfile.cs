@@ -12,6 +12,7 @@ using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
+using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using SummerCampManagementSystem.BLL.DTOs.Location;
@@ -78,6 +79,22 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
+
+            // Driver mappings
+
+            CreateMap<DriverRegisterDto, Driver>();
+
+            CreateMap<DriverRequestDto, Driver>();
+
+            CreateMap<Driver, DriverDetailsDto>();
+
+            CreateMap<Driver, DriverResponseDto>()
+                .ForMember(dest => dest.FirstName, opt => opt.MapFrom(src => src.user.firstName))
+                .ForMember(dest => dest.LastName, opt => opt.MapFrom(src => src.user.lastName))
+                .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.user.email))
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.user.role))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.user.isActive))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId)); 
 
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();

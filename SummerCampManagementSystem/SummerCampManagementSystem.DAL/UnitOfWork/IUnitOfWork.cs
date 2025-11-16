@@ -44,6 +44,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICamperAccomodationRepository CamperAccommodations { get; }
         IRegistrationCamperRepository RegistrationCampers { get; }
         IParentCamperRepository ParentCampers { get; }
+
+        IDriverRepository Drivers { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();
