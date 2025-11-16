@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,7 +21,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
 
         public DateOnly Dob { get; set; }
         public int? GroupId { get; set; }
-        public string? avatar { get; set; }
+        public IFormFile? avatar { get; set; }
 
 
         public HealthRecordCreateDto? HealthRecord { get; set; }
