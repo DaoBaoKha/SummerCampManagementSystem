@@ -21,6 +21,7 @@ using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
+using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
@@ -291,6 +292,21 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.registration.userId))    
                 .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.transactionId))
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
+
+            // Transport Schehedule mappings
+            CreateMap<TransportScheduleRequestDto, TransportSchedule>()
+                .ForMember(dest => dest.actualStartTime, opt => opt.MapFrom(src => src.ActualStartTime))
+                .ForMember(dest => dest.actualEndTime, opt => opt.MapFrom(src => src.ActualEndTime));
+
+            CreateMap<TransportSchedule, TransportScheduleResponseDto>()
+                .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src =>
+                    src.route != null ? src.route.routeName : "N/A"))
+                .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src =>
+                    src.driver != null && src.driver.user != null
+                        ? src.driver.user.lastName + " " + src.driver.user.firstName
+                        : "N/A"));
+
+
 
             // UserAccount mappings
             CreateMap<UserAccount, UserResponseDto>()
