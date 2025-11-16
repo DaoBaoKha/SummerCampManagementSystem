@@ -11,10 +11,12 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CampController : ControllerBase
     {
         private readonly ICampService _campService;
+        private readonly ILogger<CampController> _logger;
 
-        public CampController(ICampService campService)
+        public CampController(ICampService campService, ILogger<CampController> logger)
         {
             _campService = campService;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -93,6 +95,27 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 // detailed error for unexpected exceptions
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An unexpected error occurred during camp creation.", detail = ex.Message });
+            }
+        }
+
+        // Endpoint for Cloud Scheduler to trigger scheduled status updates
+        [HttpPost("scheduled-status-update")]
+        public async Task<IActionResult> RunScheduledStatusUpdates()
+        {
+            _logger.LogInformation("API Worker triggered by Cloud Scheduler.");
+            try
+            {
+                await _campService.RunScheduledStatusTransitionsAsync();
+
+                // Log thành công và trả về 200 OK
+                _logger.LogInformation("API Worker finished successfully.");
+                return Ok(new { message = "Scheduled status updates executed successfully." });
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi và trả về 500
+                _logger.LogError(ex, "API Worker failed during status updates.");
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi khi chạy tác vụ cập nhật trạng thái: " + ex.Message });
             }
         }
 
