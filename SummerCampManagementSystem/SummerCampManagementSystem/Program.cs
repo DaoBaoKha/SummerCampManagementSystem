@@ -231,6 +231,9 @@ builder.Services.AddScoped<IActivityScheduleService, ActivityScheduleService>();
 builder.Services.AddScoped<ICamperActivityRepository, CamperActivityRepository>();
 builder.Services.AddScoped<ICamperActivityService, CamperActivityService>();
 
+builder.Services.AddScoped<IDriverRepository, DriverRepository>();
+builder.Services.AddScoped<IDriverService, DriverService>();
+
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
 
 builder.Services.AddScoped<IUserService, UserService>();
