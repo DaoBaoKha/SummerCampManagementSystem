@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -14,12 +15,14 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
+        private readonly ILogger<CampService> _logger;
 
-        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
+        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, ILogger<CampService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContextService = userContextService;
+            _logger = logger;
         }
 
         public async Task<CampResponseDto> CreateCampAsync(CampRequestDto campRequest)
@@ -350,6 +353,93 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
         }
+
+        #region Scheduled Status Transitions
+
+        public async Task RunScheduledStatusTransitionsAsync()
+        {
+            // take camp with status Published, OpenForRegistration, RegistrationClosed, InProgress
+            var pendingCamps = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.status == CampStatus.Published.ToString() ||
+                            c.status == CampStatus.OpenForRegistration.ToString() ||
+                            c.status == CampStatus.RegistrationClosed.ToString() ||
+                            c.status == CampStatus.InProgress.ToString())
+                .ToListAsync();
+
+            _logger.LogInformation($"Found {pendingCamps.Count} camps pending status check.");
+
+            DateTime utcNow = DateTime.UtcNow;
+
+            foreach (var camp in pendingCamps)
+            {
+                try
+                {
+                    // make sure the status is valid enum
+                    if (!Enum.TryParse(camp.status, true, out CampStatus currentStatus)) continue;
+
+                    CampStatus? nextStatus = null;
+                    _logger.LogDebug($"Checking Camp ID {camp.campId} ('{camp.name}') - Current Status: {currentStatus}.");
+
+                    // LOGIC TRANSITION BASED ON TIME AND CONDITIONS
+
+                    // pubished -> OpenForRegistration 
+                    if (currentStatus == CampStatus.Published &&
+                        camp.registrationStartDate.HasValue &&
+                        camp.registrationStartDate.Value.ToUniversalTime() <= utcNow)
+                    {
+                        nextStatus = CampStatus.OpenForRegistration;
+                    }
+
+                    // openForRegistration -> RegistrationClosed 
+                    else if (currentStatus == CampStatus.OpenForRegistration &&
+                             camp.registrationEndDate.HasValue &&
+                             camp.registrationEndDate.Value.ToUniversalTime() <= utcNow)
+                    {
+
+                        /*
+                         * need to check if enough campers registered
+                         * missing underEnrolled check here
+                         */
+
+
+                        nextStatus = CampStatus.RegistrationClosed;
+                    }
+
+                    // registrationClosed -> InProgress
+                    else if (currentStatus == CampStatus.RegistrationClosed &&
+                             camp.startDate.HasValue &&
+                             camp.startDate.Value.ToUniversalTime() <= utcNow)
+                    {
+                        nextStatus = CampStatus.InProgress;
+                    }
+
+                    // inProgress -> Completed
+                    else if (currentStatus == CampStatus.InProgress &&
+                             camp.endDate.HasValue &&
+                             camp.endDate.Value.ToUniversalTime() <= utcNow)
+                    {
+                        nextStatus = CampStatus.Completed;
+                    }
+
+                    if (nextStatus.HasValue)
+                    {
+                        _logger.LogInformation($"Transitioning Camp ID {camp.campId} from {currentStatus} to {nextStatus.Value}...");
+
+                        // use the existing method to transition status
+                        await TransitionCampStatusAsync(camp.campId, nextStatus.Value);
+
+                        _logger.LogInformation($"Successfully transitioned Camp ID {camp.campId} to {nextStatus.Value}.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"FATAL ERROR processing Camp ID {camp.campId}. Skipping this camp.");
+                }
+            }
+            _logger.LogInformation("--- FINISHED scheduled camp status transition job. ---");
+        }
+
+        #endregion
 
         #region Private Methods
 

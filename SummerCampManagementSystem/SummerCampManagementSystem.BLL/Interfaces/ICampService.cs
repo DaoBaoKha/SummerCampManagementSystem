@@ -16,5 +16,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CampResponseDto> TransitionCampStatusAsync(int campId, CampStatus newStatus);
         Task<CampResponseDto> SubmitForApprovalAsync(int campId);
         Task<IEnumerable<CampResponseDto>> GetCampsByStaffIdAsync(int staffId);
+
+        // workflow automation
+        Task RunScheduledStatusTransitionsAsync();
     }
 }
