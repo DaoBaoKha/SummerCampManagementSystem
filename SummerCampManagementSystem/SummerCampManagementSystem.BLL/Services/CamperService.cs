@@ -34,19 +34,19 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto, int parentId)
         {
-          
             if (dto.Dob >= new DateOnly(2019, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2019.");
 
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+
             var camper = _mapper.Map<Camper>(dto);
             await _unitOfWork.Campers.CreateAsync(camper);
-            await _unitOfWork.CommitAsync();
+            await _unitOfWork.CommitAsync(); // cần commit 1 lần để lấy camperId
 
             if (dto.avatar != null)
             {
                 var url = await _uploadSupabaseService.UploadCamperPhotoAsync(camper.camperId, dto.avatar);
                 camper.avatar = url;
-                await _unitOfWork.CommitAsync();
             }
 
             if (dto.HealthRecord != null)
@@ -54,9 +54,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                 healthRecord.camperId = camper.camperId;
                 healthRecord.createAt = DateTime.UtcNow;
-                await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
-                await _unitOfWork.CommitAsync();
 
+                await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
                 camper.HealthRecord = healthRecord;
             }
 
@@ -65,12 +64,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 parentId = parentId,
                 camperId = camper.camperId
             };
-
             await _unitOfWork.ParentCampers.CreateAsync(parentCamper);
+
+            // Commit tất cả một lần
             await _unitOfWork.CommitAsync();
+            await transaction.CommitAsync();
 
             return _mapper.Map<CamperResponseDto>(camper);
         }
+
 
         public async Task<bool> DeleteCamperAsync(int id)
         {
