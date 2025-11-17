@@ -64,11 +64,19 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId, int staffId)
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleAndStaffAsync(int activityScheduleId, int staffId)
         {
             return await _context.GroupActivities
                 .Where(ga => ga.activityScheduleId == activityScheduleId
                           && ga.camperGroup.supervisorId == staffId)
+                .SelectMany(ga => ga.camperGroup.Campers)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId)
+        {
+            return await _context.GroupActivities
+                .Where(ga => ga.activityScheduleId == activityScheduleId)
                 .SelectMany(ga => ga.camperGroup.Campers)
                 .ToListAsync();
         }

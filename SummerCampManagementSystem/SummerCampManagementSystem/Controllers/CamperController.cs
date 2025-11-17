@@ -114,7 +114,7 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 var staffId = _userContextService.GetCurrentUserId();
-                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId, staffId.Value);
+                var campers = await _camperService.GetCampersByCoreScheduleAndStaffAsync(coreActivityId, staffId.Value);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)
