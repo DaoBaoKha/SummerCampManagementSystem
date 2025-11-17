@@ -107,12 +107,12 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperSummaryDto>>(campers);
         }
 
-        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId, int staffId)
+        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId)
         {
             var core = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreActivityId)
                 ?? throw new KeyNotFoundException("Core activity not found.");
 
-            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleIdAsync(coreActivityId, staffId);
+            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleAndStaffAsync(coreActivityId, staffId);
 
             var optional = await _unitOfWork.ActivitySchedules.GetOptionalByCoreAsync(coreActivityId);
 
@@ -129,6 +129,31 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return _mapper.Map<IEnumerable<CamperSummaryDto>>(finalCampers);
         }
+
+        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId)
+        {
+            var core = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreActivityId)
+                ?? throw new KeyNotFoundException("Core activity not found.");
+
+            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleIdAsync(coreActivityId);
+
+            var optional = await _unitOfWork.ActivitySchedules.GetOptionalByCoreAsync(coreActivityId);
+
+            if (optional == null)
+            {
+                return _mapper.Map<IEnumerable<CamperSummaryDto>>(campersInCore);
+            }
+
+            var camperIdsInOptional = await _unitOfWork.CamperActivities.GetCamperIdsInOptionalAsync(optional.activityScheduleId);
+
+            var finalCampers = campersInCore
+                .Where(c => !camperIdsInOptional.Contains(c.camperId))
+                .ToList();
+
+            return _mapper.Map<IEnumerable<CamperSummaryDto>>(finalCampers);
+        }
+
+
 
         public async Task<CamperResponseDto?> GetCamperByIdAsync(int id)
         {

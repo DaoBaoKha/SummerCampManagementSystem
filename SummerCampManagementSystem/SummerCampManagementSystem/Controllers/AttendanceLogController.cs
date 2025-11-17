@@ -174,6 +174,20 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPost]
+        [Route("create-logs-for-closed-camps")]
+        public async Task<IActionResult> CreateAttendanceLogsForClosedCamps()
+        {
+            try
+            {
+                await _attendanceLogService.CreateAttendanceLogsForClosedCampsAsync();
+                return Ok(new { message = "Attendance logs for closed camps created successfully." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
 
+        }
     }
 }
