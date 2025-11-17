@@ -19,17 +19,27 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         public DateOnly Date { get; set; }
 
         [Required(ErrorMessage = "Start Time is required.")]
-        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly StartTime { get; set; }
 
         [Required(ErrorMessage = "End Time is required.")]
-        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly EndTime { get; set; }
 
-        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly? ActualStartTime { get; set; }
 
-        [JsonConverter(typeof(TimeOnlyConverter))]
         public TimeOnly? ActualEndTime { get; set; }
+    }
+
+    public class TransportScheduleSearchDto
+    {
+        public int? VehicleId { get; set; }
+        public int? DriverId { get; set; }
+        public int? RouteId { get; set; }
+        public DateOnly? Date { get; set; }
+        public DateOnly? StartDate { get; set; }
+        public DateOnly? EndDate { get; set; }
+
+        public string? Status { get; set; }
+
+        // add paging here
     }
 }
