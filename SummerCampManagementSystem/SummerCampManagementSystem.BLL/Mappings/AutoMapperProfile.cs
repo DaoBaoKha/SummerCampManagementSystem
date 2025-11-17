@@ -98,6 +98,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.user.isActive))
                 .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId)); 
 
+            CreateMap<Driver, DriverNameDto>()
+                .ForMember(dest => dest.DriverId, opt => opt.MapFrom(src => src.driverId))
+                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.user.lastName + " " + src.user.firstName));
+
+
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();
             CreateMap<HealthRecord, HealthRecordResponseDto>();
@@ -178,6 +183,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Route, RouteResponseDto>()
                 .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
+            CreateMap<Route, RouteNameDto>()
+                .ForMember(dest => dest.routeId, opt => opt.MapFrom(src => src.routeId))
+                .ForMember(dest => dest.routeName, opt => opt.MapFrom(src => src.routeName));
+
 
             //Activity mappings
             CreateMap<Activity, ActivityResponseDto>();
@@ -250,6 +259,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Vehicle mappings
             CreateMap<VehicleRequestDto, Vehicle>();
             CreateMap<Vehicle, VehicleResponseDto>();
+            CreateMap<Vehicle, VehicleNameDto>()
+                .ForMember(dest => dest.vehicleId, opt => opt.MapFrom(src => src.vehicleId))
+                .ForMember(dest => dest.vehicleName, opt => opt.MapFrom(src => src.vehicleName));
 
             //VehicleType mappings
             CreateMap<VehicleTypeRequestDto, VehicleType>()
@@ -304,12 +316,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.actualEndTime, opt => opt.MapFrom(src => src.ActualEndTime));
 
             CreateMap<TransportSchedule, TransportScheduleResponseDto>()
-                .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src =>
-                    src.route != null ? src.route.routeName : "N/A"))
-                .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src =>
-                    src.driver != null && src.driver.user != null
-                        ? src.driver.user.lastName + " " + src.driver.user.firstName
-                        : "N/A"));
+                .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.route != null ? src.route : null))
+
+                .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src => src.driver != null ? src.driver : null))
+
+                .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.vehicle != null ? src.vehicle : null));
 
             // UserAccount mappings
             CreateMap<UserAccount, UserResponseDto>()

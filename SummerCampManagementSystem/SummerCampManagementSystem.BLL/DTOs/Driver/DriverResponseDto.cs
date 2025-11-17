@@ -31,6 +31,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.Driver
         public string DriverAddress { get; set; } = string.Empty;
     }
 
+    public class DriverNameDto
+    {
+        public int DriverId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+    }
+
     public class DriverRegisterResponseDto : RegisterUserResponseDto
     {
         public DriverDetailsDto? DriverDetails { get; set; }

@@ -12,11 +12,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly CampEaseDatabaseContext _context;
 
-        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper)
+        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper, CampEaseDatabaseContext context)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _context = context;
         }
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
@@ -52,13 +54,65 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<TransportScheduleResponseDto>(schedule);
         }
 
-        public async Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByRouteAndDateAsync(int routeId, DateOnly date)
+        public async Task<IEnumerable<TransportScheduleResponseDto>> GetAllSchedulesAsync()
         {
-            var schedules = await GetSchedulesWithIncludes()
-                                 .Where(s => s.routeId == routeId && s.date == date)
-                                 .ToListAsync();
-
+            var schedules = await GetSchedulesWithIncludes().ToListAsync();
             return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto)
+        {
+            IQueryable<TransportSchedule> query = _context.TransportSchedules;
+
+            // make sure searchDto is not null
+            if (searchDto == null)
+            {
+                searchDto = new TransportScheduleSearchDto();
+            }
+
+            if (searchDto.VehicleId.HasValue && searchDto.VehicleId.Value > 0)
+            {
+                query = query.Where(t => t.vehicleId == searchDto.VehicleId.Value);
+            }
+
+            if (searchDto.DriverId.HasValue && searchDto.DriverId.Value > 0)
+            {
+                query = query.Where(t => t.driverId == searchDto.DriverId.Value);
+            }
+
+            if (searchDto.RouteId.HasValue && searchDto.RouteId.Value > 0)
+            {
+                query = query.Where(t => t.routeId == searchDto.RouteId.Value);
+            }
+
+            if (searchDto.Date.HasValue)
+            {
+                query = query.Where(t => t.date == searchDto.Date.Value);
+            }
+            else
+            {
+                if (searchDto.StartDate.HasValue)
+                {
+                    query = query.Where(t => t.date >= searchDto.StartDate.Value);
+                }
+                if (searchDto.EndDate.HasValue)
+                {
+                    query = query.Where(t => t.date <= searchDto.EndDate.Value);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchDto.Status))
+            {
+                // use toLower to make case insensitive
+                string statusLower = searchDto.Status.Trim().ToLower();
+                query = query.Where(t => t.status.ToLower() == statusLower);
+            }
+
+            // if no filters provided => get all
+
+            var entities = await query.ToListAsync();
+
+            return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(entities);
         }
 
         public async Task<TransportScheduleResponseDto> UpdateScheduleAsync(int id, TransportScheduleRequestDto requestDto)

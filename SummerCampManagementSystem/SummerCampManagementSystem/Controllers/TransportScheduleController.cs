@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Google.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -65,13 +66,28 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        [HttpGet("search")]
-        public async Task<IActionResult> GetSchedulesByRouteAndDate(
-            [FromQuery] int routeId,
-            [FromQuery] DateOnly date)
+        /// <summary>
+        /// get list or search transport schedules
+        /// </summary>
+        /// <param name="searchDto"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)
         {
-            var schedules = await _scheduleService.GetSchedulesByRouteAndDateAsync(routeId, date);
-            return Ok(schedules);
+            // check if any search criteria is provided
+            if(searchDto.RouteId.HasValue || searchDto.DriverId.HasValue || searchDto.VehicleId.HasValue ||
+               searchDto.Date.HasValue || searchDto.StartDate.HasValue || searchDto.EndDate.HasValue ||
+               !string.IsNullOrEmpty(searchDto.Status))
+            {
+                var searchResults = await _scheduleService.SearchAsync(searchDto);
+                return Ok(searchResults);
+            }
+            else
+            {
+                var allSchedules = await _scheduleService.GetAllSchedulesAsync();
+                return Ok(allSchedules);
+            }
+
         }
 
 

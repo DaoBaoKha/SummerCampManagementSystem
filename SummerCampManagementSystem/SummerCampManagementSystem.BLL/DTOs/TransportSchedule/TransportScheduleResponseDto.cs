@@ -1,4 +1,7 @@
-﻿using SummerCampManagementSystem.Core.Enums;
+﻿using SummerCampManagementSystem.BLL.DTOs.Driver;
+using SummerCampManagementSystem.BLL.DTOs.Route;
+using SummerCampManagementSystem.BLL.DTOs.Vehicle;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
 {
@@ -9,9 +12,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         public int DriverId { get; set; }
         public int VehicleId { get; set; }
 
-        public string RouteName { get; set; } = string.Empty; 
-        public string DriverFullName { get; set; } = string.Empty;
-        public string VehicleLicensePlate { get; set; } = string.Empty; 
+        public RouteNameDto RouteName { get; set; }
+        public DriverNameDto DriverFullName { get; set; }
+        public VehicleNameDto VehicleName { get; set; }
 
         public DateOnly Date { get; set; }
         public TimeOnly StartTime { get; set; }

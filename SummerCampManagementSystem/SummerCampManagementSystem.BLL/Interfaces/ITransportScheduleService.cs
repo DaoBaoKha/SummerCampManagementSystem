@@ -8,7 +8,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<TransportScheduleResponseDto> GetScheduleByIdAsync(int id);
         Task<TransportScheduleResponseDto> UpdateScheduleAsync(int id, TransportScheduleRequestDto requestDto);
         Task<bool> DeleteScheduleAsync(int id);
-        Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByRouteAndDateAsync(int routeId, DateOnly date);
+        Task<IEnumerable<TransportScheduleResponseDto>> GetAllSchedulesAsync();
+        Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto); 
         Task<TransportScheduleResponseDto> UpdateActualTimeAsync(int id, TimeOnly? actualStartTime, TimeOnly? actualEndTime);
     }
 }
