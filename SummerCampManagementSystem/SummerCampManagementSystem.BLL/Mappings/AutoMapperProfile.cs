@@ -19,6 +19,7 @@ using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
@@ -168,6 +169,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<RegistrationOptionalActivity, OptionalActivityChoiceSummaryDto>()
                 .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activitySchedule.activity.name));
 
+
+            CreateMap<RegistrationOptionalActivity, RegistrationOptionalActivityResponseDto>();
+            CreateMap<RegistrationOptionalActivity, RegistrationOptionalActivitySearchDto>();
+
             //Route mappings
             CreateMap<RouteRequestDto, Route>();
             CreateMap<Route, RouteResponseDto>()
@@ -305,8 +310,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     src.driver != null && src.driver.user != null
                         ? src.driver.user.lastName + " " + src.driver.user.firstName
                         : "N/A"));
-
-
 
             // UserAccount mappings
             CreateMap<UserAccount, UserResponseDto>()
