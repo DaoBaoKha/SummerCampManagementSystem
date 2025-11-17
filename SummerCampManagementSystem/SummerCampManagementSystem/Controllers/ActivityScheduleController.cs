@@ -125,7 +125,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpGet("/camp/{campId}/camper/{camperId}")]
+        [HttpGet("camp/{campId}/camper/{camperId}")]
         public async Task<IActionResult> GetByCamperAndCamp(int campId, int camperId)
         {
             try

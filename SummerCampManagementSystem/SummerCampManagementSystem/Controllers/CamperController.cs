@@ -133,7 +133,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [Authorize(Roles = "User")]             
         [HttpPost]
-        public async Task<IActionResult> Create(CamperRequestDto dto)
+        public async Task<IActionResult> Create([FromForm] CamperRequestDto dto)
         {
             if (!ModelState.IsValid)
             {
