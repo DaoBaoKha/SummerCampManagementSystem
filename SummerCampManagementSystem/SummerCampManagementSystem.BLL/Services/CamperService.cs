@@ -15,13 +15,15 @@ namespace SummerCampManagementSystem.BLL.Services
     public class CamperService : ICamperService
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
         private readonly IMapper _mapper;
 
 
-        public CamperService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CamperService(IUnitOfWork unitOfWork, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _uploadSupabaseService = uploadSupabaseService;
         }
 
         public async Task<IEnumerable<CamperResponseDto>> GetByParentIdAsync(int parentId)
@@ -39,6 +41,13 @@ namespace SummerCampManagementSystem.BLL.Services
             var camper = _mapper.Map<Camper>(dto);
             await _unitOfWork.Campers.CreateAsync(camper);
             await _unitOfWork.CommitAsync();
+
+            if (dto.avatar != null)
+            {
+                var url = await _uploadSupabaseService.UploadCamperPhotoAsync(camper.camperId, dto.avatar);
+                camper.avatar = url;
+                await _unitOfWork.CommitAsync();
+            }
 
             if (dto.HealthRecord != null)
             {
