@@ -19,6 +19,7 @@ using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
@@ -121,6 +122,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
                           opt => opt.MapFrom(src => src.campTypeId));
 
             CreateMap<CampRequestDto, Camp>();
+            CreateMap<Camp, CampSummaryDto>()
+                .ForMember(dest => dest.CampId,
+                           opt => opt.MapFrom(src => src.campId));
 
 
             // Location mappings
@@ -255,6 +259,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
                 .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
+
+            // RegistrationCamper mappings
+            CreateMap<RegistrationCamperResponseDto, RegistrationCamper>();
+            CreateMap<RegistrationCamper, RegistrationCamperResponseDto>()
+                .ForMember(dest => dest.Camp,
+                           opt => opt.MapFrom(src => src.registration.camp));
 
             //Vehicle mappings
             CreateMap<VehicleRequestDto, Vehicle>();
