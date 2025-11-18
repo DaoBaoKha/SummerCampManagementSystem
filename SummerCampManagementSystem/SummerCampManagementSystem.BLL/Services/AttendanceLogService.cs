@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -358,6 +359,31 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<AttendanceLogResponseDto>(attendanceLog);
         }
 
+        public async Task UpdateAttendanceLogAsync(List<AttendanceLogUpdateRequest> updates, int staffId)
+        {
+            if (updates == null || updates.Count == 0)
+                return;
+
+            var logIds = updates.Select(u => u.AttendanceLogId).ToList();
+
+            // Lấy tất cả log 1 lần
+            var logs = await _unitOfWork.AttendanceLogs.GetQueryable()
+                .Where(l => logIds.Contains(l.attendanceLogId))
+                .ToListAsync();
+
+            foreach (var log in logs)
+            {
+                var req = updates.First(u => u.AttendanceLogId == log.attendanceLogId);
+                log.participantStatus = req.participantStatus.ToString();
+                log.timestamp = DateTime.UtcNow;
+                log.staffId = staffId;
+                log.note = req.Note;
+                await _unitOfWork.AttendanceLogs.UpdateAsync(log);
+
+            }
+
+            await _unitOfWork.CommitAsync();
+        }
 
 
         public async Task CreateAttendanceLogsForClosedCampsAsync()
@@ -370,10 +396,7 @@ namespace SummerCampManagementSystem.BLL.Services
             foreach (var camp in closedCamps)
             {
                 // 2. Lấy tất cả activity schedules của camp
-                var activities = await _unitOfWork.ActivitySchedules.GetQueryable()
-                    .Include(a => a.activity)
-                    .Where(a => a.activity.campId == camp.campId)
-                    .ToListAsync();
+                var activities = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(camp.campId);
 
                 foreach (var activity in activities)
                 {
