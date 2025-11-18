@@ -101,33 +101,9 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId)
         {
             var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
-                ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
-          
+                ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found."); 
             var campers = await _unitOfWork.Campers.GetCampersByOptionalActivityId(optionalActivityId);
             return _mapper.Map<IEnumerable<CamperSummaryDto>>(campers);
-        }
-
-        public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId)
-        {
-            var core = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreActivityId)
-                ?? throw new KeyNotFoundException("Core activity not found.");
-
-            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleAndStaffAsync(coreActivityId, staffId);
-
-            var optional = await _unitOfWork.ActivitySchedules.GetOptionalByCoreAsync(coreActivityId);
-
-            if(optional == null)
-            {
-                return _mapper.Map<IEnumerable<CamperSummaryDto>>(campersInCore);
-            }
-
-            var camperIdsInOptional = await _unitOfWork.CamperActivities.GetCamperIdsInOptionalAsync(optional.activityScheduleId);
-
-            var finalCampers = campersInCore
-                .Where(c => !camperIdsInOptional.Contains(c.camperId))
-                .ToList();
-
-            return _mapper.Map<IEnumerable<CamperSummaryDto>>(finalCampers);
         }
 
         public async Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId)
@@ -153,7 +129,79 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperSummaryDto>>(finalCampers);
         }
 
+        public async Task<IEnumerable<CamperAttendanceDto>> GetCampersByOptionalScheduleAndStaffAsync(int optionalActivityId)
+        {
+            var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
+                ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
+          
+            var campers = await _unitOfWork.Campers.GetCampersByOptionalActivityId(optionalActivityId);
 
+            var logs = await _unitOfWork.AttendanceLogs.GetAttendanceLogsByScheduleId(optionalActivityId);
+
+            var result = campers.Select(c =>
+            {
+                var log = logs.First(l => l.camperId == c.camperId);
+
+                return new CamperAttendanceDto
+                {
+                    CamperId = c.camperId,
+                    CamperName = c.camperName,
+                    Gender = c.gender,
+                    Dob = c.dob,
+                    avatar = c.avatar,
+                    AttendanceLogId = log.attendanceLogId,
+                    Status = log.participantStatus
+                };
+            });
+            return result;
+        }
+
+        public async Task<IEnumerable<CamperAttendanceDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId)
+        {
+            var core = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreActivityId)
+                ?? throw new KeyNotFoundException("Core activity not found.");
+
+            var campersInCore = await _unitOfWork.Campers.GetCampersByCoreScheduleAndStaffAsync(coreActivityId, staffId);
+
+            var optional = await _unitOfWork.ActivitySchedules.GetOptionalByCoreAsync(coreActivityId);
+
+            List<Camper> finalCampers;
+
+            if (optional == null)
+            {
+                finalCampers = campersInCore.ToList();
+            }
+            else
+            {
+                var camperIdsInOptional = await _unitOfWork.CamperActivities.GetCamperIdsInOptionalAsync(optional.activityScheduleId);
+
+                finalCampers = campersInCore
+                    .Where(c => !camperIdsInOptional.Contains(c.camperId))
+                    .ToList();
+            }
+
+            // Lấy toàn bộ attendance log của core activity
+            var logs = await _unitOfWork.AttendanceLogs.GetAttendanceLogsByScheduleId(coreActivityId);
+
+            // JOIN
+            var result = finalCampers.Select(c =>
+            {
+                var log = logs.First(l => l.camperId == c.camperId);
+
+                return new CamperAttendanceDto
+                {
+                    CamperId = c.camperId,
+                    CamperName = c.camperName,
+                    Gender = c.gender,
+                    Dob = c.dob,
+                    avatar = c.avatar,
+                    AttendanceLogId = log.attendanceLogId,
+                    Status = log.participantStatus
+                };
+            });
+
+            return result;
+        }
 
         public async Task<CamperResponseDto?> GetCamperByIdAsync(int id)
         {

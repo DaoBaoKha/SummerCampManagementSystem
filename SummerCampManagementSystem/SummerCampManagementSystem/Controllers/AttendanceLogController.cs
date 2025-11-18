@@ -40,72 +40,8 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Staff")]
-        [HttpPost("core-activity/list-attendance")]
-        public async Task<IActionResult> CoreActivityAttendance([FromBody] AttendanceLogListRequestDto dto)
-        {
-            var staffId = _userContextService.GetCurrentUserId();
-            var result = await _attendanceLogService.CoreActivityAttendanceAsync(dto, staffId.Value, true);
-            return Ok(result);
-        }
-
-
         // POST api/<AttendanceLogController>
-        [HttpPost]
-        [Route("core-activity")]
-
-        public async Task<IActionResult> Create([FromBody] AttendanceLogRequestDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                var result = await _attendanceLogService.CoreActivityAttendanceAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        [Route("optional-activity")]
-        public async Task<IActionResult> CreateOptionalActivityLog([FromBody] AttendanceLogRequestDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                var result = await _attendanceLogService.OptionalActivityAttendanceAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
+      
 
         /// <summary>
         /// attendance log for check-in and check-out activity
@@ -147,9 +83,19 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost]
-        [Route("resting-activity")]
-        public async Task<IActionResult> RestingActivityLog([FromBody] AttendanceLogRequestDto dto)
+
+        /// <summary>
+        /// Update status attendancelog
+        /// </summary>
+
+        /// <remarks>
+        /// Dùng api getCampersByCoreActivity hoặc byOptional để lấy attendanceLogId
+        /// </remarks>
+
+       
+        [Authorize(Roles = "Staff")]
+        [HttpPut]
+        public async Task<IActionResult> Update([FromBody] List<AttendanceLogUpdateRequest> updates)
         {
             if (!ModelState.IsValid)
             {
@@ -157,8 +103,9 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             try
             {
-                var result = await _attendanceLogService.RestingAttendanceAsync(dto);
-                return CreatedAtAction(nameof(GetById), new { id = result.AttendanceLogId }, result);
+                var staffId = _userContextService.GetCurrentUserId();
+                await _attendanceLogService.UpdateAttendanceLogAsync(updates, staffId.Value);
+                return NoContent();
             }
             catch (KeyNotFoundException ex)
             {
@@ -175,13 +122,13 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
-        [Route("create-logs-for-closed-camps")]
+        [Route("create-logs-for-registrationClosed-camps")]
         public async Task<IActionResult> CreateAttendanceLogsForClosedCamps()
         {
             try
             {
                 await _attendanceLogService.CreateAttendanceLogsForClosedCampsAsync();
-                return Ok(new { message = "Attendance logs for closed camps created successfully." });
+                return Ok(new { message = "Attendance logs for registrationClosed camps created successfully." });
             }
             catch (Exception ex)
             {
