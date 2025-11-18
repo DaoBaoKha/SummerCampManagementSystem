@@ -105,7 +105,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // use toLower to make case insensitive
                 string statusLower = searchDto.Status.Trim().ToLower();
-                query = query.Where(t => t.status.ToLower() == statusLower);
+                query = query.Where(t => t.status.ToLower().Contains(statusLower));
             }
 
             // if no filters provided => get all
