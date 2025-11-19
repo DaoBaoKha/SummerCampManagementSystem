@@ -381,6 +381,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
+    
+    // Add custom DateTime converter for Vietnam timezone
+    options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
 });
 
 

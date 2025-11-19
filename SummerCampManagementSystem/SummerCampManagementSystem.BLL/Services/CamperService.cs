@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -53,7 +54,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                 healthRecord.camperId = camper.camperId;
-                healthRecord.createAt = DateTime.UtcNow;
+                healthRecord.createAt = TimezoneHelper.GetVietnamNow();
 
                 await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
                 camper.HealthRecord = healthRecord;
