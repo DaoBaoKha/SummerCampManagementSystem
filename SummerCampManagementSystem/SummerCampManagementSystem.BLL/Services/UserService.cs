@@ -22,14 +22,17 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
 
-        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache, IEmailService emailService, IMapper mapper)
+        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache,
+            IEmailService emailService, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _config = config;
             _cache = memoryCache;
             _emailService = emailService;
             _mapper = mapper;
+            _uploadSupabaseService = uploadSupabaseService;
         }
 
 
@@ -188,6 +191,15 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
 
+            if (model.Avatar != null)
+            {
+                var avatarUrl = await _uploadSupabaseService.UploadUserAvatarAsync(newUser.userId, model.Avatar);
+                newUser.avatar = avatarUrl;
+
+                await _unitOfWork.Users.UpdateAsync(newUser);
+                await _unitOfWork.CommitAsync();
+            }
+
             var otp = new Random().Next(100000, 999999).ToString();
 
             // store otp in cache for 5 mins
@@ -221,6 +233,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.Users.CreateAsync(newUser);
             await _unitOfWork.CommitAsync();
+
+            if (model.Avatar != null)
+            {
+                var avatarUrl = await _uploadSupabaseService.UploadStaffAvatarAsync(newUser.userId, model.Avatar);
+                newUser.avatar = avatarUrl;
+
+                await _unitOfWork.Users.UpdateAsync(newUser);
+                await _unitOfWork.CommitAsync();
+            }
 
             await _emailService.SendAccountCreatedEmailAsync(newUser.email, newUser.role.ToString());
 
