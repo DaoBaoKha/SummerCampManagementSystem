@@ -54,7 +54,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                 healthRecord.camperId = camper.camperId;
-                healthRecord.createAt = TimezoneHelper.GetVietnamNow();
+                healthRecord.createAt = DateTime.UtcNow;
 
                 await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
                 camper.HealthRecord = healthRecord;

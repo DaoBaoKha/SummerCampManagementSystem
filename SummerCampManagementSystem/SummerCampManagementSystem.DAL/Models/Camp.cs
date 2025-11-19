@@ -50,6 +50,9 @@ public partial class Camp
     [StringLength(255)]
     public string image { get; set; }
 
+    [Column(TypeName = "datetime")]
+    public DateTime? createdAt { get; set; }
+
     public int? createBy { get; set; }
 
     public int? locationId { get; set; }

@@ -24,6 +24,8 @@ public partial class Blog
 
     public bool? isActive { get; set; }
 
+    public string imageUrl { get; set; }
+
     [Column(TypeName = "datetime")]
     public DateTime? createAt { get; set; }
 

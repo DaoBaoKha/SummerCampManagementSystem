@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -127,6 +128,12 @@ namespace SummerCampManagementSystem.BLL.Services
             var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
 
             var schedule = _mapper.Map<ActivitySchedule>(dto);
+
+            if (schedule.startTime.HasValue) 
+                schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+
+            if (schedule.endTime.HasValue)
+                schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
 
             schedule.currentCapacity = currentCapacity;
 
@@ -288,6 +295,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _mapper.Map(dto, schedule);
 
+            if (schedule.startTime.HasValue)
+                schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+
+            if (schedule.endTime.HasValue)
+                schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
+
             schedule.currentCapacity = currentCapacity;
 
             await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
@@ -361,9 +374,21 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByDateAsync(DateTime fromDate, DateTime toDate)
         {
+            var fromUtc = fromDate.ToUtcForStorage();
+            var toUtc = toDate.ToUtcForStorage();
+
             var schedules = await _unitOfWork.ActivitySchedules
-                .GetActivitySchedulesByDateAsync(fromDate, toDate);
-            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+                .GetActivitySchedulesByDateAsync(fromUtc, toUtc);
+
+            var mapped = _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+
+            foreach (var item in mapped)
+            {
+                item.StartTime = item.StartTime.ToVietnamTime();
+                item.EndTime = item.EndTime.ToVietnamTime();
+            }
+
+            return mapped;
         }
 
         public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)

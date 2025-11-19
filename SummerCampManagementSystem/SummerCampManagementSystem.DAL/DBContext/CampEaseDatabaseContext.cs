@@ -189,8 +189,6 @@ public partial class CampEaseDatabaseContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ActivitySchedule_Activity");
 
-            entity.HasOne(d => d.livestream).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Livestream");
-
             entity.HasOne(d => d.location).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Location");
 
             entity.HasOne(d => d.staff).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Staff");
