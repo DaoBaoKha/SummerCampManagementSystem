@@ -1,4 +1,6 @@
 ﻿using Google.Cloud.SecretManager.V1;
+using Hangfire;
+using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -419,18 +421,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
             },
 
-              OnForbidden = async context =>
-              {
-                  context.Response.StatusCode = StatusCodes.Status403Forbidden;
-                  context.Response.ContentType = "application/json";
-                  var responseBody = new 
-                  {
-                      status = 403,
-                      error = "Forbidden",
-                      Message = "You do not have permission to access this resource"
-                  };
-                  await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
-              }
+            OnForbidden = async context =>
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                var responseBody = new
+                {
+                    status = 403,
+                    error = "Forbidden",
+                    Message = "You do not have permission to access this resource"
+                };
+                await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
+            }
         };
     });
 
@@ -468,6 +470,27 @@ builder.Services.AddSwaggerGen(option =>
     option.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
 });
 
+// Hangfire Configuration
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.Zero,
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true
+    }));
+
+// Add Hangfire server
+builder.Services.AddHangfireServer(options =>
+{
+    options.ServerName = "CampEaseServer";
+    options.WorkerCount = 5; // Number of background workers
+    options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
+});
 var app = builder.Build();
 
 // cors
@@ -499,7 +522,7 @@ app.UseExceptionHandler(errorApp =>
         {
             KeyNotFoundException => StatusCodes.Status404NotFound,
             ArgumentException => StatusCodes.Status400BadRequest,
-            InvalidOperationException => StatusCodes.Status409Conflict, 
+            InvalidOperationException => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status500InternalServerError
         };
 
@@ -515,12 +538,11 @@ app.UseExceptionHandler(errorApp =>
                 409 => "Conflict",
                 _ => "Internal Server Error"
             },
-            message = ex?.Message,
             path = context.Request.Path
         });
     });
 });
-
+app.UseHangfireDashboard("/hangfire");
 
 app.UseAuthentication();
 app.UseAuthorization();
