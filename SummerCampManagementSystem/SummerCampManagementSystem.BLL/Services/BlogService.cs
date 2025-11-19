@@ -62,7 +62,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 title = blogPost.Title,
                 content = blogPost.Content,
                 authorId = authorId, 
-                createAt = DateTime.UtcNow,
+                createAt = TimezoneHelper.GetVietnamNow(),
                 isActive = true,
             };
 
