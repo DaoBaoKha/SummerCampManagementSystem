@@ -16,7 +16,11 @@ public partial class ActivitySchedule
 
     public int activityId { get; set; }
 
+    public bool isOptional { get; set; }
+
     public int? staffId { get; set; }
+
+    public int? locationId { get; set; }
 
     [Column(TypeName = "datetime")]
     public DateTime? startTime { get; set; }
@@ -29,15 +33,11 @@ public partial class ActivitySchedule
 
     public bool? isLivestream { get; set; }
 
+    public int? livestreamId { get; set; }
+
     public int? coreActivityId { get; set; }
 
     public int? maxCapacity { get; set; }
-
-    public bool isOptional { get; set; }
-
-    public int? locationId { get; set; }
-
-    public int? livestreamId { get; set; }
 
     public int? currentCapacity { get; set; }
 
@@ -56,10 +56,6 @@ public partial class ActivitySchedule
     [ForeignKey("activityId")]
     [InverseProperty("ActivitySchedules")]
     public virtual Activity activity { get; set; }
-
-    [ForeignKey("livestreamId")]
-    [InverseProperty("ActivitySchedules")]
-    public virtual Livestream livestream { get; set; }
 
     [ForeignKey("locationId")]
     [InverseProperty("ActivitySchedules")]

@@ -47,6 +47,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (newCamp.registrationStartDate.HasValue) newCamp.registrationStartDate = newCamp.registrationStartDate.Value.ToUtcForStorage();
             if (newCamp.registrationEndDate.HasValue) newCamp.registrationEndDate = newCamp.registrationEndDate.Value.ToUtcForStorage();
 
+            newCamp.createdAt = DateTime.UtcNow;
+
+
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
 
