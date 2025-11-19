@@ -61,7 +61,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterUserRequestDto model)
+        public async Task<IActionResult> Register([FromForm] RegisterUserRequestDto model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -76,7 +76,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpPost("create-staff")]
         //[Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateStaff([FromBody] RegisterStaffRequestDto dto)
+        public async Task<IActionResult> CreateStaff([FromForm] RegisterStaffRequestDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

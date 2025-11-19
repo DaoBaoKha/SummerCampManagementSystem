@@ -13,12 +13,14 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
+        private readonly IUploadSupabaseService _supabaseService;
 
-        public DriverService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService)
+        public DriverService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService, IUploadSupabaseService supabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userService = userService;
+            _supabaseService = supabaseService;
         }
 
         public async Task<DriverRegisterResponseDto> RegisterDriverAsync(DriverRegisterDto model)
@@ -36,6 +38,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = _userService.HashPassword(model.Password), 
+                avatar = string.Empty,
                 dob = model.Dob,
                 role = UserRole.Driver.ToString(),
                 isActive = true,
@@ -51,7 +54,17 @@ namespace SummerCampManagementSystem.BLL.Services
             driverEntity.userId = newUserId;
 
             await _unitOfWork.Drivers.CreateAsync(driverEntity);
-            await _unitOfWork.CommitAsync(); 
+            await _unitOfWork.CommitAsync();
+
+            if (model.Avatar != null)
+            {
+                // upload avatar to Supabase using the new userId as identifier
+                var avatarUrl = await _supabaseService.UploadDriverAvatarAsync(newUserId, model.Avatar);
+
+                newUserAccount.avatar = avatarUrl;
+                await _unitOfWork.Users.UpdateAsync(newUserAccount);
+                await _unitOfWork.CommitAsync();
+            }
 
             return new DriverRegisterResponseDto
             {

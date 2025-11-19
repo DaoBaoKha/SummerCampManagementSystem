@@ -368,7 +368,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _logger.LogInformation($"Found {pendingCamps.Count} camps pending status check.");
 
-            DateTime vietnamNow = TimezoneHelper.GetVietnamNow();
+            DateTime utcNow = DateTime.UtcNow;
 
             foreach (var camp in pendingCamps)
             {
@@ -385,7 +385,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // pubished -> OpenForRegistration 
                     if (currentStatus == CampStatus.Published &&
                         camp.registrationStartDate.HasValue &&
-                        camp.registrationStartDate.Value.ToUniversalTime() <= vietnamNow)
+                        camp.registrationStartDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.OpenForRegistration;
                     }
@@ -393,7 +393,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // openForRegistration -> RegistrationClosed 
                     else if (currentStatus == CampStatus.OpenForRegistration &&
                              camp.registrationEndDate.HasValue &&
-                             camp.registrationEndDate.Value.ToUniversalTime() <= vietnamNow)
+                             camp.registrationEndDate.Value <= utcNow)
                     {
 
                         /*
@@ -408,7 +408,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // registrationClosed -> InProgress
                     else if (currentStatus == CampStatus.RegistrationClosed &&
                              camp.startDate.HasValue &&
-                             camp.startDate.Value.ToUniversalTime() <= vietnamNow)
+                             camp.startDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.InProgress;
                     }
@@ -416,7 +416,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // inProgress -> Completed
                     else if (currentStatus == CampStatus.InProgress &&
                              camp.endDate.HasValue &&
-                             camp.endDate.Value.ToUniversalTime() <= vietnamNow)
+                             camp.endDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.Completed;
                     }
