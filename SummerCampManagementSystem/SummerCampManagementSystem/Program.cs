@@ -191,8 +191,10 @@ if (builder.Environment.IsProduction())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Cannot load secrets from GCP: {ex.Message}");
-        Console.WriteLine("Using local appsettings.json values.");
+        // Log and rethrow to prevent application from starting
+        var errorMsg = $"CRITICAL: Cannot load secrets from GCP. Application cannot start. Error: {ex.Message}";
+        Console.WriteLine(errorMsg);
+        throw new Exception(errorMsg, ex);
     }
 }
 else
@@ -218,7 +220,7 @@ builder.Services.AddSingleton(supabase);
 
 
 // Configure AppSettings
-builder.Services.Configure<AppSetting>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.Configure<AppSetting>(builder.Configuration.GetSection("AppSetting"));
 
 
 // DI
