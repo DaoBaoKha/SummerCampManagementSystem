@@ -24,10 +24,10 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
-        private readonly ILogger<UserAccount> _logger;
+        private readonly ILogger<UserService> _logger;
 
         public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache,
-            IEmailService emailService, IMapper mapper, ILogger<UserAccount> logger)
+            IEmailService emailService, IMapper mapper, ILogger<UserService> logger)
         {
             _unitOfWork = unitOfWork;
             _config = config;
@@ -103,9 +103,20 @@ namespace SummerCampManagementSystem.BLL.Services
             var jwtIssuer = _config["Jwt:Issuer"];
             var jwtAudience = _config["Jwt:Audience"];
 
-            if (string.IsNullOrEmpty(jwtKey) || string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
+            if (string.IsNullOrEmpty(jwtKey))
             {
-                throw new InvalidOperationException("JWT configuration is incomplete.");
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Key is null or empty. Check Google Secret Manager 'jwt-secret'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Key is missing.");
+            }
+            if (string.IsNullOrEmpty(jwtIssuer))
+            {
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Issuer is null or empty. Check Google Secret Manager 'jwt-issuer'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Issuer is missing.");
+            }
+            if (string.IsNullOrEmpty(jwtAudience))
+            {
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Audience is null or empty. Check Google Secret Manager 'jwt-audience'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Audience is missing.");
             }
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
