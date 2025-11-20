@@ -12,7 +12,7 @@ namespace SummerCampManagementSystem.API.Controllers
     public class AccommodationController : ControllerBase
     {
         private readonly IAccommodationService _accommodationService;
-        private readonly IUserContextService _userContextService;   
+        private readonly IUserContextService _userContextService;
         public AccommodationController(IAccommodationService accommodationService, IUserContextService userContextService)
         {
             _accommodationService = accommodationService;
@@ -176,6 +176,24 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
             }
 
+        }
+
+        [HttpDelete("{accommodationId}")]
+        public async Task<IActionResult> DeleteAccommodation(int accommodationId)
+        {
+            try
+            {
+                var result = await _accommodationService.DeleteAccommodationAsync(accommodationId);
+                return Ok(new { message = "Xóa chỗ ở thành công." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
+            }
         }
     }
 }
