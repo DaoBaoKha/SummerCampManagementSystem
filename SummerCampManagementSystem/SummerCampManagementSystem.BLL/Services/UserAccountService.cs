@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
@@ -17,9 +18,10 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUserService _userService;
         private readonly IEmailService _emailService; 
         private readonly IMemoryCache _cache;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
 
         public UserAccountService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService,
-            IUserService userService, IEmailService emailService, IMemoryCache cache)
+            IUserService userService, IEmailService emailService, IMemoryCache cache, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
@@ -27,6 +29,7 @@ namespace SummerCampManagementSystem.BLL.Services
             _userService = userService;
             _emailService = emailService;
             _cache = cache;
+            _uploadSupabaseService = uploadSupabaseService;
         }
 
         private int GetRequiredUserId()
@@ -225,6 +228,26 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return (true, "Mật khẩu đã được thay đổi thành công. Vui lòng đăng nhập lại với mật khẩu mới.");
+        }
+
+        public async Task<string> UpdateUserAvatarAsync(int userId, IFormFile file)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+            var avatarUrl = await _uploadSupabaseService.UploadUserAvatarAsync(userId, file);
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                throw new Exception("Upload thất bại. Không thể lấy được URL ảnh.");
+            }
+
+            user.avatar = avatarUrl;
+
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            return avatarUrl;
         }
     }
 }

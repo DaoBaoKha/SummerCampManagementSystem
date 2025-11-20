@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Driver;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using System;
 using System.Collections.Generic;
@@ -16,6 +17,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<DriverResponseDto> UpdateDriverAsync(int driverId, DriverRequestDto driverRequestDto);
         Task<bool> DeleteDriverAsync(int driverId);
         Task<DriverRegisterResponseDto> RegisterDriverAsync(DriverRegisterDto model);
-
+        Task<string> UpdateDriverAvatarAsync(int userId, IFormFile file);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.UnitOfWork;
 using Supabase;
 
 namespace SummerCampManagementSystem.BLL.Services
@@ -7,10 +8,12 @@ namespace SummerCampManagementSystem.BLL.Services
     public class UploadSupabaseService : IUploadSupabaseService
     {
         private readonly Client _client;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UploadSupabaseService(Client client)
+        public UploadSupabaseService(Client client, IUnitOfWork unitOfWork)
         {
             _client = client;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<string?> UploadCamperPhotoAsync(int camperId, IFormFile? file)
@@ -27,18 +30,18 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "user-avatars", userId.ToString());
         }
 
-        public async Task<string?> UploadDriverAvatarAsync(int driverId, IFormFile? file)
+        public async Task<string?> UploadDriverAvatarAsync(int userId, IFormFile? file)
         {
             // Bucket: driver-avatars
             // Path: {driverId}/filename
-            return await UploadFileInternalAsync(file, "driver-avatars", driverId.ToString());
+            return await UploadFileInternalAsync(file, "driver-avatars", userId.ToString());
         }
 
-        public async Task<string?> UploadStaffAvatarAsync(int staffId, IFormFile? file)
+        public async Task<string?> UploadStaffAvatarAsync(int userId, IFormFile? file)
         {
             // Bucket: staff-avatars
             // Path: {staffId}/filename
-            return await UploadFileInternalAsync(file, "staff-avatars", staffId.ToString());
+            return await UploadFileInternalAsync(file, "staff-avatars", userId.ToString());
         }
 
         public async Task<string?> UploadBlogImageAsync(IFormFile? file)

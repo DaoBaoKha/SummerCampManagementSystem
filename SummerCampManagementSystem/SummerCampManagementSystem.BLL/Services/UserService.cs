@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -173,6 +174,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 return null;
             }
 
+            // default avatar
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"] 
+                               ?? "https://via.placeholder.com/150";
+
             var newUser = new UserAccount
             {
                 firstName = model.FirstName,
@@ -180,7 +185,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
-                avatar = string.Empty,
+                avatar = defaultAvatar,
                 dob = model.Dob,
                 role = UserRole.User.ToString(), // Default role
                 isActive = false,
@@ -189,16 +194,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.Users.CreateAsync(newUser);
             await _unitOfWork.CommitAsync();
-
-
-            if (model.Avatar != null)
-            {
-                var avatarUrl = await _uploadSupabaseService.UploadUserAvatarAsync(newUser.userId, model.Avatar);
-                newUser.avatar = avatarUrl;
-
-                await _unitOfWork.Users.UpdateAsync(newUser);
-                await _unitOfWork.CommitAsync();
-            }
 
             var otp = new Random().Next(100000, 999999).ToString();
 
@@ -226,22 +221,18 @@ namespace SummerCampManagementSystem.BLL.Services
             if (await _unitOfWork.Users.GetUserByEmail(model.Email) != null)
                 return null;
 
+            // default avatar
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"]
+                               ?? "https://via.placeholder.com/150";
+
             var newUser = _mapper.Map<UserAccount>(model);
+            newUser.avatar = defaultAvatar;
             newUser.password = HashPassword(model.Password);
             newUser.isActive = true; // Admin tạo → active sẵn
             newUser.createAt = DateTime.UtcNow;
 
             await _unitOfWork.Users.CreateAsync(newUser);
             await _unitOfWork.CommitAsync();
-
-            if (model.Avatar != null)
-            {
-                var avatarUrl = await _uploadSupabaseService.UploadStaffAvatarAsync(newUser.userId, model.Avatar);
-                newUser.avatar = avatarUrl;
-
-                await _unitOfWork.Users.UpdateAsync(newUser);
-                await _unitOfWork.CommitAsync();
-            }
 
             await _emailService.SendAccountCreatedEmailAsync(newUser.email, newUser.role.ToString());
 
@@ -407,6 +398,5 @@ namespace SummerCampManagementSystem.BLL.Services
 
             };
         }
-
     }
 }

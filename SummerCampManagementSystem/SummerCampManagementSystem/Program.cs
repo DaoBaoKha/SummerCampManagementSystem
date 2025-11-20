@@ -68,6 +68,9 @@ string apiBaseUrl = builder.Configuration["ApiBaseUrl"]?.Trim() ?? "";
 string supabaseUrl = builder.Configuration["Supabase:Url"]?.Trim() ?? "";
 string supabaseKey = builder.Configuration["Supabase:Key"]?.Trim() ?? "";
 
+// Default avatar
+string defaultAvatarUrl = builder.Configuration["DefaultAvatarUrl"]?.Trim() ?? "";
+
 // Load GCP secrets if Production
 if (builder.Environment.IsProduction())
 {
@@ -140,6 +143,9 @@ if (builder.Environment.IsProduction())
             .AccessSecretVersion(new SecretVersionName(projectId, "supabase-key", "latest"))
             .Payload.Data.ToStringUtf8().Trim();
 
+        // default avatar
+        defaultAvatarUrl = client.AccessSecretVersion(new SecretVersionName(projectId, "default-avatar-url", "latest"))
+            .Payload.Data.ToStringUtf8().Trim();
 
 
         var inMemorySettings = new Dictionary<string, string>
@@ -174,9 +180,10 @@ if (builder.Environment.IsProduction())
 
             // Supabase
             {"Supabase:Url", supabaseUrl},
-            {"Supabase:Key", supabaseKey}
+            {"Supabase:Key", supabaseKey},
 
-
+            // Default Avatar
+            {"DefaultAvatarUrl", defaultAvatarUrl}
         };
         builder.Configuration.AddInMemoryCollection(inMemorySettings);
 
@@ -207,6 +214,11 @@ var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
 await supabase.InitializeAsync();
 
 builder.Services.AddSingleton(supabase);
+
+
+
+// Configure AppSettings
+builder.Services.Configure<AppSetting>(builder.Configuration.GetSection("AppSettings"));
 
 
 // DI
