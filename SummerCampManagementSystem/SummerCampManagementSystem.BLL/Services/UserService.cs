@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -23,17 +24,17 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
-        private readonly IUploadSupabaseService _uploadSupabaseService;
+        private readonly ILogger _logger;
 
         public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache,
-            IEmailService emailService, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
+            IEmailService emailService, IMapper mapper, ILogger logger)
         {
             _unitOfWork = unitOfWork;
             _config = config;
             _cache = memoryCache;
             _emailService = emailService;
             _mapper = mapper;
-            _uploadSupabaseService = uploadSupabaseService;
+            _logger = logger;
         }
 
 
@@ -45,11 +46,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (user == null || string.IsNullOrEmpty(user.password) || !VerifyPassword(model.Password, user.password))
                 {
+                    _logger.LogWarning("Login attempt failed for {Email}: Invalid credentials.", model.Email);
                     return (null, "Email hoặc mật khẩu không chính xác!", "INVALID_CREDENTIALS");
                 }
                 
                 if(user.isActive == false)
                 {
+                    _logger.LogWarning("Login attempt blocked for {Email}: Account not active.", model.Email);
                     return (null, "Tài khoản chưa được xác thục. Vui lòng kiểm tra email để kích hoạt tài khoản.", "ACCOUNT_NOT_ACTIVE");
                 }
 
@@ -60,7 +63,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Login failed: {ex.Message}");
+                _logger.LogError(ex, "CRITICAL ERROR during user login for email: {Email}. Full stack trace below.", model.Email);
                 return (null, "Đăng nhập thất bại. Vui lòng thử lại sau.", "INTERNAL_ERROR");
             }
         }
