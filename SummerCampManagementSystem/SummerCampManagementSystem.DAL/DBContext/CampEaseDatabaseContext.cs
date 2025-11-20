@@ -123,7 +123,6 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -188,6 +187,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.activity).WithMany(p => p.ActivitySchedules)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ActivitySchedule_Activity");
+
+            entity.HasOne(d => d.livestream).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Livestream");
 
             entity.HasOne(d => d.location).WithMany(p => p.ActivitySchedules).HasConstraintName("FK_ActivitySchedule_Location");
 
