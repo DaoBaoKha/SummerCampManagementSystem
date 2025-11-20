@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -14,13 +16,16 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMapper _mapper;
         private readonly IUserService _userService;
         private readonly IUploadSupabaseService _supabaseService;
+        private readonly IConfiguration _config; 
 
-        public DriverService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService, IUploadSupabaseService supabaseService)
+        public DriverService(IUnitOfWork unitOfWork, IMapper mapper, IUserService userService,
+            IUploadSupabaseService supabaseService, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userService = userService;
             _supabaseService = supabaseService;
+            _config = configuration;
         }
 
         public async Task<DriverRegisterResponseDto> RegisterDriverAsync(DriverRegisterDto model)
@@ -31,6 +36,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Địa chỉ email đã tồn tại trong hệ thống.");
             }
 
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"]
+                                   ?? "https://via.placeholder.com/150";
+
             var newUserAccount = new UserAccount
             {
                 firstName = model.FirstName,
@@ -38,7 +46,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = _userService.HashPassword(model.Password), 
-                avatar = string.Empty,
+                avatar = defaultAvatar,
                 dob = model.Dob,
                 role = UserRole.Driver.ToString(),
                 isActive = true,
@@ -55,16 +63,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.Drivers.CreateAsync(driverEntity);
             await _unitOfWork.CommitAsync();
-
-            if (model.Avatar != null)
-            {
-                // upload avatar to Supabase using the new userId as identifier
-                var avatarUrl = await _supabaseService.UploadDriverAvatarAsync(newUserId, model.Avatar);
-
-                newUserAccount.avatar = avatarUrl;
-                await _unitOfWork.Users.UpdateAsync(newUserAccount);
-                await _unitOfWork.CommitAsync();
-            }
 
             return new DriverRegisterResponseDto
             {
@@ -125,6 +123,26 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return true;
+        }
+
+        public async Task<string> UpdateDriverAvatarAsync(int userId, IFormFile file)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+            var avatarUrl = await _supabaseService.UploadDriverAvatarAsync(userId, file);
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                throw new Exception("Upload thất bại. Không thể lấy được URL ảnh.");
+            }
+
+            user.avatar = avatarUrl;
+
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            return avatarUrl;
         }
     }
 }

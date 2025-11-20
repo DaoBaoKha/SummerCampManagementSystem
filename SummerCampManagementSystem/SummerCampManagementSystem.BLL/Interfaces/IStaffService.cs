@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.UserAccount;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,5 +13,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaffs(int campId, int activityScheduleId);
         Task<IEnumerable<StaffSummaryDto>> GetAvailableGroupStaffs(int campId);
         Task<IEnumerable<StaffSummaryDto>> GetAvailableAccomodationStaffs(int campId);
+        Task<string> UpdateStaffAvatarAsync(int userId, IFormFile file);
     }
 }

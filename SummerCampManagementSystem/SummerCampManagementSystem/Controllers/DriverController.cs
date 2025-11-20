@@ -17,7 +17,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> RegisterDriver([FromForm] DriverRegisterDto model)
+        public async Task<IActionResult> RegisterDriver([FromBody] DriverRegisterDto model)
         {
             if (!ModelState.IsValid)
             {
