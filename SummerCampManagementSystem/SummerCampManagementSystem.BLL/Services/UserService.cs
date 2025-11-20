@@ -24,10 +24,10 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
-        private readonly ILogger _logger;
+        private readonly ILogger<UserAccount> _logger;
 
         public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache,
-            IEmailService emailService, IMapper mapper, ILogger logger)
+            IEmailService emailService, IMapper mapper, ILogger<UserAccount> logger)
         {
             _unitOfWork = unitOfWork;
             _config = config;
