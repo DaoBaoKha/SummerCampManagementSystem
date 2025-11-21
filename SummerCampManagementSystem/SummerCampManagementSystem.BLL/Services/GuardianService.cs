@@ -24,7 +24,7 @@ namespace SummerCampManagementSystem.BLL.Services
             _camperService = camperService;
         }
 
-        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int parentId)
+        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int camperId)
         {
             if (dto.Dob >= new DateOnly(2007, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2007.");
@@ -33,17 +33,16 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Guardians.CreateAsync(guardian);
             await _unitOfWork.CommitAsync();
 
-            var campers = await _camperService.GetByParentIdAsync(parentId);
-            if (!campers.Any())
-                throw new KeyNotFoundException($"No campers found for parentId {parentId}");
+            var camper = _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new KeyNotFoundException($"Camper with id {camperId} not found");
 
-            var camperGuardians = campers.Select(c => new CamperGuardian
+            var camperGuardians = new CamperGuardian
             {
                 guardianId = guardian.guardianId,
-                camperId = c.CamperId
-            }).ToList();
+                camperId = camperId
+            };
 
-            await _unitOfWork.CamperGuardians.AddRangeAsync(camperGuardians);
+            await _unitOfWork.CamperGuardians.CreateAsync(camperGuardians);
             await _unitOfWork.CommitAsync();
 
             var currentGuardian = await _unitOfWork.Guardians.GetByIdAsync(guardian.guardianId);

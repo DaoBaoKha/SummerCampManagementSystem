@@ -13,6 +13,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<GuardianResponseDto?> GetByIdAsync(int id);
         Task<bool> UpdateAsync(int id, GuardianUpdateDto dto);
         Task<bool> DeleteAsync(int id);
-        Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int parentId);
+        Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int camperId);
     }
 }
