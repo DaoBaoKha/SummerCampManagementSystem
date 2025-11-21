@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Repository
@@ -7,6 +8,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
     {
         public LocationRepository(CampEaseDatabaseContext context) : base(context)
         {
+            _context = context;
         }
     }
 }

@@ -232,7 +232,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .ToListAsync();
         }
 
-        public async Task<CamperWithRegistrationStatus?> GetCamperByCampAndIdWithStatus(int campId, int camperId)
+        public async Task<CamperWithRegistrationStatus?> GetCamperByCampAndIdWithStatus(int camperId, int campId)
         {
             // Kiểm tra camp tồn tại
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)

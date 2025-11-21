@@ -101,8 +101,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
                     continue;
 
-                if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
-                   staff.UserId, startTime, endTime))
+                if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(staff.UserId, startTime, endTime))
                     continue;
 
                 available.Add(staff);
