@@ -202,5 +202,31 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<LocationResponseDto>>(locations);
         }
 
+        public async Task<IEnumerable<LocationResponseDto>> GetChildLocationsByCampIdByTime(int campId, DateTime startTime, DateTime endTime)
+        {
+           var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException($"Không tìm thấy Camp với ID {campId}.");
+
+            var parentLocationId = camp.locationId;
+
+            if (parentLocationId == null)
+            {
+                throw new InvalidOperationException($"Camp với ID {campId} không có Location hợp lệ.");
+            }
+
+            var  childLocations = await GetChildLocationsByParentIdAsync(parentLocationId.Value);
+
+            var suitableLocations = new List<LocationResponseDto>();
+
+             foreach (var location in childLocations)
+             {
+                if (await _unitOfWork.ActivitySchedules.ExistsInSameTimeAndLocationAsync(location.LocationId, startTime, endTime))
+                    continue;
+
+                suitableLocations.Add(location);
+             }
+            return suitableLocations;
+        }
+
     }
 }
