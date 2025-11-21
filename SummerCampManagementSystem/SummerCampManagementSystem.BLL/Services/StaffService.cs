@@ -89,6 +89,28 @@ namespace SummerCampManagementSystem.BLL.Services
             return available;
         }
 
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableActivityStaffsByTime(int campId, DateTime startTime, DateTime endTime)
+        {
+            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampId(campId);
+
+            var available = new List<StaffSummaryDto>();
+
+
+            foreach (var staff in staffInCamp)
+            {
+                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
+                    continue;
+
+                if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
+                   staff.UserId, startTime, endTime))
+                    continue;
+
+                available.Add(staff);
+
+            }
+            return available;
+        }
+
         public async Task<IEnumerable<StaffSummaryDto>> GetAvailableAccomodationStaffs(int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
