@@ -23,5 +23,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<IEnumerable<AccommodationResponseDto>> GetAllAccommodationsAsync();
         Task<IEnumerable<AccommodationResponseDto>> GetActiveAccommodationsAsync();
+        Task<bool> DeleteAccommodationAsync(int accommodationId);
     }
 }

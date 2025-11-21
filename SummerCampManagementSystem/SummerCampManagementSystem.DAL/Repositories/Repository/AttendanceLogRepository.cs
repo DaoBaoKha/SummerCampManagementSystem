@@ -32,5 +32,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     ga.camperId == camperId);
         }
 
+        public async Task<List<AttendanceLog>> GetAttendanceLogsByScheduleId(int activityScheduleId)
+        {
+            return await _context.AttendanceLogs
+                .Where(al => al.activityScheduleId == activityScheduleId)
+                .ToListAsync();
+        }
+
     }
 }

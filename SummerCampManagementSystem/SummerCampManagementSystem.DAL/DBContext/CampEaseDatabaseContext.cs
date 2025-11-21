@@ -123,7 +123,6 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
-
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()

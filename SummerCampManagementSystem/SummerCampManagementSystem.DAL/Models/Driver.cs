@@ -18,20 +18,12 @@ public partial class Driver
     public int? userId { get; set; }
 
     [StringLength(255)]
-    public string driverName { get; set; }
+    public string licenseNumber { get; set; }
 
-    [StringLength(255)]
-    [Unicode(false)]
-    public string driverPhoneNumber { get; set; }
+    public DateOnly? licenseExpiry { get; set; }
 
     [StringLength(255)]
     public string driverAddress { get; set; }
-
-    [StringLength(255)]
-    [Unicode(false)]
-    public string driverLicense { get; set; }
-
-    public DateOnly? dob { get; set; }
 
     [InverseProperty("driver")]
     public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();

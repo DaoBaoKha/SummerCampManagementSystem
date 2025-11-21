@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.User;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using static SummerCampManagementSystem.BLL.DTOs.User.EmailDto;
 
@@ -15,5 +16,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<string> InitiateEmailUpdateAsync(EmailUpdateRequestDto model);
         Task<UserResponseDto> VerifyEmailUpdateAsync(EmailUpdateVerificationDto model);
         Task<(bool isSuccess, string? message)> ChangePasswordAsync(int userId, ChangePasswordRequestDto model);
+        Task<string> UpdateUserAvatarAsync(int userId, IFormFile file);
+
     }
 }

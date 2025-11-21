@@ -45,6 +45,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICamperAccomodationRepository CamperAccommodations { get; }
         public IRegistrationCamperRepository RegistrationCampers { get; }
         public IParentCamperRepository ParentCampers { get; }
+        public IDriverRepository Drivers { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
@@ -58,7 +59,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
             ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
             ,IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
-            ITransportScheduleRepository transportSchedules)
+            ITransportScheduleRepository transportSchedules, IDriverRepository driver)
         {
             _context = context;
             Accommodations = accommodations;
@@ -80,6 +81,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CampStaffAssignments = campStaffAssignments;
             ChatConversations = chatConversations;
             ChatMessages = chatMessages;
+            Drivers = driver;
             Guardians = guardians;
             GroupActivities = groupActivities;
             HealthRecords = healthRecords;

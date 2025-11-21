@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -17,11 +18,13 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ICampStaffAssignmentService _campStaffAssignmentService;
-        public StaffService(IUnitOfWork unitOfWork, IMapper mapper, ICampStaffAssignmentService campStaffAssignmentService)
+        private readonly IUploadSupabaseService _supabaseService;
+        public StaffService(IUnitOfWork unitOfWork, IMapper mapper, ICampStaffAssignmentService campStaffAssignmentService, IUploadSupabaseService supabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _campStaffAssignmentService = campStaffAssignmentService;
+            _supabaseService = supabaseService;
         }
 
         public async Task<IEnumerable<StaffSummaryDto>> GetAvailableGroupStaffs(int campId)
@@ -105,7 +108,44 @@ namespace SummerCampManagementSystem.BLL.Services
             return available;
         }
 
+        public async Task<IEnumerable<StaffSummaryDto>> GetAvailableAccomodationStaffs(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+               ?? throw new KeyNotFoundException("Camp not found.");
 
+            var staffInCamp = await _campStaffAssignmentService.GetAvailableStaffByCampId(campId);
+            var available = new List<StaffSummaryDto>();
+
+
+            foreach (var staff in staffInCamp)
+            {
+                if (await _unitOfWork.Accommodations.isSupervisorOfAccomodation(staff.UserId, campId))
+                    continue;
+
+                available.Add(staff);
+            }
+            return available;
+        }
+
+        public async Task<string> UpdateStaffAvatarAsync(int userId, IFormFile file)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(userId)
+                ?? throw new KeyNotFoundException($"User with ID {userId} not found.");
+
+            var avatarUrl = await _supabaseService.UploadStaffAvatarAsync(userId, file);
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                throw new Exception("Upload thất bại. Không thể lấy được URL ảnh.");
+            }
+
+            user.avatar = avatarUrl;
+
+            await _unitOfWork.Users.UpdateAsync(user);
+            await _unitOfWork.CommitAsync();
+
+            return avatarUrl;
+        }
 
     }
 }

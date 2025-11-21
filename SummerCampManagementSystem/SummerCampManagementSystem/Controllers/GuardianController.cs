@@ -39,8 +39,8 @@ namespace SummerCampManagementSystem.API.Controllers
 
         // POST api/<GuardianController>
         [Authorize(Roles = "User")]
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto)
+        [HttpPost("campers/{camperId}")]
+        public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto, int camperId)
         {
             if (!ModelState.IsValid)
             {
@@ -49,8 +49,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
             try
             {
-                var parentId = _userContextService.GetCurrentUserId();
-                var result = await _service.CreateAsync(dto, parentId.Value);
+                var result = await _service.CreateAsync(dto, camperId);
                 return CreatedAtAction(nameof(GetById), new { id = result.GuardianId }, result);
             }
             catch (KeyNotFoundException ex)

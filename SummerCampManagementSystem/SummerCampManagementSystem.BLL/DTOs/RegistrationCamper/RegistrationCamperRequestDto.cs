@@ -1,0 +1,13 @@
+﻿namespace SummerCampManagementSystem.BLL.DTOs.RegistrationCamper
+{
+    public class RegistrationCamperRequestDto
+    {
+    }
+
+    public class RegistrationCamperSearchDto
+    {
+        public int? CamperId { get; set; }
+        public int? CampId { get; set; }
+        public string? Status { get; set; }
+    }
+}
