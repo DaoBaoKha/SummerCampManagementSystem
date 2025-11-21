@@ -43,6 +43,28 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPost("upload-photo")]
+        [Authorize(Roles = "Driver")]
+        public async Task<IActionResult> UploadDriverLicensePhoto([FromForm] DriverLicensePhotoUploadDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                   ?? "Dữ liệu tải lên không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+            try
+            {
+                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+                var photoUrl = await _driverService.UpdateDriverLicensePhotoAsync(model.LicensePhoto);
+                return Ok(new { LicensePhotoUrl = photoUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Tải ảnh giấy phép lái xe thất bại do lỗi hệ thống.", detail = ex.Message });
+            }
+        }
+
 
         [HttpGet]
         [Authorize(Roles = "Admin, Manager")] 
@@ -71,7 +93,21 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-  
+        [HttpGet("status")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetDriversByStatus([FromQuery] string status)
+        {
+            try
+            {
+                var drivers = await _driverService.GetDriverByStatusAsync(status);
+                return Ok(drivers);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ.", detail = ex.Message });
+            }
+        }
+
 
         [HttpPut("{driverId}")]
         [Authorize]
@@ -96,6 +132,40 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("{driverId}/status")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> UpdateDriverStatus(int driverId, [FromQuery] DriverStatusUpdateDto updateDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                           ?? "Dữ liệu trạng thái không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+
+            try
+            {
+                var updatedDriver = await _driverService.UpdateDriverStatusAsync(driverId, updateDto);
+
+                return Ok(new { message = $"Trạng thái Driver {driverId} đã được cập nhật thành {updatedDriver.Role}.", driver = updatedDriver });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex) // error status update
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex) // flow error
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ." });
+            }
+        }
 
         [HttpDelete("{driverId}")]
         [Authorize(Roles = "Admin")]

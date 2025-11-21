@@ -1,256 +1,254 @@
 ﻿{
-  "CodeGenerationMode": 4,
-  "ContextClassName": "CampEaseDatabaseContext",
-  "ContextNamespace": null,
-  "FilterSchemas": false,
-  "IncludeConnectionString": true,
-  "ModelNamespace": null,
-  "OutputContextPath": null,
-  "OutputPath": "Models",
-  "PreserveCasingWithRegex": true,
-  "ProjectRootNamespace": "SummerCampManagementSystem.DAL",
-  "Schemas": null,
-  "SelectedHandlebarsLanguage": 2,
-  "SelectedToBeGenerated": 0,
-  "T4TemplatePath": null,
-  "Tables": [
-    {
-      "Name": "[dbo].[Accommodation]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[AccommodationType]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Activity]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ActivitySchedule]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Album]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[AlbumPhoto]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[AlbumPhotoFace]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[AttendanceLog]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Badge]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[BankUser]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Blog]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Camp]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CampBadge]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Camper]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CamperAccommodation]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CamperActivity]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CamperBadge]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CamperGroup]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CamperGuardian]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CampStaffAssignment]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[CampType]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ChatConversation]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ChatMessage]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ChatRoom]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ChatRoomUser]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Driver]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[DriverVehicle]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[FAQ]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Feedback]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[GroupActivity]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Guardian]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[HealthRecord]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Livestream]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Location]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Message]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Notifications]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[ParentCamper]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Promotion]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[PromotionType]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[RefreshToken]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Registration]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[RegistrationCamper]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[RegistrationCancel]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[RegistrationOptionalActivity]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Report]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Route]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[RouteStop]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Transaction]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[TransportSchedule]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[UserAccount]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Vehicle]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[VehicleType]",
-      "ObjectType": 0
-    },
-    {
-      "Name": "[dbo].[Visitation]",
-      "ObjectType": 0
-    }
-  ],
-  "UiHint": null,
-  "UncountableWords": null,
-  "UseAsyncStoredProcedureCalls": true,
-  "UseBoolPropertiesWithoutDefaultSql": false,
-  "UseDatabaseNames": true,
-  "UseDatabaseNamesForRoutines": true,
-  "UseDateOnlyTimeOnly": true,
-  "UseDbContextSplitting": false,
-  "UseDecimalDataAnnotationForSprocResult": true,
-  "UseFluentApiOnly": false,
-  "UseHandleBars": false,
-  "UseHierarchyId": false,
-  "UseInflector": true,
-  "UseLegacyPluralizer": false,
-  "UseManyToManyEntity": false,
-  "UseNoDefaultConstructor": false,
-  "UseNoNavigations": false,
-  "UseNoObjectFilter": false,
-  "UseNodaTime": false,
-  "UseNullableReferences": false,
-  "UsePrefixNavigationNaming": false,
-  "UseSchemaFolders": false,
-  "UseSchemaNamespaces": false,
-  "UseSpatial": false,
-  "UseT4": false,
-  "UseT4Split": false
+   "CodeGenerationMode": 4,
+   "ContextClassName": "CampEaseDatabaseContext",
+   "ContextNamespace": null,
+   "FilterSchemas": false,
+   "IncludeConnectionString": true,
+   "ModelNamespace": null,
+   "OutputContextPath": null,
+   "OutputPath": "Models",
+   "PreserveCasingWithRegex": true,
+   "ProjectRootNamespace": "SummerCampManagementSystem.DAL",
+   "Schemas": null,
+   "SelectedHandlebarsLanguage": 2,
+   "SelectedToBeGenerated": 0,
+   "T4TemplatePath": null,
+   "Tables": [
+      {
+         "Name": "[dbo].[Accommodation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AccommodationType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Activity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ActivitySchedule]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Album]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AlbumPhoto]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AlbumPhotoFace]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[AttendanceLog]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Badge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[BankUser]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Blog]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Camp]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CampBadge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Camper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperAccommodation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperActivity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperBadge]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperGroup]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CamperGuardian]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CampStaffAssignment]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[CampType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatConversation]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatMessage]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatRoom]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ChatRoomUser]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Driver]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[DriverVehicle]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[FAQ]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Feedback]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[GroupActivity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Guardian]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[HealthRecord]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Livestream]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Location]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Message]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Notifications]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[ParentCamper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Promotion]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[PromotionType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RefreshToken]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Registration]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RegistrationCamper]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RegistrationCancel]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RegistrationOptionalActivity]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Report]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Route]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[RouteStop]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Transaction]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[TransportSchedule]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[UserAccount]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Vehicle]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[VehicleType]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[Visitation]",
+         "ObjectType": 0
+      }
+   ],
+   "UiHint": null,
+   "UncountableWords": null,
+   "UseAsyncStoredProcedureCalls": true,
+   "UseBoolPropertiesWithoutDefaultSql": false,
+   "UseDatabaseNames": true,
+   "UseDateOnlyTimeOnly": true,
+   "UseDbContextSplitting": false,
+   "UseDecimalDataAnnotationForSprocResult": true,
+   "UseFluentApiOnly": false,
+   "UseHandleBars": false,
+   "UseHierarchyId": false,
+   "UseInflector": true,
+   "UseLegacyPluralizer": false,
+   "UseManyToManyEntity": false,
+   "UseNoDefaultConstructor": false,
+   "UseNoNavigations": false,
+   "UseNoObjectFilter": false,
+   "UseNodaTime": false,
+   "UseNullableReferences": false,
+   "UsePrefixNavigationNaming": false,
+   "UseSchemaFolders": false,
+   "UseSchemaNamespaces": false,
+   "UseSpatial": false,
+   "UseT4": false
 }
