@@ -16,13 +16,20 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
         private readonly ILogger<CampService> _logger;
+        private readonly ICampJobService _campJobService;
 
-        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, ILogger<CampService> logger)
+        public CampService(
+            IUnitOfWork unitOfWork,
+            IMapper mapper,
+            IUserContextService userContextService,
+            ILogger<CampService> logger,
+            ICampJobService campJobService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContextService = userContextService;
             _logger = logger;
+            _campJobService = campJobService;
         }
 
         public async Task<CampResponseDto> CreateCampAsync(CampRequestDto campRequest)
@@ -235,13 +242,38 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã quy định.");
             }
 
-            if (newStatus == CampStatus.Published) // approve other schedules
+            if (newStatus == CampStatus.Published) // approve other schedules + schedule jobs
             {
                 await ApproveCampAndSchedulesAsync(campId);
+
+                // Schedule Hangfire jobs for automatic status transitions
+                try
+                {
+                    await _campJobService.ScheduleJobsForCampAsync(campId);
+                    _logger.LogInformation($"Successfully scheduled jobs for Camp ID {campId} after publishing.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to schedule jobs for Camp ID {campId}. Rolling back to previous status.");
+                    throw new InvalidOperationException($"Cannot publish camp: {ex.Message}");
+                }
             }
             else if (newStatus == CampStatus.Rejected) // reject other schedules
             {
                 await RejectCampAndSchedulesAsync(campId);
+            }
+            else if (newStatus == CampStatus.Canceled)
+            {
+                // Cancel all scheduled jobs when camp is canceled
+                try
+                {
+                    await _campJobService.DeleteAllJobsForCampAsync(campId);
+                    _logger.LogInformation($"Deleted all scheduled jobs for canceled Camp ID {campId}.");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, $"Failed to delete jobs for canceled Camp ID {campId}. Jobs may still exist.");
+                }
             }
 
             existingCamp.status = newStatus.ToString();
@@ -325,7 +357,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new Exception($"Camp with ID {campId} not found.");
             }
 
-            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) || 
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
             {
                 throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
@@ -492,7 +524,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
             }
 
-            if (reqStartDate >= reqEndDate) 
+            if (reqStartDate >= reqEndDate)
             {
                 throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
             }
@@ -531,7 +563,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var newCampEndDate = reqEndDate;
             var locationId = campRequest.LocationId.Value;
 
-            DateTime newStartDateTime = newCampStartDate.Date; 
+            DateTime newStartDateTime = newCampStartDate.Date;
             DateTime newEndDateTime = newCampEndDate.Date.AddDays(1).AddTicks(-1);
 
             var overlappingCamps = await _unitOfWork.Camps.GetQueryable()

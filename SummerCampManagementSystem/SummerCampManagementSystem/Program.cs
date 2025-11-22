@@ -90,12 +90,18 @@ builder.Services.Configure<EmailSetting>(opts =>
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
 builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
+
+// Camp Job Management Services
+builder.Services.AddScoped<ICampStatusService, CampStatusService>();
+builder.Services.AddScoped<ICampJobService, CampJobService>();
+
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
