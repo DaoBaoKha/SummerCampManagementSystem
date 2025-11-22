@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.RegistrationCamper
+﻿using SummerCampManagementSystem.Core.Enums;
+
+namespace SummerCampManagementSystem.BLL.DTOs.RegistrationCamper
 {
     public class RegistrationCamperRequestDto
     {
@@ -8,6 +10,6 @@
     {
         public int? CamperId { get; set; }
         public int? CampId { get; set; }
-        public string? Status { get; set; }
+        public RegistrationCamperStatus? Status { get; set; }
     }
 }

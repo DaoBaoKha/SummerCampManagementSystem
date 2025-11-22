@@ -42,9 +42,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 queryable = queryable.Where(rc => rc.registration.campId == searchDto.CampId.Value);
             }
 
-            if (!string.IsNullOrWhiteSpace(searchDto.Status))
+            if (!string.IsNullOrWhiteSpace(searchDto.Status.ToString()))
             {
-                string status = searchDto.Status.Trim().ToLower();
+                string status = searchDto.Status.ToString().Trim().ToLower();
                 queryable = queryable.Where(rc => rc.status.ToLower().Contains(status));
             }
 
