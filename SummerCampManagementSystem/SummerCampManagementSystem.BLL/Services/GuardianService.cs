@@ -33,7 +33,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Guardians.CreateAsync(guardian);
             await _unitOfWork.CommitAsync();
 
-            var camper = _unitOfWork.Campers.GetByIdAsync(camperId)
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                 ?? throw new KeyNotFoundException($"Camper with id {camperId} not found");
 
             var camperGuardians = new CamperGuardian
@@ -53,10 +53,21 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<bool> DeleteAsync(int id)
         {
             var guardian = await _unitOfWork.Guardians.GetByIdAsync(id);
+
             if (guardian == null) return false;
 
-            await _unitOfWork.Guardians.RemoveAsync(guardian);
+            var camperGuardians = await _unitOfWork.CamperGuardians.GetByGuardianId(id);
+
+            foreach (var cg in camperGuardians)
+            {
+                await _unitOfWork.CamperGuardians.RemoveAsync(cg);
+            }
+
+            guardian.isActive = false;
+            await _unitOfWork.Guardians.UpdateAsync(guardian);
+
             await _unitOfWork.CommitAsync();
+
             return true;
         }
 

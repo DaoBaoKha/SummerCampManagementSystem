@@ -115,7 +115,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             .ForMember(dest => dest.Campers,
                 opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.camper)));
             CreateMap<Guardian, GuardianSummaryDto>();
-            CreateMap<GuardianCreateDto, Guardian>();
+            CreateMap<GuardianCreateDto, Guardian>()
+                .ForMember(dest => dest.isActive, opt => opt.MapFrom(src => true));
             CreateMap<GuardianUpdateDto, Guardian>();
 
             // Camp mappings

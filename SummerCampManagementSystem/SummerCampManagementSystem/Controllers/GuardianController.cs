@@ -9,6 +9,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize(Roles = "User")]
     [ApiController]
     public class GuardianController : ControllerBase
     {
@@ -38,7 +39,6 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         // POST api/<GuardianController>
-        [Authorize(Roles = "User")]
         [HttpPost("campers/{camperId}")]
         public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto, int camperId)
         {
@@ -80,7 +80,14 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.DeleteAsync(id);
-            return success ? NoContent() : NotFound();
+
+            if (success)
+            {
+                return Ok(new { message = "Xóa thành công" });
+            }else
+            {
+                return NotFound(new { message = $"Không tìm thấy guardian với id {id}"});
+            }
         }
     }
 }
