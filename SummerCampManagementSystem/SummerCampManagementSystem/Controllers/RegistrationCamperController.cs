@@ -23,7 +23,7 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RegistrationCamperResponseDto>>> Get([FromQuery] RegistrationCamperSearchDto searchDto)
         {
-            if(searchDto.CamperId.HasValue || searchDto.CampId.HasValue || !string.IsNullOrEmpty(searchDto.Status))
+            if(searchDto.CamperId.HasValue || searchDto.CampId.HasValue || !string.IsNullOrEmpty(searchDto.Status.ToString()))
             {
                 var result = await _registrationCamperService.SearchRegistrationCampersAsync(searchDto);
                 return Ok(result);
