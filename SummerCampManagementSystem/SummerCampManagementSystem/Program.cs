@@ -68,7 +68,7 @@ builder.Services.AddSingleton(supabase);
 
 // Configure Options pattern for settings
 // Map configuration sections to strongly typed classes
-builder.Services.Configure<AppSetting>(builder.Configuration.GetSection("AppSettings"));
+builder.Services.Configure<AppSetting>(builder.Configuration.GetSection("AppSetting"));
 
 builder.Services.Configure<GeminiApiSettings>(opts =>
 {
@@ -167,11 +167,11 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUserContextService, UserContextService>();
-builder.Services.AddScoped<IMemoryCache, MemoryCache>();
 builder.Services.AddScoped<IUploadSupabaseService, UploadSupabaseService>();
 
 // Email service
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddMemoryCache();
 
 // Chat service
 builder.Services.AddScoped<IChatConversationRepository, ChatConversationRepository>();

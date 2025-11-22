@@ -14,9 +14,12 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<DriverResponseDto> GetDriverByUserIdAsync(int userId);
         Task<IEnumerable<DriverResponseDto>> GetAllDriversAsync();
+        Task<IEnumerable<DriverResponseDto>> GetDriverByStatusAsync(string status);
         Task<DriverResponseDto> UpdateDriverAsync(int driverId, DriverRequestDto driverRequestDto);
         Task<bool> DeleteDriverAsync(int driverId);
         Task<DriverRegisterResponseDto> RegisterDriverAsync(DriverRegisterDto model);
         Task<string> UpdateDriverAvatarAsync(int userId, IFormFile file);
+        Task<string> UpdateDriverLicensePhotoAsync(IFormFile file);
+        Task<DriverResponseDto> UpdateDriverStatusAsync(int driverId, DriverStatusUpdateDto updateDto);
     }
 }
