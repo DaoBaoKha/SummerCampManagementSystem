@@ -295,37 +295,31 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
+                    .ThenInclude(roa => roa.activitySchedule) // include to update capacity
                 .FirstOrDefaultAsync(r => r.registrationId == registrationId);
 
             if (registration == null) throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
 
-            // check registration status
-            if (registration.status != RegistrationStatus.Approved.ToString())
+            // validate Status
+            if (registration.status != RegistrationStatus.Approved.ToString() &&
+                registration.status != RegistrationStatus.PendingPayment.ToString())
             {
-                throw new InvalidOperationException("Payment link can only be generated for 'Approved' registrations.");
+                throw new InvalidOperationException("Payment link can only be generated for 'Approved' or 'PendingPayment' registrations.");
             }
 
-            // check CamperRegistration statuses (Flow CamperRegistration)
-            if (registration.RegistrationCampers == null || !registration.RegistrationCampers.Any())
+            // validate Campers
+            if (!registration.RegistrationCampers.Any() ||
+                !registration.RegistrationCampers.All(rc => rc.status == RegistrationCamperStatus.Registered.ToString()))
             {
-                throw new InvalidOperationException("This registration has no campers.");
+                throw new InvalidOperationException("All campers must be in 'Registered' state.");
             }
 
-            bool allCampersRegistered = registration.RegistrationCampers
-              .All(rc => rc.status == RegistrationCamperStatus.Registered.ToString());
-
-            if (!allCampersRegistered)
-            {
-                throw new InvalidOperationException("Not all campers in this registration are in the 'Registered' state.");
-            }
-
-            // check transaction status
+            // check old transaction (reuse link if status = Pending)
             var existingPendingTransaction = await _unitOfWork.Transactions.GetQueryable()
-                .Where(t => t.registrationId == registrationId && t.status == TransactionStatus.Pending.ToString()) 
+                .Where(t => t.registrationId == registrationId && t.status == TransactionStatus.Pending.ToString())
                 .OrderByDescending(t => t.transactionTime)
                 .FirstOrDefaultAsync();
 
-            // if theres old payment link -> return old link
             if (existingPendingTransaction != null)
             {
                 return new GeneratePaymentLinkResponseDto
@@ -346,75 +340,103 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     int optionalActivitiesTotalCost = 0;
 
-                    // remove old regis optional if theres any
-                    if (registration.RegistrationOptionalActivities != null && registration.RegistrationOptionalActivities.Any())
+                    // list of activityScheduleId that user choose
+                    // if null -> cancel all
+                    var requestedScheduleIds = request.OptionalChoices?.Select(x => x.ActivityScheduleId).ToHashSet() ?? new HashSet<int>();
+
+                    // get existed activity in the list
+                    var existingActivities = registration.RegistrationOptionalActivities.ToList();
+
+                    /*
+                     * optional activity already in db but not in request
+                     */
+                    foreach (var dbItem in existingActivities)
                     {
-                        _unitOfWork.RegistrationOptionalActivities.RemoveRange(registration.RegistrationOptionalActivities);
-                    }
-
-                    var schedulesToUpdate = new Dictionary<int, int>();
-
-                    if (request.OptionalChoices != null && request.OptionalChoices.Any())
-                    {
-                        var activityScheduleIds = request.OptionalChoices.Select(oc => oc.ActivityScheduleId).Distinct().ToList();
-
-                        // load ActivitySchedules (use for checking capacity)
-                        var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
-                            .Where(s => activityScheduleIds.Contains(s.activityScheduleId))
-                            .ToListAsync();
-
-                        foreach (var optionalChoice in request.OptionalChoices)
+                        // if request null and activity status = holding in db
+                        if (!requestedScheduleIds.Contains(dbItem.activityScheduleId) && dbItem.status == "Holding")
                         {
-                            var schedule = activitySchedules.FirstOrDefault(s => s.activityScheduleId == optionalChoice.ActivityScheduleId)
-                                ?? throw new KeyNotFoundException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} not found.");
-
-                            // validation 
-                            if (!schedule.isOptional)
-                                throw new InvalidOperationException($"Activity schedule with ID {optionalChoice.ActivityScheduleId} is not an optional activity.");
-                            
-                            // check if Camper is part of this registration (using the link table)
-                            if (!registration.RegistrationCampers.Any(rc => rc.camperId == optionalChoice.CamperId))
-                                throw new InvalidOperationException($"Camper with ID {optionalChoice.CamperId} is not part of this registration.");
-
-
-                            // create new regisOptional 
-                            var optionalReg = new RegistrationOptionalActivity
+                            // return capacity
+                            if (dbItem.activitySchedule != null && dbItem.activitySchedule.currentCapacity > 0)
                             {
-                                registrationId = registration.registrationId,
-                                camperId = optionalChoice.CamperId,
-                                activityScheduleId = optionalChoice.ActivityScheduleId,
-                                status = "Holding",
-                                createdTime = DateTime.UtcNow
-                            };
-                            await _unitOfWork.RegistrationOptionalActivities.CreateAsync(optionalReg);
-
-
-
-                            // update to increase current capacity 
-                            schedulesToUpdate[schedule.activityScheduleId] = schedulesToUpdate.GetValueOrDefault(schedule.activityScheduleId) + 1;
-                        }
-
-                        // check current capacity and update
-                        foreach (var (scheduleId, count) in schedulesToUpdate)
-                        {
-                            var schedule = activitySchedules.First(s => s.activityScheduleId == scheduleId);
-                            if ((schedule.currentCapacity ?? 0) + count > schedule.maxCapacity)
-                            {
-                                throw new InvalidOperationException($"Activity schedule {scheduleId} has insufficient capacity. Requested: {count}, Available: {schedule.maxCapacity - (schedule.currentCapacity ?? 0)}");
+                                dbItem.activitySchedule.currentCapacity -= 1;
+                                await _unitOfWork.ActivitySchedules.UpdateAsync(dbItem.activitySchedule);
                             }
 
-                            schedule.currentCapacity = (schedule.currentCapacity ?? 0) + count;
-                            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                            // cahange to cancel
+                            dbItem.status = "Cancelled";
+                            await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(dbItem);
                         }
                     }
 
-                    // price logic: use CalculateFinalPrice (Base Price - Promotion Discount)
-                    var finalAmountDecimal = CalculateFinalPrice(registration);
+                    // add new - reactivate - keep
+                    if (request.OptionalChoices != null)
+                    {
+                        // load all schedule info to check max capacity
+                        var allSchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                            .Where(s => requestedScheduleIds.Contains(s.activityScheduleId))
+                            .ToListAsync();
 
-                    // finalAmount = price after promotion + 0 (optionalActivitiesTotalCost)
+                        foreach (var choice in request.OptionalChoices)
+                        {
+                            var schedule = allSchedules.FirstOrDefault(s => s.activityScheduleId == choice.ActivityScheduleId)
+                                ?? throw new KeyNotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
+
+                            if (!schedule.isOptional)
+                                throw new InvalidOperationException($"Schedule {choice.ActivityScheduleId} is not optional.");
+
+                            // check if record is in db
+                            var existingRecord = existingActivities
+                                .FirstOrDefault(x => x.activityScheduleId == choice.ActivityScheduleId && x.camperId == choice.CamperId);
+
+                            // if existed
+                            if (existingRecord != null)
+                            {
+                                // if old status = cancel or reject -> reactivate
+                                if (existingRecord.status == "Cancelled" || existingRecord.status == "Rejected")
+                                {
+                                    // slot capacity check
+                                    if (schedule.currentCapacity >= schedule.maxCapacity)
+                                        throw new InvalidOperationException($"Activity {schedule.activityScheduleId} is full.");
+
+                                    schedule.currentCapacity = (schedule.currentCapacity ?? 0) + 1;
+                                    await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+
+                                    existingRecord.status = "Holding";
+                                    await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(existingRecord);
+                                }
+
+                                // if status = holding -> do nothing
+                                else if (existingRecord.status == "Holding"){ }
+                            }
+
+                            // if not existed
+                            else
+                            {
+                                // slot capacity check
+                                if (schedule.currentCapacity >= schedule.maxCapacity)
+                                    throw new InvalidOperationException($"Activity {schedule.activityScheduleId} is full.");
+
+                                schedule.currentCapacity = (schedule.currentCapacity ?? 0) + 1;
+                                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+
+                                // create new record
+                                var newOptional = new RegistrationOptionalActivity
+                                {
+                                    registrationId = registration.registrationId,
+                                    camperId = choice.CamperId,
+                                    activityScheduleId = choice.ActivityScheduleId,
+                                    status = "Holding",
+                                    createdTime = DateTime.UtcNow
+                                };
+                                await _unitOfWork.RegistrationOptionalActivities.CreateAsync(newOptional);
+                            }
+                        }
+                    }
+
+                    // calculate price
+                    var finalAmountDecimal = CalculateFinalPrice(registration);
                     int finalAmount = (int)Math.Round(finalAmountDecimal + optionalActivitiesTotalCost);
 
-                    // create transaction
                     var newTransaction = new Transaction
                     {
                         amount = finalAmount,
@@ -425,21 +447,20 @@ namespace SummerCampManagementSystem.BLL.Services
                         registrationId = registration.registrationId
                     };
                     await _unitOfWork.Transactions.CreateAsync(newTransaction);
+                    await _unitOfWork.CommitAsync(); // Commit for TransactionId
 
-                    await _unitOfWork.CommitAsync();
-
-                    // update transactionCode after getting the transactionId
+                    // Update Transaction Code
                     long uniqueOrderCode = long.Parse($"{newTransaction.transactionId}{DateTime.Now:fff}");
                     newTransaction.transactionCode = uniqueOrderCode.ToString();
                     await _unitOfWork.Transactions.UpdateAsync(newTransaction);
 
+                    // Update Registration Status
                     registration.status = RegistrationStatus.PendingPayment.ToString();
                     await _unitOfWork.Registrations.UpdateAsync(registration);
 
                     await _unitOfWork.CommitAsync();
 
-
-                    // MOBILE - WEB URL LOGIC
+                    // Handle URL Redirect
                     string returnUrl;
                     string cancelUrl;
 
@@ -457,29 +478,25 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                     else
                     {
-                        // use Web URLs
-                        returnUrl = _configuration["PayOS:ReturnUrl"]
-                            ?? throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
-                        cancelUrl = _configuration["PayOS:CancelUrl"]
-                            ?? throw new InvalidOperationException("PayOS:CancelUrl is not configured.");
+                        returnUrl = _configuration["PayOS:ReturnUrl"] ?? "";
+                        cancelUrl = _configuration["PayOS:CancelUrl"] ?? "";
                     }
 
-
-                    // create payment link
+                    // call payOS to create link
                     var paymentData = new PaymentData(
                         orderCode: uniqueOrderCode,
                         amount: finalAmount,
-                        description: $"Thanh toan don hang #{registration.registrationId}",
+                        description: $"Thanh toan don #{registration.registrationId}",
                         items: new List<ItemData> {
-
-                    new ItemData($"Đăng ký trại hè {registration.camp.name}", registration.RegistrationCampers.Count, (int)finalAmountDecimal)
+                    new ItemData($"Trai he {registration.camp.name}", registration.RegistrationCampers.Count, (int)finalAmountDecimal)
                         },
-                        cancelUrl: cancelUrl, 
-                        returnUrl: returnUrl  
+                        cancelUrl: cancelUrl,
+                        returnUrl: returnUrl
                     );
 
                     CreatePaymentResult createPaymentResult = await _payOS.createPaymentLink(paymentData);
 
+                    // Commit all transaction db
                     await transaction.CommitAsync();
 
                     return new GeneratePaymentLinkResponseDto
@@ -492,7 +509,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
                 catch (Exception)
                 {
-                    // rollback if theres any error at any step
                     await transaction.RollbackAsync();
                     throw;
                 }
