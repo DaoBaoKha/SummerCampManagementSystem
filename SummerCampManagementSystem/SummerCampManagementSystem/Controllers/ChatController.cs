@@ -6,7 +6,7 @@ using static SummerCampManagementSystem.BLL.DTOs.Chat.AIChatboxDto;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/chat")]
     [Authorize] 
     public class ChatController : ControllerBase
     {
