@@ -30,7 +30,7 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var userResponse = await _driverService.RegisterDriverAsync(model);
 
-                return CreatedAtAction(nameof(GetDriverByUserId), new { userId = userResponse.UserId }, userResponse);
+                return StatusCode(StatusCodes.Status201Created, userResponse);
             }
             // email already exists
             catch (ArgumentException ex)
