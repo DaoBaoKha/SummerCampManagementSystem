@@ -5,15 +5,17 @@ using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/drivers")]
+    [Route("api/driver")]
     [ApiController]
     public class DriverController : ControllerBase
     {
         private readonly IDriverService _driverService;
+        private readonly ILogger<DriverController> _logger;
 
-        public DriverController(IDriverService driverService)
+        public DriverController(IDriverService driverService, ILogger<DriverController> logger)
         {
             _driverService = driverService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -30,15 +32,20 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var userResponse = await _driverService.RegisterDriverAsync(model);
 
-                return StatusCode(StatusCodes.Status201Created, userResponse);
+                _logger.LogInformation("Driver registered successfully. Attempting to create location URI.");
+
+                return CreatedAtAction(nameof(GetDriverByUserId), new { userId = userResponse.UserId }, userResponse);
             }
             // email already exists
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("Registration failed: {Message}", ex.Message);
                 return BadRequest(new { message = ex.Message }); 
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "CRITICAL ERROR: Failed to register driver or create CreatedAtAction response. Host/URI issue suspected. Host: {Host}, Scheme: {Scheme}", 
+                                 HttpContext.Request.Host.Value, HttpContext.Request.Scheme);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Đăng ký thất bại do lỗi hệ thống.", detail = ex.Message });
             }
         }
