@@ -2,9 +2,9 @@
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.HttpOverrides;
 using Net.payOS;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -180,6 +180,18 @@ builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IPromptTemplateService, PromptTemplateService>();
 builder.Services.AddHttpClient();
 
+// Forwarded Headers Middleware
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // Controllers and JSON Options
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -303,6 +315,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
     app.UseSwaggerUI();
 }
 
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
 // Global Error Handler
