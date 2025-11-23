@@ -97,14 +97,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.user.email))
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.user.role))
                 .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.user.isActive))
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId)); 
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId));
 
             CreateMap<Driver, DriverNameDto>()
                 .ForMember(dest => dest.DriverId, opt => opt.MapFrom(src => src.driverId))
                 .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.user.lastName + " " + src.user.firstName));
 
+            CreateMap<Driver, DriverRegisterResponseDto>()
+                .ForMember(dest => dest.DriverDetails, opt => opt.MapFrom(src => src)) // map Driver to DriverDetailsDto (mapping 3)
+                .ForMember(dest => dest.OneTimeUploadToken, opt => opt.MapFrom(src => src.UploadToken)); 
+
             CreateMap<Driver, DriverLicensePhotoUploadDto>();
             CreateMap<Driver, DriverStatusUpdateDto>();
+            CreateMap<Driver, DriverLicenseUploadByTokenDto>();
 
             // HealthRecord mappings
             CreateMap<HealthRecordCreateDto, HealthRecord>();

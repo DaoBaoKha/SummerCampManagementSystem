@@ -133,61 +133,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     Console.WriteLine($"Payment failed or cancelled for order {orderCodeString}. Code: {verifiedData.code}");
 
-                    // check registration status
-                    if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
-                    {
-                        Console.WriteLine($"Webhook ignored: Registration {transaction.registrationId.Value} not found or not in PendingPayment state.");
-                        return;
-                    }
+                    // still keep optional activity slot at holding so user can make payment again
 
-                    // update transaction status to Failed
                     transaction.status = TransactionStatus.Failed.ToString();
-
-                    // revert registration status to Canceled
-                    registration.status = RegistrationStatus.Canceled.ToString();
-
-                    // revert camper links status to Canceled
-                    foreach (var camperLink in registration.RegistrationCampers)
-                    {
-                        if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
-                        {
-                            camperLink.status = RegistrationCamperStatus.Canceled.ToString();
-                        }
-                    }
-
-                    // find optionalActivities with status holding
-                    var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
-                        .Where(roa => roa.registrationId == registration.registrationId && roa.status == "Holding")
-                        .Include(roa => roa.activitySchedule) // include schedule for capacity update
-                        .ToListAsync();
-
-                    if (optionalActivities.Any())
-                    {
-                        // reduce currentCapacity for affected schedules
-                        var schedulesToUpdate = optionalActivities
-                            .Where(oa => oa.activitySchedule != null)
-                            .GroupBy(oa => oa.activitySchedule)
-                            .Select(g => new { Schedule = g.Key, Count = g.Count() });
-
-                        foreach (var item in schedulesToUpdate)
-                        {
-                            if (item.Schedule.currentCapacity.HasValue)
-                            {
-                                item.Schedule.currentCapacity = Math.Max(0, item.Schedule.currentCapacity.Value - item.Count);
-                                await _unitOfWork.ActivitySchedules.UpdateAsync(item.Schedule);
-                            }
-                        }
-
-                        // update optional activities status to Cancelled
-                        foreach (var activity in optionalActivities)
-                        {
-                            activity.status = "Cancelled";
-                            await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
-                        }
-                    }
-
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
-                    await _unitOfWork.Registrations.UpdateAsync(registration);
                     await _unitOfWork.CommitAsync();
                 }
             }
@@ -303,69 +252,18 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     response.IsSuccess = false;
                     response.Status = linkInfo.status;
-                    response.Message = "Giao dịch đang chờ xử lý hoặc thất bại.";
-                    response.Detail = $"Trạng thái PayOS: {linkInfo.status}";
+                    response.Message = "Giao dịch chưa hoàn tất.";
+                    response.Detail = "Bạn có thể thử thanh toán lại từ lịch sử đăng ký.";
 
                     string orderCodeString = orderCode.ToString();
                     var transaction = await _unitOfWork.Transactions.GetQueryable()
                         .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
 
-                    // only run if transaction is pending
-                    if (transaction != null && transaction.status == TransactionStatus.Pending.ToString() && transaction.registrationId.HasValue)
+                    if (transaction != null && transaction.status == TransactionStatus.Pending.ToString())
                     {
-                        var registration = await _unitOfWork.Registrations.GetQueryable()
-                            .Include(r => r.RegistrationCampers)
-                            .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
-
-                        if (registration != null && registration.status == RegistrationStatus.PendingPayment.ToString())
-                        {
-                            transaction.status = TransactionStatus.Failed.ToString();
-
-                            registration.status = RegistrationStatus.Canceled.ToString();
-
-                            foreach (var camperLink in registration.RegistrationCampers)
-                            {
-                                if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
-                                {
-                                    camperLink.status = RegistrationCamperStatus.Canceled.ToString();
-                                    await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
-                                }
-                            }
-
-                            var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
-                                .Where(roa => roa.registrationId == registration.registrationId && roa.status == "Holding")
-                                .Include(roa => roa.activitySchedule)
-                                .ToListAsync();
-
-                            if (optionalActivities.Any())
-                            {
-                                var schedulesToUpdate = optionalActivities
-                                    .Where(oa => oa.activitySchedule != null)
-                                    .GroupBy(oa => oa.activitySchedule)
-                                    .Select(g => new { Schedule = g.Key, Count = g.Count() });
-
-                                foreach (var item in schedulesToUpdate)
-                                {
-                                    if (item.Schedule.currentCapacity.HasValue)
-                                    {
-                                        item.Schedule.currentCapacity = Math.Max(0, item.Schedule.currentCapacity.Value - item.Count);
-                                        await _unitOfWork.ActivitySchedules.UpdateAsync(item.Schedule);
-                                    }
-                                }
-
-                                foreach (var activity in optionalActivities)
-                                {
-                                    activity.status = "Cancelled";
-                                    await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
-                                }
-                            }
-
-                            await _unitOfWork.Transactions.UpdateAsync(transaction);
-                            await _unitOfWork.Registrations.UpdateAsync(registration);
-                            await _unitOfWork.CommitAsync();
-
-                            response.Message = "Giao dịch đã được hủy thành công trong hệ thống.";
-                        }
+                        transaction.status = TransactionStatus.Failed.ToString();
+                        await _unitOfWork.Transactions.UpdateAsync(transaction);
+                        await _unitOfWork.CommitAsync();
                     }
                 }
             }

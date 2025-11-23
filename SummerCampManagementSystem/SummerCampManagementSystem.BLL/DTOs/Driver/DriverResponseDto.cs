@@ -40,5 +40,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Driver
     public class DriverRegisterResponseDto : RegisterUserResponseDto
     {
         public DriverDetailsDto? DriverDetails { get; set; }
+
+        public string? OneTimeUploadToken { get; set; }
     }
 }

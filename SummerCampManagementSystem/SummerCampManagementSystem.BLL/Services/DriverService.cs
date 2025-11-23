@@ -71,6 +71,13 @@ namespace SummerCampManagementSystem.BLL.Services
             driverEntity.userId = newUserId;
             driverEntity.status = DriverStatus.PendingUpload.ToString();
 
+            // create one time token
+            var uploadToken = Guid.NewGuid().ToString("N"); // random string
+
+            driverEntity.UploadToken = uploadToken;
+            driverEntity.TokenExpiry = DateTime.UtcNow.AddMinutes(15); 
+            driverEntity.IsTokenUsed = false;
+
             await _unitOfWork.Drivers.CreateAsync(driverEntity);
             await _unitOfWork.CommitAsync();
 
@@ -89,6 +96,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 UserId = newUserId,
                 Message = "Đăng ký thành công! Mã OTP đã được gửi tới email của bạn để kích hoạt tài khoản.",
+                OneTimeUploadToken = uploadToken, 
                 DriverDetails = _mapper.Map<DriverDetailsDto>(driverEntity)
             };
         }
@@ -229,6 +237,52 @@ namespace SummerCampManagementSystem.BLL.Services
             var updatedDriver = await GetDriverByUserIdAsync(driver.userId.Value);
 
             return updatedDriver;
+        }
+
+        public async Task<string> UpdateDriverLicensePhotoByTokenAsync(string uploadToken, IFormFile file)
+        {
+            // find driver by token
+            var driver = await _unitOfWork.Drivers.GetQueryable()
+                .FirstOrDefaultAsync(d => d.UploadToken == uploadToken)
+                ?? throw new KeyNotFoundException("Token upload ảnh không hợp lệ hoặc không tồn tại.");
+
+            // validate token
+            if (driver.IsTokenUsed == true)
+            {
+                throw new InvalidOperationException("Token upload ảnh đã được sử dụng.");
+            }
+
+            if (driver.TokenExpiry.HasValue && driver.TokenExpiry.Value < DateTime.UtcNow)
+            {
+                // delete expired token
+                driver.UploadToken = null;
+                await _unitOfWork.Drivers.UpdateAsync(driver);
+                await _unitOfWork.CommitAsync();
+                throw new InvalidOperationException("Token upload ảnh đã hết hạn.");
+            }
+
+            var userId = driver.userId
+                ?? throw new InvalidOperationException("Driver entity thiếu liên kết người dùng.");
+
+            // upload photo
+            var licensePhotoUrl = await _supabaseService.UploadDriverLicensePhotoAsync(userId, file);
+
+            if (string.IsNullOrEmpty(licensePhotoUrl))
+            {
+                throw new Exception("Upload thất bại. Không thể lấy được URL ảnh giấy phép lái xe.");
+            }
+
+            // destroy token and update status
+            driver.licensePhoto = licensePhotoUrl;
+            driver.status = DriverStatus.PendingApproval.ToString();
+
+            driver.IsTokenUsed = true; // mark token as used
+            driver.UploadToken = null; // remove from db 
+
+            await _unitOfWork.Drivers.UpdateAsync(driver);
+            await _unitOfWork.CommitAsync();
+
+            return licensePhotoUrl;
         }
     }
 }

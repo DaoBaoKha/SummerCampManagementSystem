@@ -65,6 +65,38 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPost("upload-photo-by-token")]
+        public async Task<IActionResult> UploadDriverLicensePhotoByToken([FromForm] DriverLicenseUploadByTokenDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                       ?? "Dữ liệu tải lên không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+
+            try
+            {
+                var photoUrl = await _driverService.UpdateDriverLicensePhotoByTokenAsync(model.UploadToken, model.LicensePhoto);
+
+                return Ok(new { message = "Upload ảnh giấy phép lái xe thành công. Đang chờ phê duyệt.", LicensePhotoUrl = photoUrl });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                // token invalid or not existed
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // token expired or used
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Tải ảnh giấy phép lái xe thất bại do lỗi hệ thống.", detail = ex.Message });
+            }
+        }
+
 
         [HttpGet]
         [Authorize(Roles = "Admin, Manager")] 
