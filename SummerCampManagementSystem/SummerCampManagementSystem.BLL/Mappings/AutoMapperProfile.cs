@@ -21,6 +21,7 @@ using SummerCampManagementSystem.BLL.DTOs.PromotionType;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
+using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
@@ -341,6 +342,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     opt => opt.MapFrom(src => src.dob) // UserAccount
                 );
             CreateMap<UserProfileUpdateDto, UserAccount>();
+
+            //Report mappings
+            CreateMap<Report, ReportResponseDto>();
+            CreateMap<ReportRequestDto, Report>()
+                .ForMember(dest => dest.createAt, opt => opt.MapFrom(src => DateTime.UtcNow));
         }
     }
 }

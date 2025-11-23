@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRegistrationRepository Registrations { get; }
         public IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
+        public IReportRepository Reports { get; }
         public IRouteRepository Routes { get; }
         public IRouteStopRepository RouteStops { get; }
         public IVehicleRepository Vehicles { get; }
@@ -58,9 +59,10 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
-            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
-            ,IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
+            , IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
+            , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
+            , IReportRepository reports
             )
         {
             _context = context;
@@ -104,6 +106,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             UserAccounts = userAccounts;
             Vehicles = vehicles;
             VehicleTypes = vehicleTypes;
+            Reports = reports;
         }
 
         public async Task<int> CommitAsync()

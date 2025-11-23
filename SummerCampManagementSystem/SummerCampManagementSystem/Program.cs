@@ -20,6 +20,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SummerCampManagementSystem.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -160,6 +161,8 @@ builder.Services.AddScoped<IAccommodationService, AccommodationService>();
 builder.Services.AddScoped<ICamperGuardianRepository, CamperGuardianRepository>();
 builder.Services.AddScoped<IStaffService, StaffService>();
 builder.Services.AddScoped<ILiveStreamRepository, LiveStreamRepository>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
