@@ -31,6 +31,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.CampStaffAssignments
                 .Where(csa => csa.campId == campId)
                 .Select(csa => csa.staff)
+                .Where(staff => staff.role == "Staff")
                 .ToListAsync();
         }
 

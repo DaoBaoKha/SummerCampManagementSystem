@@ -61,8 +61,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
-            if (!string.Equals(activity.activityType, "Core", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only Core activities can have a core schedule");
+            if (string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Optional activities cannot have a core schedule");
 
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
