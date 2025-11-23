@@ -79,11 +79,60 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Assignment with ID {assignmentId} not found.");
             }
 
+           await EnsureStaffNotInUseAsync(assignment.staffId.Value);
+
             await _unitOfWork.CampStaffAssignments.RemoveAsync(assignment);
             await _unitOfWork.CommitAsync();
             return true;
         }
 
+        private async Task EnsureStaffNotInUseAsync(int staffId)
+        {
+            // 1. GROUPS
+            var groups = await _unitOfWork.CamperGroups.GetQueryable()
+                .Where(g => g.supervisorId == staffId)
+                .Select(g => g.camperGroupId) 
+                .ToListAsync();
+
+            if (groups.Any())
+            {
+                string groupList = string.Join(", ", groups.Select(id => $"Group id {id}"));
+
+                throw new InvalidOperationException(
+                    $"Cannot delete assignment: Staff member is supervising the following groups: {groupList}."
+                );
+            }
+
+            // 2. ACTIVITIES
+            var activities = await _unitOfWork.ActivitySchedules.GetQueryable()
+                .Where(a => a.staffId == staffId)
+                .Select(a => a.activityScheduleId)
+                .ToListAsync();
+
+            if (activities.Any())
+            {
+                string activityList = string.Join(", ", activities.Select(id => $"ActivitySchedule id {id}"));
+
+                throw new InvalidOperationException(
+                    $"Cannot delete assignment: Staff member is assigned to the following activities: {activityList}."
+                );
+            }
+
+            // 3. ACCOMMODATIONS
+            var accommodations = await _unitOfWork.Accommodations.GetQueryable()
+                .Where(ac => ac.supervisorId == staffId)
+                .Select(ac => ac.accommodationId) 
+                .ToListAsync();
+
+            if (accommodations.Any())
+            {
+                string accommodationList = string.Join(", ", accommodations.Select(id => $"Accomodation id {id}"));
+
+                throw new InvalidOperationException(
+                    $"Cannot delete assignment: Staff member is supervising the following accommodations: {accommodationList}."
+                );
+            }
+        }
 
         public async Task<CampStaffAssignmentResponseDto?> GetAssignmentByIdAsync(int assignmentId)
         {
