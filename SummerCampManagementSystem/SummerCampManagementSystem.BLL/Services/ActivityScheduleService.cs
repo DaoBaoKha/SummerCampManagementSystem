@@ -84,13 +84,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
 
             // 🔹 Rule 2: Check trùng location trong cùng thời gian
-            if (dto.locationId.HasValue)
+            if (dto.LocationId.HasValue)
             {
-                var location = await _unitOfWork.Locations.GetByIdAsync(dto.locationId.Value)
+                var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
               ?? throw new KeyNotFoundException("Location not found");
 
                 bool locationConflict = await _unitOfWork.ActivitySchedules
-                    .ExistsInSameTimeAndLocationAsync(dto.locationId.Value, dto.StartTime, dto.EndTime);
+                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, dto.StartTime, dto.EndTime);
 
                 if (locationConflict)
                     throw new InvalidOperationException("This location is already occupied during the selected time range.");
@@ -127,36 +127,63 @@ namespace SummerCampManagementSystem.BLL.Services
             var groups = await _unitOfWork.CamperGroups.GetByCampIdAsync(camp.campId);
             var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
 
-            var schedule = _mapper.Map<ActivitySchedule>(dto);
+            if (dto.IsLiveStream == true && dto.StaffId == null)
+                throw new InvalidOperationException("StaffId is required when livestream is enabled.");
 
-            if (schedule.startTime.HasValue) 
-                schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
 
-            if (schedule.endTime.HasValue)
-                schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
-
-            schedule.currentCapacity = currentCapacity;
-
-
-            await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
-            await _unitOfWork.CommitAsync();
-
-            foreach (var group in groups)
+            try
             {
-                var groupActivity = new GroupActivity
+                int? livestreamId = null;
+
+                if (dto.IsLiveStream == true)
                 {
-                    camperGroupId = group.camperGroupId,
-                    activityScheduleId = schedule.activityScheduleId,
-                    //status = "Pending"
-                };
-                await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
+                    var livestream = new Livestream
+                    {
+                        title = $"{activity.name} - {camp.name}",
+                        hostId = dto.StaffId
+
+                    };
+                    await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                    await _unitOfWork.CommitAsync();
+                    livestreamId = livestream.livestreamId;
+                }
+                var schedule = _mapper.Map<ActivitySchedule>(dto);
+
+                if (schedule.startTime.HasValue)
+                    schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+
+                if (schedule.endTime.HasValue)
+                    schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
+
+                schedule.currentCapacity = currentCapacity;
+                schedule.livestreamId = livestreamId;
+
+
+                await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
+                await _unitOfWork.CommitAsync();
+
+                foreach (var group in groups)
+                {
+                    var groupActivity = new GroupActivity
+                    {
+                        camperGroupId = group.camperGroupId,
+                        activityScheduleId = schedule.activityScheduleId,
+                    };
+                    await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
+                }
+                await _unitOfWork.CommitAsync();
+
+                await transaction.CommitAsync();
+
+                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
+                return _mapper.Map<ActivityScheduleResponseDto>(result);
             }
-            await _unitOfWork.CommitAsync();
-
-            var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
-
-
-            return _mapper.Map<ActivityScheduleResponseDto>(result);
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
         public async Task<ActivityScheduleResponseDto> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto, int coreScheduleId)
@@ -170,16 +197,19 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
+            var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
+               ?? throw new KeyNotFoundException("Camp not found");
+
             if (!string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Only Optional activities can be created inside a core optional slot");
 
-            if (dto.locationId.HasValue)
+            if (dto.LocationId.HasValue)
             {
-                var location = await _unitOfWork.Locations.GetByIdAsync(dto.locationId.Value)
+                var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
               ?? throw new KeyNotFoundException("Location not found");
 
                 bool locationConflict = await _unitOfWork.ActivitySchedules
-                    .ExistsInSameTimeAndLocationAsync(dto.locationId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
+                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
 
                 if (locationConflict)
                     throw new InvalidOperationException("This location is already occupied during the selected time range.");
@@ -212,23 +242,48 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new InvalidOperationException("Staff has another activity scheduled during this time.");
             }
 
-            var schedule = _mapper.Map<OptionalScheduleCreateDto, ActivitySchedule>(dto);
+            if (dto.IsLiveStream == true && dto.StaffId == null)
+                throw new InvalidOperationException("StaffId is required when livestream is enabled.");
 
-            schedule.startTime = coreSlot.startTime;
-            schedule.endTime = coreSlot.endTime;
-            schedule.coreActivityId = coreSlot.activityScheduleId;
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
 
+            try
+            {
+                int? livestreamId = null;
 
+                if (dto.IsLiveStream == true)
+                {
+                    var livestream = new Livestream
+                    {
+                        title = $"{activity.name} - {camp.name}",
+                        hostId = dto.StaffId
+                    };
 
-            await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
-            await _unitOfWork.CommitAsync();
+                    await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                    await _unitOfWork.CommitAsync();
 
+                    livestreamId = livestream.livestreamId;
+                }
+                var schedule = _mapper.Map<OptionalScheduleCreateDto, ActivitySchedule>(dto);
+                schedule.livestreamId = livestreamId;
+                schedule.startTime = coreSlot.startTime;
+                schedule.endTime = coreSlot.endTime;
+                schedule.coreActivityId = coreSlot.activityScheduleId;
 
+                await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
+                await _unitOfWork.CommitAsync();
 
+                await transaction.CommitAsync();
 
-            var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
+                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
 
-            return _mapper.Map<ActivityScheduleResponseDto>(result);
+                return _mapper.Map<ActivityScheduleResponseDto>(result);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
 
 
@@ -257,13 +312,13 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Core activity schedule overlaps with another core activity.");
 
             // 🔹 Rule 3: Kiểm tra location (nếu có)
-            if (dto.locationId.HasValue)
+            if (dto.LocationId.HasValue)
             {
-                var location = await _unitOfWork.Locations.GetByIdAsync(dto.locationId.Value)
+                var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
                     ?? throw new KeyNotFoundException("Location not found.");
 
                 bool locationConflict = await _unitOfWork.ActivitySchedules
-                    .ExistsInSameTimeAndLocationAsync(dto.locationId.Value, dto.StartTime, dto.EndTime, excludeScheduleId: id);
+                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, dto.StartTime, dto.EndTime, excludeScheduleId: id);
 
                 if (locationConflict)
                     throw new InvalidOperationException("This location is already occupied during the selected time range.");

@@ -49,6 +49,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                                }
                                : null));
 
+            CreateMap<UserAccount, SupervisorDto>()
+               .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
+               .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.lastName + " " + src.firstName));
+
             CreateMap<AccommodationRequestDto, Accommodation>()
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
 
@@ -207,21 +211,16 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
-                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName))
-                .ForMember(dest => dest.locationName, opt => opt.MapFrom(src => src.location.name));
-
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
+            
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
                 .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>();
-                
-
+            
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
-                .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
             CreateMap<OptionalScheduleCreateDto, ActivitySchedule>()
                .ForMember(dest => dest.isOptional, opt => opt.MapFrom(src => true))
-               .ForMember(dest => dest.isLivestream, opt => opt.MapFrom(src => false))
                .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
         
@@ -302,11 +301,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
           .ForMember(dest => dest.CamperName, opt => opt.MapFrom(src => src.staff.lastName + " " + src.staff.firstName));
             CreateMap<AttendanceLogRequestDto, AttendanceLog>()
                 .ForMember(dest => dest.checkInMethod, opt => opt.MapFrom(_ => "Manual"));
-         
-
-            CreateMap<Location, LocationDto>()
-                .ForMember(dest => dest.Id,
-                            opt => opt.MapFrom(src => src.locationId));
 
             // Album mappings
             CreateMap<AlbumRequestDto, Album>()
