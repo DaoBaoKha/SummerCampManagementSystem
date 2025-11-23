@@ -40,4 +40,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.Driver
         [Required(ErrorMessage = "Trạng thái là bắt buộc.")]
         public DriverStatus Status { get; set; }
     }
+
+    public class DriverLicenseUploadByTokenDto
+    {
+        [Required(ErrorMessage = "Token upload là bắt buộc.")]
+        [StringLength(50, ErrorMessage = "Token không hợp lệ.")]
+        public string UploadToken { get; set; } = null!;
+
+        [Required(ErrorMessage = "Ảnh giấy phép lái xe là bắt buộc.")]
+        public IFormFile LicensePhoto { get; set; } = null!;
+    }
 }

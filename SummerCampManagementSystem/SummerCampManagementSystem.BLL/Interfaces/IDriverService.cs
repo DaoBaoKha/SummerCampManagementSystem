@@ -1,12 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
-using SummerCampManagementSystem.BLL.DTOs.User;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static SummerCampManagementSystem.BLL.DTOs.Driver.DriverResponseDto;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -21,5 +14,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<string> UpdateDriverAvatarAsync(int userId, IFormFile file);
         Task<string> UpdateDriverLicensePhotoAsync(IFormFile file);
         Task<DriverResponseDto> UpdateDriverStatusAsync(int driverId, DriverStatusUpdateDto updateDto);
+        Task<string> UpdateDriverLicensePhotoByTokenAsync(string uploadToken, IFormFile file);
     }
 }
