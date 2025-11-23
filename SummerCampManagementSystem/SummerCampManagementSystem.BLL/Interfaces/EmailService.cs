@@ -31,6 +31,20 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         public async Task SendEmailAsync(string to, string subject, string body)
         {
+            // check for config (fail fast)
+            if (string.IsNullOrWhiteSpace(_emailSetting.SmtpServer))
+            {
+                _logger.LogError("CRITICAL CONFIG: EmailSetting__SmtpServer is null or empty. Cannot connect to SMTP.");
+                throw new InvalidOperationException("Email server configuration is missing. SmtpServer is null or empty.");
+            }
+
+            _logger.LogInformation(
+                "DEBUG: Attempting SMTP connection. Server: '{SmtpServer}', Port: {Port}, Sender: '{SenderEmail}'",
+                _emailSetting.SmtpServer,
+                _emailSetting.Port,
+                _emailSetting.SenderEmail
+            );
+
             var email = new MimeMessage();
             email.From.Add(MailboxAddress.Parse(_emailSetting.SenderEmail));
             email.To.Add(MailboxAddress.Parse(to));
@@ -45,6 +59,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             using var smtp = new SmtpClient();
             try
             {
+                // invalid uri error here
                 await smtp.ConnectAsync(_emailSetting.SmtpServer, _emailSetting.Port, SecureSocketOptions.StartTls);
                 await smtp.AuthenticateAsync(_emailSetting.SenderEmail, _emailSetting.Password);
                 await smtp.SendAsync(email);
@@ -52,7 +67,9 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error sending email to {Recipient}", to);
+                _logger.LogError(ex,
+                                 "FATAL ERROR: Failed to connect or send email to {Recipient}. Config: Server='{Server}', Port={Port}",
+                                 to, _emailSetting.SmtpServer, _emailSetting.Port);
                 throw;
             }
         }
