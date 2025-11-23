@@ -2,7 +2,8 @@
 {
     public enum ParticipationStatus
     {
-        Present = 1,
-        Absent = 2,        
+        NotYet = 1,
+        Present = 2,
+        Absent = 3,        
     }
 }

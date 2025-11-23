@@ -12,7 +12,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context = context;
         }
-
+        public async Task AddRangeAsync(IEnumerable<T> entities)
+        {
+            await _context.Set<T>().AddRangeAsync(entities);
+        }
         public async Task CreateAsync(T entity)
         {
             await _context.Set<T>().AddAsync(entity);

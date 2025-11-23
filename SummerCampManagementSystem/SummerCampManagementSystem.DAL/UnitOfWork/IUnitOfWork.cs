@@ -33,15 +33,19 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }
+        ICamperGuardianRepository CamperGuardians { get; }
         ICamperActivityRepository CamperActivities { get; }
         IHealthRecordRepository HealthRecords { get; }
         ITransactionRepository Transactions { get; }
+        ITransportScheduleRepository TransportSchedules { get; }
         ILocationRepository Locations { get; }
         IGroupActivityRepository GroupActivities { get; }
         IAttendanceLogRepository AttendanceLogs { get; }
         ICamperAccomodationRepository CamperAccommodations { get; }
         IRegistrationCamperRepository RegistrationCampers { get; }
         IParentCamperRepository ParentCampers { get; }
+
+        IDriverRepository Drivers { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();

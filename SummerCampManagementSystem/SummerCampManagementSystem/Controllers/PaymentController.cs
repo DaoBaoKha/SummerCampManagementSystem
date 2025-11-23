@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
+using System.Text;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -10,11 +11,15 @@ namespace SummerCampManagementSystem.API.Controllers
     {
         private readonly IPaymentService _paymentService;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<PaymentController> _logger;
 
-        public PaymentController(IPaymentService paymentService, IConfiguration configuration)
+        private const string BaseDeepLink = "summercamp://payment";
+
+        public PaymentController(IPaymentService paymentService, IConfiguration configuration, ILogger<PaymentController> logger)
         {
             _paymentService = paymentService;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpPost("payos-webhook")]
@@ -40,52 +45,78 @@ namespace SummerCampManagementSystem.API.Controllers
         // MOBILE CALLBACK
         // redirect user to deep link after processing
         [HttpGet("mobile-callback")]
-        public async Task<IActionResult> PaymentMobileCallback() 
+        [ProducesResponseType(StatusCodes.Status302Found)] // this is a redirect
+        public async Task<IActionResult> PaymentMobileCallback()
         {
+            string deepLinkUrl;
+
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Mobile Callback: Nhận được query: {rawQueryString}");
 
-                string deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
+                // service return the deep link to redirect
+                deepLinkUrl = await _paymentService.ProcessPaymentMobileCallbackRaw(rawQueryString);
+
+                _logger.LogInformation($"Mobile Callback: Xử lý thành công, redirect về: {deepLinkUrl}");
 
                 return Redirect(deepLinkUrl);
             }
             catch (ArgumentException ex)
             {
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=Validation&details={errorReason}");
+                _logger.LogError(ex, $"Mobile Callback Validation Error: {ex.Message}");
+
+                // failure deep link with reason and details
+                deepLinkUrl = BuildDeepLink("failure", 0, $"Validation: {ex.Message}");
+                return Redirect(deepLinkUrl);
             }
             catch (Exception ex)
             {
-                string errorReason = Uri.EscapeDataString(ex.Message);
-                return Redirect($"yourapp://payment/failure?reason=ApiError&details={errorReason}");
+                _logger.LogError(ex, $"Mobile Callback Exception: {ex.Message}");
+
+                // failure deep link with reason and details
+                deepLinkUrl = BuildDeepLink("failure", 0, $"ApiError: {ex.Message}");
+                return Redirect(deepLinkUrl);
             }
         }
+
+
 
         [HttpGet("confirm-urls")]
         public async Task<IActionResult> ConfirmPayOSUrls()
         {
+            _logger.LogInformation("--- BẮT ĐẦU CHẠY CONFIRM-URLS ---");
             try
             {
-                // take url callback from config on gg cloud
-                string returnUrl = _configuration["PayOS:ReturnUrl"] ??
-                                   throw new InvalidOperationException("PayOS:ReturnUrl is not configured.");
+                _logger.LogInformation("Confirm: Đang lấy ApiBaseUrl...");
 
-                string result = await _paymentService.ConfirmUrlAsync(returnUrl);
+                string baseApiUrl = _configuration["ApiBaseUrl"]
+                           ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
 
-                // PayOS SDK return confirm result
+                _logger.LogInformation($"Confirm: ApiBaseUrl = {baseApiUrl}");
+
+                string webhookUrl = $"{baseApiUrl}/api/payment/payos-webhook";
+
+                _logger.LogInformation($"Confirm: Đang gửi xác nhận Webhook URL đến PayOS: {webhookUrl}");
+
+                string webhookResult = await _paymentService.ConfirmUrlAsync(webhookUrl);
+
+                _logger.LogInformation($"Confirm: PayOS trả về cho Webhook = {webhookResult}");
+
+                _logger.LogInformation("--- XÁC NHẬN HOÀN TẤT ---");
+
                 return Ok(new
                 {
-                    message = "PayOS URL confirmed successfully.",
-                    urlConfirmed = returnUrl,
-                    payOSResult = result
+                    message = "PayOS Webhook URL confirmation processed.",
+                    webhook_confirmation = new { url = webhookUrl, result = webhookResult }
                 });
             }
             catch (Exception ex)
             {
-                // exception if payos deny (like not HTTPS)
+                _logger.LogError(ex, "--- LỖI 500 KHI CHẠY CONFIRM-URLS ---");
+                // Trả về lỗi chi tiết nếu có
                 return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Error confirming PayOS URL. Check console log for detail.", detail = ex.Message });
+                    new { message = "Error confirming PayOS URL(s).", detail = ex.Message });
             }
         }
 
@@ -95,20 +126,41 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
+                _logger.LogInformation($"Website Callback: Nhận được query: {rawQueryString}"); // log when start processing
 
                 var resultDto = await _paymentService.ProcessPaymentWebsiteCallbackRaw(rawQueryString);
 
+                _logger.LogInformation($"Website Callback: Xử lý thành công, kết quả: {resultDto.Status} - {resultDto.Message}"); // log when success
                 return Ok(resultDto);
             }
             catch (ArgumentException ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 1 (ArgumentException): {ex.Message}");
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Website Callback LỖI 2 (Exception): {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError,
                     new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
             }
         }
+
+        #region Private Methods
+
+        private string BuildDeepLink(string resultType, long orderCode, string reason)
+        {
+            var queryBuilder = new StringBuilder();
+            queryBuilder.Append($"orderCode={orderCode}");
+
+            if (!string.IsNullOrEmpty(reason))
+            {
+                queryBuilder.Append($"&reason={Uri.EscapeDataString(reason)}");
+            }
+
+            return $"{BaseDeepLink}/{resultType}?{queryBuilder.ToString()}";
+        }
+
+        #endregion
     }
 }

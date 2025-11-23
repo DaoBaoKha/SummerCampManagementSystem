@@ -42,17 +42,31 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("camp/{campId}")]
-        public async Task<IActionResult> GetByCampId(int campId)
+        public async Task<IActionResult> GetCampersByCampWithStatus(int campId)
         {
             try
             {
-                var camper = await _camperService.GetCampersByCampId(campId);
+                var camper = await _camperService.GetCampersByCampWithStatus(campId);
                 return Ok(camper);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
 
             }
-            catch (Exception ex)
+        }
+
+        [HttpGet("{camperId}/camp/{campId}")]
+        public async Task<IActionResult> GetCamperByIdAndCampId(int camperId, int campId)
+        {
+            try
             {
-                return NotFound(new { message = $"Camp with id {campId} not found." });
+                var camper = await _camperService.GetCamperByCampAndIdWithStatus(camperId, campId);
+                return Ok(camper);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
         }
 
@@ -84,7 +98,7 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                var campers = await _camperService.GetCampersByOptionalActivitySchedule(optionalActivityId);
+                var campers = await _camperService.GetCampersByOptionalScheduleAndStaffAsync(optionalActivityId);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)
@@ -93,14 +107,13 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "Staff")]
         [HttpGet("coreActivities/{coreActivityId}/campers")]
-        public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
+        public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId, int staffId)
         {
             try
             {
-                var staffId = _userContextService.GetCurrentUserId();
-                var campers = await _camperService.GetCampersByCoreActivityIdAsync(coreActivityId, staffId.Value);
+                //var staffId = _userContextService.GetCurrentUserId();
+                var campers = await _camperService.GetCampersByCoreScheduleAndStaffAsync(coreActivityId, staffId);
                 return Ok(campers);
             }
             catch (KeyNotFoundException ex)
@@ -119,7 +132,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [Authorize(Roles = "User")]             
         [HttpPost]
-        public async Task<IActionResult> Create(CamperRequestDto dto)
+        public async Task<IActionResult> Create([FromForm] CamperRequestDto dto)
         {
             if (!ModelState.IsValid)
             {

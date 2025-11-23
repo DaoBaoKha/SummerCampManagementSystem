@@ -15,28 +15,59 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ICamperService _camperService;
 
-        public GuardianService(IUnitOfWork unitOfWork, IMapper mapper)
+        public GuardianService(IUnitOfWork unitOfWork, IMapper mapper, ICamperService camperService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _camperService = camperService;
         }
 
-        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto)
+        public async Task<GuardianResponseDto> CreateAsync(GuardianCreateDto dto, int camperId)
         {
+            if (dto.Dob >= new DateOnly(2007, 12, 1))
+                throw new ArgumentException("Date of birth must be before 01/12/2007.");
+
             var guardian = _mapper.Map<Guardian>(dto);
             await _unitOfWork.Guardians.CreateAsync(guardian);
             await _unitOfWork.CommitAsync();
-            return _mapper.Map<GuardianResponseDto>(guardian);
+
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new KeyNotFoundException($"Camper with id {camperId} not found");
+
+            var camperGuardians = new CamperGuardian
+            {
+                guardianId = guardian.guardianId,
+                camperId = camperId
+            };
+
+            await _unitOfWork.CamperGuardians.CreateAsync(camperGuardians);
+            await _unitOfWork.CommitAsync();
+
+            var currentGuardian = await _unitOfWork.Guardians.GetByIdAsync(guardian.guardianId);
+
+            return _mapper.Map<GuardianResponseDto>(currentGuardian);
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
             var guardian = await _unitOfWork.Guardians.GetByIdAsync(id);
+
             if (guardian == null) return false;
 
-            await _unitOfWork.Guardians.RemoveAsync(guardian);
+            var camperGuardians = await _unitOfWork.CamperGuardians.GetByGuardianId(id);
+
+            foreach (var cg in camperGuardians)
+            {
+                await _unitOfWork.CamperGuardians.RemoveAsync(cg);
+            }
+
+            guardian.isActive = false;
+            await _unitOfWork.Guardians.UpdateAsync(guardian);
+
             await _unitOfWork.CommitAsync();
+
             return true;
         }
 

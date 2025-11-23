@@ -13,8 +13,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int? locationId { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
-        public bool? isOptional { get; set; }
-        
+        public bool? isOptional { get; set; }      
+
     }
 
     public class OptionalScheduleCreateDto

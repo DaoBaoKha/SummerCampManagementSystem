@@ -5,6 +5,7 @@ using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System.Web;
 
@@ -132,61 +133,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     Console.WriteLine($"Payment failed or cancelled for order {orderCodeString}. Code: {verifiedData.code}");
 
-                    // check registration status
-                    if (registration == null || registration.status != RegistrationStatus.PendingPayment.ToString())
-                    {
-                        Console.WriteLine($"Webhook ignored: Registration {transaction.registrationId.Value} not found or not in PendingPayment state.");
-                        return;
-                    }
+                    // still keep optional activity slot at holding so user can make payment again
 
-                    // update transaction status to Failed
                     transaction.status = TransactionStatus.Failed.ToString();
-
-                    // revert registration status to Canceled
-                    registration.status = RegistrationStatus.Canceled.ToString();
-
-                    // revert camper links status to Canceled
-                    foreach (var camperLink in registration.RegistrationCampers)
-                    {
-                        if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
-                        {
-                            camperLink.status = RegistrationCamperStatus.Canceled.ToString();
-                        }
-                    }
-
-                    // find optionalActivities with status holding
-                    var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
-                        .Where(roa => roa.registrationId == registration.registrationId && roa.status == "Holding")
-                        .Include(roa => roa.activitySchedule) // include schedule for capacity update
-                        .ToListAsync();
-
-                    if (optionalActivities.Any())
-                    {
-                        // reduce currentCapacity for affected schedules
-                        var schedulesToUpdate = optionalActivities
-                            .Where(oa => oa.activitySchedule != null)
-                            .GroupBy(oa => oa.activitySchedule)
-                            .Select(g => new { Schedule = g.Key, Count = g.Count() });
-
-                        foreach (var item in schedulesToUpdate)
-                        {
-                            if (item.Schedule.currentCapacity.HasValue)
-                            {
-                                item.Schedule.currentCapacity = Math.Max(0, item.Schedule.currentCapacity.Value - item.Count);
-                                await _unitOfWork.ActivitySchedules.UpdateAsync(item.Schedule);
-                            }
-                        }
-
-                        // update optional activities status to Cancelled
-                        foreach (var activity in optionalActivities)
-                        {
-                            activity.status = "Cancelled";
-                            await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
-                        }
-                    }
-
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
-                    await _unitOfWork.Registrations.UpdateAsync(registration);
                     await _unitOfWork.CommitAsync();
                 }
             }
@@ -197,6 +147,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
+
         public async Task<string> ProcessPaymentMobileCallbackRaw(string rawQueryString)
         {
             var parsedQuery = HttpUtility.ParseQueryString(rawQueryString);
@@ -205,19 +156,31 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Required callback parameter (orderCode) is missing.");
             }
 
-            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            long orderCode = long.TryParse(parsedQuery["orderCode"], out long oc) ? oc : 0;
             if (orderCode == 0)
             {
                 throw new ArgumentException("Invalid orderCode.");
             }
 
-            return await ProcessPaymentMobileCallbackLogic(orderCode);
+            string orderCodeString = orderCode.ToString();
+            var transaction = await _unitOfWork.Transactions.GetQueryable()
+                .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
+
+            int? registrationId = transaction?.registrationId;
+
+            return await ProcessPaymentMobileCallbackLogic(orderCode, registrationId); 
         }
 
-        private async Task<string> ProcessPaymentMobileCallbackLogic(int orderCode)
+
+        private async Task<string> ProcessPaymentMobileCallbackLogic(long orderCode, int? registrationId)
         {
-            const string BaseDeepLink = "yourapp://payment";
+            const string BaseDeepLink = "summercamp://payment";
+
             string queryParams = $"orderCode={orderCode}";
+            if (registrationId.HasValue)
+            {
+                queryParams += $"&registrationId={registrationId.Value}";
+            }
 
             try
             {
@@ -227,21 +190,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 // check status
                 if (linkInfo.status == "PAID")
                 {
-                    return $"{BaseDeepLink}/success?{queryParams}";
+                    return $"{BaseDeepLink}/success?{queryParams}"; 
                 }
                 else
                 {
                     // (CANCELLED, EXPIRED, FAILED)
-                    return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}";
+                    return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}"; 
                 }
             }
             catch (Exception ex)
             {
                 string errorReason = Uri.EscapeDataString(ex.Message);
-                return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}";
+                return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}"; 
             }
         }
-
         /// <summary>
         /// send confirm url callback to payos server
         /// </summary>
@@ -269,9 +231,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (parsedQuery["orderCode"] == null)
             {
                 throw new ArgumentException("Required callback parameter (orderCode) is missing from the URL.");
-            }   
+            }
 
-            int orderCode = int.TryParse(parsedQuery["orderCode"], out int oc) ? oc : 0;
+            long orderCode = long.TryParse(parsedQuery["orderCode"], out long oc) ? oc : 0;
             var response = new WebCallbackResponseDto { OrderCode = orderCode };
 
             try
@@ -290,69 +252,18 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     response.IsSuccess = false;
                     response.Status = linkInfo.status;
-                    response.Message = "Giao dịch đang chờ xử lý hoặc thất bại.";
-                    response.Detail = $"Trạng thái PayOS: {linkInfo.status}";
+                    response.Message = "Giao dịch chưa hoàn tất.";
+                    response.Detail = "Bạn có thể thử thanh toán lại từ lịch sử đăng ký.";
 
                     string orderCodeString = orderCode.ToString();
                     var transaction = await _unitOfWork.Transactions.GetQueryable()
                         .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
 
-                    // only run if transaction is pending
-                    if (transaction != null && transaction.status == TransactionStatus.Pending.ToString() && transaction.registrationId.HasValue)
+                    if (transaction != null && transaction.status == TransactionStatus.Pending.ToString())
                     {
-                        var registration = await _unitOfWork.Registrations.GetQueryable()
-                            .Include(r => r.RegistrationCampers)
-                            .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
-
-                        if (registration != null && registration.status == RegistrationStatus.PendingPayment.ToString())
-                        {
-                            transaction.status = TransactionStatus.Failed.ToString();
-
-                            registration.status = RegistrationStatus.Canceled.ToString();
-
-                            foreach (var camperLink in registration.RegistrationCampers)
-                            {
-                                if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
-                                {
-                                    camperLink.status = RegistrationCamperStatus.Canceled.ToString();
-                                    await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
-                                }
-                            }
-
-                            var optionalActivities = await _unitOfWork.RegistrationOptionalActivities.GetQueryable()
-                                .Where(roa => roa.registrationId == registration.registrationId && roa.status == "Holding")
-                                .Include(roa => roa.activitySchedule)
-                                .ToListAsync();
-
-                            if (optionalActivities.Any())
-                            {
-                                var schedulesToUpdate = optionalActivities
-                                    .Where(oa => oa.activitySchedule != null)
-                                    .GroupBy(oa => oa.activitySchedule)
-                                    .Select(g => new { Schedule = g.Key, Count = g.Count() });
-
-                                foreach (var item in schedulesToUpdate)
-                                {
-                                    if (item.Schedule.currentCapacity.HasValue)
-                                    {
-                                        item.Schedule.currentCapacity = Math.Max(0, item.Schedule.currentCapacity.Value - item.Count);
-                                        await _unitOfWork.ActivitySchedules.UpdateAsync(item.Schedule);
-                                    }
-                                }
-
-                                foreach (var activity in optionalActivities)
-                                {
-                                    activity.status = "Cancelled";
-                                    await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
-                                }
-                            }
-
-                            await _unitOfWork.Transactions.UpdateAsync(transaction);
-                            await _unitOfWork.Registrations.UpdateAsync(registration);
-                            await _unitOfWork.CommitAsync();
-
-                            response.Message = "Giao dịch đã được hủy thành công trong hệ thống.";
-                        }
+                        transaction.status = TransactionStatus.Failed.ToString();
+                        await _unitOfWork.Transactions.UpdateAsync(transaction);
+                        await _unitOfWork.CommitAsync();
                     }
                 }
             }

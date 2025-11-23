@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -7,13 +9,16 @@ using SummerCampManagementSystem.BLL.Interfaces;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize(Roles = "User")]
     [ApiController]
     public class GuardianController : ControllerBase
     {
         private readonly IGuardianService _service;
-        public GuardianController(IGuardianService service)
+        private readonly IUserContextService _userContextService;
+        public GuardianController(IGuardianService service, IUserContextService userContextService)
         {
             _service = service;
+            _userContextService = userContextService;
         }
         // GET: api/<GuardianController>
         [HttpGet]
@@ -34,15 +39,28 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         // POST api/<GuardianController>
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto)
+        [HttpPost("campers/{camperId}")]
+        public async Task<IActionResult> Create([FromBody] GuardianCreateDto dto, int camperId)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var result = await _service.CreateAsync(dto);
-            return CreatedAtAction(nameof(GetById), new { id = result.GuardianId }, result);
+
+            try
+            {
+                var result = await _service.CreateAsync(dto, camperId);
+                return CreatedAtAction(nameof(GetById), new { id = result.GuardianId }, result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+
+            }
         }
 
         // PUT api/<GuardianController>/5
@@ -62,7 +80,14 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var success = await _service.DeleteAsync(id);
-            return success ? NoContent() : NotFound();
+
+            if (success)
+            {
+                return Ok(new { message = "Xóa thành công" });
+            }else
+            {
+                return NotFound(new { message = $"Không tìm thấy guardian với id {id}"});
+            }
         }
     }
 }

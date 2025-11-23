@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +13,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.Guardian
         public string Title { get; set; } = string.Empty;
         public string Gender { get; set; } = string.Empty;
         public DateOnly? Dob { get; set; }
-        public string? Answer { get; set; }
-        public string? Category { get; set; }
+        [EmailAddress]
+        public string? Email { get; set; }
+        [Phone]
+        public string? PhoneNumber { get; set; }
     }
 }

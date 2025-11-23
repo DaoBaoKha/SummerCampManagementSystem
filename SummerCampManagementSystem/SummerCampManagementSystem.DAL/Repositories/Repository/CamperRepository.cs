@@ -50,13 +50,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return registrationCamperLink?.registration;
         }
 
-        public async Task<IEnumerable<Camper>> GetCampersByCampId(int campId)
-        {
-            // FIX: Truy vấn Camper thông qua bảng trung gian RegistrationCamper
-            return await _context.Campers
-                .Where(c => c.RegistrationCampers.Any(rc => rc.registration.campId == campId))
-                .ToListAsync();
-        }
 
         public async Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId)
         {
@@ -71,11 +64,19 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId, int staffId)
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleAndStaffAsync(int activityScheduleId, int staffId)
         {
             return await _context.GroupActivities
                 .Where(ga => ga.activityScheduleId == activityScheduleId
                           && ga.camperGroup.supervisorId == staffId)
+                .SelectMany(ga => ga.camperGroup.Campers)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId)
+        {
+            return await _context.GroupActivities
+                .Where(ga => ga.activityScheduleId == activityScheduleId)
                 .SelectMany(ga => ga.camperGroup.Campers)
                 .ToListAsync();
         }

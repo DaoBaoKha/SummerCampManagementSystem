@@ -1,10 +1,12 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using System.Diagnostics;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -21,8 +23,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync()
         {
-            var activities = await _unitOfWork.ActivitySchedules.GetAllAsync();
+            var activities = await _unitOfWork.ActivitySchedules.GetAllSchedule();
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(activities);
+        }
+
+        public async Task<ActivityScheduleResponseDto?> GetScheduleByIdAsync(int id)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(id)
+                ?? throw new KeyNotFoundException("Activity schedule not found.");
+            return schedule == null ? null :_mapper.Map<ActivityScheduleResponseDto>(schedule);
         }
 
         public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
@@ -52,8 +61,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
-            if (!string.Equals(activity.activityType, "Core", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only Core activities can have a core schedule");
+            if (string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Optional activities cannot have a core schedule");
 
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
@@ -101,11 +110,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // 4.2 Staff không được là supervisor của CamperGroup nào
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
 
 
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 // 4.3 Staff không được trùng lịch với activity khác
                 bool staffConflict = await _unitOfWork.ActivitySchedules
@@ -119,6 +128,12 @@ namespace SummerCampManagementSystem.BLL.Services
             var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
 
             var schedule = _mapper.Map<ActivitySchedule>(dto);
+
+            if (schedule.startTime.HasValue) 
+                schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+
+            if (schedule.endTime.HasValue)
+                schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
 
             schedule.currentCapacity = currentCapacity;
 
@@ -183,11 +198,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // 4.2 Staff không được là supervisor của CamperGroup nào
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
 
 
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 // 4.3 Staff không được trùng lịch với activity khác
                 bool staffConflict = await _unitOfWork.ActivitySchedules
@@ -263,9 +278,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Assigned user is not a staff member.");
 
-                bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
-                if (isSupervisor)
-                    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
+                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
+                //if (isSupervisor)
+                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
 
                 bool staffConflict = await _unitOfWork.ActivitySchedules
                     .IsStaffBusyAsync(dto.StaffId.Value, dto.StartTime, dto.EndTime, excludeScheduleId: id);
@@ -279,6 +294,12 @@ namespace SummerCampManagementSystem.BLL.Services
             var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
 
             _mapper.Map(dto, schedule);
+
+            if (schedule.startTime.HasValue)
+                schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
+
+            if (schedule.endTime.HasValue)
+                schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
 
             schedule.currentCapacity = currentCapacity;
 
@@ -301,7 +322,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
 
-        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int camperId, int campId)
+        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                 ?? throw new KeyNotFoundException("Camper not found.");
@@ -353,9 +374,34 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByDateAsync(DateTime fromDate, DateTime toDate)
         {
+            var fromUtc = fromDate.ToUtcForStorage();
+            var toUtc = toDate.ToUtcForStorage();
+
             var schedules = await _unitOfWork.ActivitySchedules
-                .GetActivitySchedulesByDateAsync(fromDate, toDate);
-            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+                .GetActivitySchedulesByDateAsync(fromUtc, toUtc);
+
+            var mapped = _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+
+            foreach (var item in mapped)
+            {
+                item.StartTime = item.StartTime.ToVietnamTime();
+                item.EndTime = item.EndTime.ToVietnamTime();
+            }
+
+            return mapped;
+        }
+
+        public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+            ?? throw new KeyNotFoundException("ActivitySchedule not found");
+
+            schedule.status = status.ToString();
+            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<ActivityScheduleResponseDto>(schedule);
+
         }
     }
 }

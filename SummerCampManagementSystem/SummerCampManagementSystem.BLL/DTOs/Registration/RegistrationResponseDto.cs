@@ -1,18 +1,13 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Camper;
+﻿using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 
 namespace SummerCampManagementSystem.BLL.DTOs.Registration
 {
-    //public class CamperSummaryDto
-    //{
-    //    public int CamperId { get; set; }
-    //    public string CamperName { get; set; } = string.Empty;
-    //}
-
     public class RegistrationResponseDto
     {
         public int registrationId { get; set; }
-        public string CampName { get; set; }
+        public CampSummaryDto Camp { get; set; }
         public DateTime RegistrationCreateAt { get; set; }
         public string Note { get; set; }
         public string Status { get; set; }
