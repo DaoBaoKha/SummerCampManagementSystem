@@ -26,6 +26,11 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         public EmailService(IOptions<EmailSetting> emailSetting, ILogger<EmailService> logger)
         {
             _emailSetting = emailSetting.Value;
+
+            _emailSetting.SmtpServer = _emailSetting.SmtpServer?.Trim() ?? string.Empty;
+            _emailSetting.SenderEmail = _emailSetting.SenderEmail?.Trim() ?? string.Empty;
+            _emailSetting.Password = _emailSetting.Password?.Trim() ?? string.Empty;
+
             _logger = logger;
         }
 
