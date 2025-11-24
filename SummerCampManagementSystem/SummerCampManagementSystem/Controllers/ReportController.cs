@@ -42,16 +42,16 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         // POST api/<ReportController>
-        //[Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff")]
         [HttpPost]
-        public async Task<IActionResult> CreateReport([FromBody] ReportRequestDto report, int staffId)
+        public async Task<IActionResult> CreateReport([FromBody] ReportRequestDto report)
         {
-            //var staffId = _userContextService.GetCurrentUserId();
+            var staffId = _userContextService.GetCurrentUserId();
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var createdReport = await _reportService.CreateReportAsync(report, staffId);
+            var createdReport = await _reportService.CreateReportAsync(report, staffId.Value);
             return CreatedAtAction(nameof(GetReportById), new { id = createdReport.reportId }, createdReport);
         }
 

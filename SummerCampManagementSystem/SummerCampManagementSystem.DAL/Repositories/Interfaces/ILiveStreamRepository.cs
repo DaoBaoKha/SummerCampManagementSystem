@@ -9,5 +9,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface ILiveStreamRepository : IGenericRepository<Livestream>
     {
+        Task<IEnumerable<Livestream>> GetLiveStreamsByDateRange(DateTime fromDate, DateTime toDate);
     }
 }
