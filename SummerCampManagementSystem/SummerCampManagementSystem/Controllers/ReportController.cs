@@ -46,7 +46,6 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateReport([FromBody] ReportRequestDto report)
         {
-            var staffId = _userContextService.GetCurrentUserId();
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
