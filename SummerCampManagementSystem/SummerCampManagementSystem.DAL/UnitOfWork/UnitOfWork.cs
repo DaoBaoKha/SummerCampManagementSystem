@@ -37,6 +37,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IGuardianRepository Guardians { get; }
         public ICamperGuardianRepository CamperGuardians { get; }
         public ICamperActivityRepository CamperActivities { get; }
+        public ICamperTransportRepository CamperTransports { get; }
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
         public ITransportScheduleRepository TransportSchedules { get; }
@@ -62,7 +63,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
             , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
-            , IReportRepository reports
+            , IReportRepository reports, ICamperTransportRepository camperTransport
             )
         {
             _context = context;
@@ -83,6 +84,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CamperGuardians = camperGuardians;
             CamperActivities = camperActivities;
             CampStaffAssignments = campStaffAssignments;
+            CamperTransports = camperTransport;
             ChatConversations = chatConversations;
             ChatMessages = chatMessages;
             Drivers = drivers;
