@@ -37,6 +37,9 @@ public partial class TransportSchedule
 
     public string transportType { get; set; }
 
+    [InverseProperty("transportSchedule")]
+    public virtual ICollection<CamperTransport> CamperTransports { get; set; } = new List<CamperTransport>();
+
     [ForeignKey("driverId")]
     [InverseProperty("TransportSchedules")]
     public virtual Driver driver { get; set; }
