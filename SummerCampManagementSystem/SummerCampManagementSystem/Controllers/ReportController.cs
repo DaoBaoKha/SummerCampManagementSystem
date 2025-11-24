@@ -51,25 +51,56 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var createdReport = await _reportService.CreateReportAsync(report, staffId.Value);
-            return CreatedAtAction(nameof(GetReportById), new { id = createdReport.reportId }, createdReport);
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId();
+                var createdReport = await _reportService.CreateReportAsync(report, staffId.Value);
+                return CreatedAtAction(nameof(GetReportById), new { id = createdReport.reportId }, createdReport);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
         }
-
 
         // PUT api/<ReportController>/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateBlogPost(int id, [FromBody] ReportRequestDto report)
+        public async Task<IActionResult> UpdateBlogPost(int id, [FromForm] ReportRequestDto report)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-            var updatedReport = await _reportService.UpdateReportAsync(id, report);
-            if (updatedReport == null)
+            try
             {
-                return NotFound();
+                var updatedReport = await _reportService.UpdateReportAsync(id, report);
+                if (updatedReport == null)
+                {
+                    return NotFound();
+                }
+                return Ok(updatedReport);
             }
-            return Ok(updatedReport);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+
         }
 
         // DELETE api/<ReportController>/5

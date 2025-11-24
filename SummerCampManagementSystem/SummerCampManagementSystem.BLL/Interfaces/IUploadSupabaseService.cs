@@ -15,5 +15,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<string?> UploadStaffAvatarAsync(int staffId, IFormFile? file);
         Task<string?> UploadBlogImageAsync(IFormFile? file);
         Task<string?> UploadDriverLicensePhotoAsync(int userId, IFormFile? file);
+        Task<string?> UploadReportCamperAsync(int reportId, IFormFile? file);
     }
 }

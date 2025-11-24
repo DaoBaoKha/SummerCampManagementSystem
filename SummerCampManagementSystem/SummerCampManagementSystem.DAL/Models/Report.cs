@@ -37,6 +37,10 @@ public partial class Report
     [StringLength(50)]
     public string level { get; set; }
 
+    [ForeignKey("activityId")]
+    [InverseProperty("Reports")]
+    public virtual Activity activity { get; set; }
+
     [ForeignKey("camperId")]
     [InverseProperty("Reports")]
     public virtual Camper camper { get; set; }

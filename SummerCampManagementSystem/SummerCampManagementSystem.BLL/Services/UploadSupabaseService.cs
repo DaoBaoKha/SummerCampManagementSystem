@@ -58,6 +58,13 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "driver-license-photos", userId.ToString());
         }
 
+        public async Task<string?> UploadReportCamperAsync(int reportId, IFormFile? file)
+        {
+            // Bucket: report-camper-photos
+            //Path : {reportId}/filename
+            return await UploadFileInternalAsync(file, "report-camper-photos", reportId.ToString());
+        }
+
             #region Private Helper Method
 
         private async Task<string?> UploadFileInternalAsync(IFormFile? file, string bucketName, string folderPath)
