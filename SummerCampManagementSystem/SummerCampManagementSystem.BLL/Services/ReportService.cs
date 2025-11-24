@@ -61,8 +61,9 @@ namespace SummerCampManagementSystem.BLL.Services
             var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
             if (report == null) return null;
 
-            var newReport = _mapper.Map(reportRequestDto, report);
-            newReport.reportedBy = report.reportedBy;
+            var oldReportedBy = report.reportedBy;
+            _mapper.Map(reportRequestDto, report);
+            report.reportedBy = oldReportedBy;
             await _unitOfWork.Reports.UpdateAsync(report);
             await _unitOfWork.CommitAsync();
             return _mapper.Map<ReportResponseDto>(report);

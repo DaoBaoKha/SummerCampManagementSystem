@@ -15,6 +15,7 @@ using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
+using SummerCampManagementSystem.BLL.DTOs.Livestream;
 using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
@@ -347,6 +348,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Report, ReportResponseDto>();
             CreateMap<ReportRequestDto, Report>()
                 .ForMember(dest => dest.createAt, opt => opt.MapFrom(src => DateTime.UtcNow));
+
+            //LiveStream mappings
+            CreateMap<Livestream, LivestreamResponseDto>();
+            CreateMap<LivestreamRequestDto, Livestream>();
         }
     }
 }

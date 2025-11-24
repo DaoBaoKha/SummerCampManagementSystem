@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public LiveStreamRepository(CampEaseDatabaseContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<IEnumerable<Livestream>> GetLiveStreamsByDateRange(DateTime fromDate, DateTime toDate)
+        {
+            return await _context.ActivitySchedules
+                .Where(a => a.startTime >= fromDate && a.endTime <= toDate && a.livestreamId != null)
+                .Select(a => a.livestream)
+                .Distinct()
+                .ToListAsync();
         }
     }
 }
