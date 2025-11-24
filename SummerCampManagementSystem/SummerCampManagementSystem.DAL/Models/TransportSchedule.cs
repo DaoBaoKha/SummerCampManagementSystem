@@ -35,6 +35,8 @@ public partial class TransportSchedule
 
     public string cancelReasons { get; set; }
 
+    public string transportType { get; set; }
+
     [ForeignKey("driverId")]
     [InverseProperty("TransportSchedules")]
     public virtual Driver driver { get; set; }

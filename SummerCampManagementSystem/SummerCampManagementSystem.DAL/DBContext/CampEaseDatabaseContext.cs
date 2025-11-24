@@ -123,6 +123,7 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
 
     public virtual DbSet<Visitation> Visitations { get; set; }
+
     public static string GetConnectionString(string connectionStringName)
     {
         var config = new ConfigurationBuilder()
@@ -152,6 +153,7 @@ public partial class CampEaseDatabaseContext : DbContext
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -546,6 +548,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<Report>(entity =>
         {
             entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.Reports).HasConstraintName("FK_Report_Activity");
 
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 

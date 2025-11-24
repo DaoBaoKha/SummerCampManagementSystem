@@ -16,19 +16,43 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
 
-        public ReportService(IUnitOfWork unitOfWork, IMapper mapper)
+        public ReportService(IUnitOfWork unitOfWork, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _uploadSupabaseService = uploadSupabaseService;
         }
 
         public async Task<ReportResponseDto> CreateReportAsync(ReportRequestDto reportRequestDto, int staffId)
         {
+            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
+                ?? throw new KeyNotFoundException("Camper not found");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(reportRequestDto.activityId)
+                ?? throw new KeyNotFoundException("Activity not found");
+
+            if(!await _unitOfWork.Reports.IsCamperOfActivityAsync(camper.camperId, activity.activityId))
+            {
+                throw new InvalidOperationException("Camper did not participate in the activity");
+            }
+
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+
             var report = _mapper.Map<Report>(reportRequestDto);
             report.reportedBy = staffId;
             await _unitOfWork.Reports.CreateAsync(report);
+
+            if (reportRequestDto.image != null)
+            {
+                var url = await _uploadSupabaseService.UploadReportCamperAsync(report.reportId, reportRequestDto.image);
+                report.image = url;
+            }
+
             await _unitOfWork.CommitAsync();
+            await transaction.CommitAsync();
+
             return _mapper.Map<ReportResponseDto>(report);
         }
 
@@ -61,11 +85,33 @@ namespace SummerCampManagementSystem.BLL.Services
             var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
             if (report == null) return null;
 
+            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
+              ?? throw new KeyNotFoundException("Camper not found");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(reportRequestDto.activityId)
+                ?? throw new KeyNotFoundException("Activity not found");
+
+            if (!await _unitOfWork.Reports.IsCamperOfActivityAsync(camper.camperId, activity.activityId))
+            {
+                throw new InvalidOperationException("Camper did not participate in the activity");
+            }
+
             var oldReportedBy = report.reportedBy;
+
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             _mapper.Map(reportRequestDto, report);
             report.reportedBy = oldReportedBy;
             await _unitOfWork.Reports.UpdateAsync(report);
+
+            if (reportRequestDto.image != null)
+            {
+                var url = await _uploadSupabaseService.UploadReportCamperAsync(report.reportId, reportRequestDto.image);
+                report.image = url;
+            }
+
             await _unitOfWork.CommitAsync();
+            await transaction.CommitAsync();
+
             return _mapper.Map<ReportResponseDto>(report);
         }
     }

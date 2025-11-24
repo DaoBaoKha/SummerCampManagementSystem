@@ -266,9 +266,16 @@ namespace SummerCampManagementSystem.BLL.Services
             var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
             if (existingCamper == null) return false;
 
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
             _mapper.Map(dto, existingCamper);
            
             await _unitOfWork.Campers.UpdateAsync(existingCamper);
+
+            if (dto.avatar != null)
+            {
+                var url = await _uploadSupabaseService.UploadCamperPhotoAsync(existingCamper.camperId, dto.avatar);
+                existingCamper.avatar = url;
+            }
 
             if (dto.HealthRecord != null)
             {
@@ -289,7 +296,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
             }
             await _unitOfWork.CommitAsync();
-
+            await transaction.CommitAsync();
 
             return true;
         }
