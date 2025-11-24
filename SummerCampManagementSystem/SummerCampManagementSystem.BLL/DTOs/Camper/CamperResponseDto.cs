@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Guardian;
+﻿using MimeKit.Tnef;
+using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -61,4 +62,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public int AttendanceLogId { get; set; }
         public string Status { get; set; } = null!;
     }
+
+    public class CamperNameDto
+    {
+        public int CamperId { get; set; }
+        public string? CamperName { get; set; }
+    }
+
 }

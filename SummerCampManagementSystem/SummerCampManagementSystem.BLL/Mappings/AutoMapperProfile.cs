@@ -10,6 +10,7 @@ using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
@@ -23,6 +24,7 @@ using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.DTOs.Route;
+using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.DTOs.User;
@@ -67,6 +69,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
+            CreateMap<Camper, CamperNameDto>();
             CreateMap<CamperRequestDto, Camper>();
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
@@ -87,6 +90,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
+            // CamperTransport mapping
+            CreateMap<CamperTransportRequestDto, CamperTransport>();
+            CreateMap<CamperTransportUpdateDto, CamperTransport>();
+
+            CreateMap<CamperTransport, CamperTransportResponseDto>()
+                .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.stopLocation))
+                .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
 
             // Driver mappings
 
@@ -203,6 +213,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Route, RouteNameDto>()
                 .ForMember(dest => dest.routeId, opt => opt.MapFrom(src => src.routeId))
                 .ForMember(dest => dest.routeName, opt => opt.MapFrom(src => src.routeName));
+
+            // RouteStop mappings
+            CreateMap<RouteStopRequestDto, RouteStop>();
+            CreateMap<RouteStop, RouteStopResponseDto>();
 
 
             //Activity mappings

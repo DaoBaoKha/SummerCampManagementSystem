@@ -27,6 +27,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         public TimeOnly? ActualStartTime { get; set; }
 
         public TimeOnly? ActualEndTime { get; set; }
+
+        public string? CancelReasons { get; set; }
+
+        [Required]
+        //[RegularExpression("PickUp|DropOff", ErrorMessage = "TransportType must be 'PickUp' or 'DropOff'")]
+        public string? TransportType { get; set; }
     }
 
     public class TransportScheduleSearchDto

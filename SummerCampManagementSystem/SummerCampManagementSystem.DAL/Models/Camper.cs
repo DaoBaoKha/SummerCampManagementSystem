@@ -45,6 +45,9 @@ public partial class Camper
     public virtual ICollection<CamperGuardian> CamperGuardians { get; set; } = new List<CamperGuardian>();
 
     [InverseProperty("camper")]
+    public virtual ICollection<CamperTransport> CamperTransports { get; set; } = new List<CamperTransport>();
+
+    [InverseProperty("camper")]
     public virtual HealthRecord HealthRecord { get; set; }
 
     [InverseProperty("camper")]

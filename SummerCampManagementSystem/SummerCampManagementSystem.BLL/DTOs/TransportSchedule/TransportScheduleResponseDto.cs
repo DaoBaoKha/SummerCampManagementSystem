@@ -22,7 +22,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         public TimeOnly? ActualStartTime { get; set; }
         public TimeOnly? ActualEndTime { get; set; }
 
-        public TransportScheduleStatus Status { get; set; } 
+        public TransportScheduleStatus Status { get; set; }
+        public string? TransportType { get; set; }
         public string? CancelReasons { get; set; }
     }
 }
