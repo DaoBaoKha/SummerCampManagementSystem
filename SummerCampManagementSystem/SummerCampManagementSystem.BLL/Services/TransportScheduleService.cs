@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -12,13 +13,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly CampEaseDatabaseContext _context;
+        private readonly IUserContextService _userContextService;
 
-        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper, CampEaseDatabaseContext context)
+        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
-            _context = context;
+            _userContextService = userContextService;
         }
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
@@ -60,9 +61,30 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
         }
 
+        public async Task<IEnumerable<TransportScheduleResponseDto>> GetDriverSchedulesAsync()
+        {
+            var currentUserId = _userContextService.GetCurrentUserId();
+
+            // find driverId by userId
+            var driverEntity = await _unitOfWork.Drivers.GetQueryable()
+                                                    .Include(d => d.user) 
+                                                    .FirstOrDefaultAsync(d => d.user.userId == currentUserId);
+
+            if (driverEntity == null)
+            {
+                return Enumerable.Empty<TransportScheduleResponseDto>();
+            }
+
+            var schedules = await GetSchedulesWithIncludes()
+                                .Where(s => s.driverId == driverEntity.driverId)
+                                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
         public async Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto)
         {
-            IQueryable<TransportSchedule> query = _context.TransportSchedules;
+            IQueryable<TransportSchedule> query = GetSchedulesWithIncludes();
 
             // make sure searchDto is not null
             if (searchDto == null)
@@ -126,6 +148,13 @@ namespace SummerCampManagementSystem.BLL.Services
                 await CheckForeignKeyExistence(requestDto);
             }
 
+            // only update when status before InProgress or Completed
+            if (existingSchedule.status == TransportScheduleStatus.InProgress.ToString() || existingSchedule.status == TransportScheduleStatus.Completed.ToString())
+            {
+                throw new InvalidOperationException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình chưa được thực hiện hoặc đã hoàn thành.");
+            }
+
+
             // validation conflict except current schedule
             await CheckScheduleConflicts(
                 requestDto.DriverId,
@@ -138,6 +167,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _mapper.Map(requestDto, existingSchedule);
 
+            // if update from Rejected -> status = Draft
+            if (existingSchedule.status == TransportScheduleStatus.Rejected.ToString())
+            {
+                existingSchedule.status = TransportScheduleStatus.Draft.ToString();
+            }
+
+
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
 
@@ -147,31 +183,60 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<TransportScheduleResponseDto>(updatedSchedule);
         }
 
+        public async Task<TransportScheduleResponseDto> UpdateScheduleStatusAsync(int id, TransportScheduleStatus desiredStatus, string? cancelReason = null)
+        {
+            var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
+                ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+
+            // camp check manually
+            switch (desiredStatus)
+            {
+                case TransportScheduleStatus.NotYet:
+                    // admin approve
+                    CheckAndSetStatusTransition(existingSchedule, desiredStatus, TransportScheduleStatus.Draft);
+                    break;
+
+                case TransportScheduleStatus.Rejected:
+                    // admin reject
+                    CheckAndSetStatusTransition(existingSchedule, desiredStatus, TransportScheduleStatus.Draft);
+                    break;
+
+                case TransportScheduleStatus.Canceled:
+                    // admin cancels (NotYet -> Canceled) or (InProgress -> Canceled)
+                    CheckAndSetStatusTransition(existingSchedule, desiredStatus, TransportScheduleStatus.NotYet, TransportScheduleStatus.InProgress);
+                    existingSchedule.cancelReasons = cancelReason;
+
+                    // when cancel -> reset actual time
+                    existingSchedule.actualStartTime = null;
+                    existingSchedule.actualEndTime = null;
+                    break;
+
+                case TransportScheduleStatus.Draft:
+                    // Draft only set when create new or change from Rejected using updateScheduleAsync
+                    throw new InvalidOperationException($"Không thể chuyển trực tiếp sang trạng thái '{desiredStatus}'. Trạng thái này không được chuyển thủ công.");
+
+                case TransportScheduleStatus.InProgress:
+
+                case TransportScheduleStatus.Completed:
+                    // InProgress and Completed auto update from UpdateActualTimeAsync
+                    throw new InvalidOperationException($"Không thể chuyển thủ công sang trạng thái '{desiredStatus}'. Trạng thái này được xác định tự động.");
+
+                default:
+                    throw new InvalidOperationException($"Trạng thái '{desiredStatus}' không hợp lệ cho việc chuyển đổi thủ công.");
+            }
+
+            await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
+            await _unitOfWork.CommitAsync();
+
+            return _mapper.Map<TransportScheduleResponseDto>(await GetSchedulesWithIncludes().FirstAsync(s => s.transportScheduleId == id));
+        }
+
         public async Task<TransportScheduleResponseDto> UpdateActualTimeAsync(int id, TimeOnly? actualStartTime, TimeOnly? actualEndTime)
         {
             var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
 
-            // only allow status change when status = NotYet or InProgress
-            if (existingSchedule.status != TransportScheduleStatus.NotYet.ToString() &&
-                existingSchedule.status != TransportScheduleStatus.InProgress.ToString())
-            {
-                throw new InvalidOperationException($"Không thể cập nhật thời gian thực tế khi trạng thái là {existingSchedule.status}.");
-            }
-
-            existingSchedule.actualStartTime = actualStartTime;
-            existingSchedule.actualEndTime = actualEndTime;
-
-            // if actualEndTime provided -> status = Completed
-            if (actualEndTime.HasValue)
-            {
-                existingSchedule.status = TransportScheduleStatus.Completed.ToString();
-            }
-            else if (actualStartTime.HasValue && !actualEndTime.HasValue && existingSchedule.status != TransportScheduleStatus.InProgress.ToString())
-            {
-                // if no startTime and hasnt completed -> status = InProgress
-                existingSchedule.status = TransportScheduleStatus.InProgress.ToString();
-            }
+            ApplyActualTimeAndDetermineStatus(existingSchedule, actualStartTime, actualEndTime);
 
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
@@ -194,7 +259,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException($"Không thể xóa lịch trình khi trạng thái là {scheduleToDelete.status}. Chỉ có thể xóa lịch trình ở trạng thái Draft hoặc Rejected.");
             }
 
-            await _unitOfWork.TransportSchedules.RemoveAsync(scheduleToDelete);
+            scheduleToDelete.status = TransportScheduleStatus.Canceled.ToString();
+            await _unitOfWork.TransportSchedules.UpdateAsync(scheduleToDelete);
             await _unitOfWork.CommitAsync();
 
             return true;
@@ -208,6 +274,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(s => s.route)
                 .Include(s => s.vehicle)
                 .Include(s => s.driver).ThenInclude(d => d.user);
+        }
+
+        private void CheckAndSetStatusTransition(TransportSchedule existingSchedule, TransportScheduleStatus newStatus, params TransportScheduleStatus[] allowedCurrentStatuses)
+        {
+            var currentStatus = existingSchedule.status;
+
+            // state flow check
+            if (allowedCurrentStatuses.Length > 0 && !allowedCurrentStatuses.Any(s => s.ToString() == currentStatus))
+            {
+                var allowedStatusNames = string.Join(", ", allowedCurrentStatuses.Select(s => $"'{s}'"));
+                throw new InvalidOperationException($"Không thể chuyển trạng thái từ '{currentStatus}' sang '{newStatus}'. Chỉ cho phép chuyển đổi khi trạng thái hiện tại là: {allowedStatusNames}.");
+            }
+
+            existingSchedule.status = newStatus.ToString();
         }
 
         private async Task CheckScheduleConflicts(int driverId, int vehicleId, DateOnly date, TimeOnly startTime, TimeOnly endTime, int? excludeScheduleId = null)
@@ -260,6 +340,55 @@ namespace SummerCampManagementSystem.BLL.Services
             var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(requestDto.VehicleId)
                 ?? throw new KeyNotFoundException($"Vehicle ID {requestDto.VehicleId} not found.");
 
+        }
+
+        private void ApplyActualTimeAndDetermineStatus(TransportSchedule existingSchedule, TimeOnly? actualStartTime, TimeOnly? actualEndTime)
+        {
+            var currentStatus = existingSchedule.status;
+
+            // current status must be NotYet or InProgress
+            if (currentStatus != TransportScheduleStatus.NotYet.ToString() &&
+                currentStatus != TransportScheduleStatus.InProgress.ToString())
+            {
+                throw new InvalidOperationException($"Không thể cập nhật thời gian thực tế khi trạng thái là {currentStatus}. Chỉ cho phép cập nhật khi trạng thái là '{TransportScheduleStatus.NotYet}' hoặc '{TransportScheduleStatus.InProgress}'.");
+            }
+
+            // if no ActualStartTime & status < InProgress & ActualEndTime has value -> unallowed
+            if (!existingSchedule.actualStartTime.HasValue && actualEndTime.HasValue)
+            {
+                throw new InvalidOperationException($"Không thể ghi nhận giờ kết thúc thực tế. Lịch trình chưa có giờ bắt đầu thực tế ({TransportScheduleStatus.InProgress} chưa được kích hoạt).");
+            }
+
+            // update ActualEndTime if has new value
+            if (actualStartTime.HasValue)
+            {
+                existingSchedule.actualStartTime = actualStartTime;
+            }
+
+            // only update if has value
+            if (actualEndTime.HasValue)
+            {
+                existingSchedule.actualEndTime = actualEndTime;
+            }
+            // if ActualEndTime = null -> remain unchanged
+
+
+            // new status
+            if (existingSchedule.actualEndTime.HasValue)
+            {
+                // auto completed if has ActualEndTime
+                existingSchedule.status = TransportScheduleStatus.Completed.ToString();
+            }
+            else if (existingSchedule.actualStartTime.HasValue)
+            {
+                // if has ActualStartTime but no ActualEndTime -> InProgress
+                existingSchedule.status = TransportScheduleStatus.InProgress.ToString();
+            }
+            else
+            {
+                // if both null -> NotYet
+                existingSchedule.status = TransportScheduleStatus.NotYet.ToString();
+            }
         }
 
         #endregion
