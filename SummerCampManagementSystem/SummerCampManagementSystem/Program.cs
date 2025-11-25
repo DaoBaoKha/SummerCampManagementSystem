@@ -87,7 +87,6 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = builder.Configuration["EmailSetting:Password"] ?? "";
 });
 
-
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();

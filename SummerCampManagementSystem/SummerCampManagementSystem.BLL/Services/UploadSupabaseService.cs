@@ -3,6 +3,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using Supabase;
 
+
 namespace SummerCampManagementSystem.BLL.Services
 {
     public class UploadSupabaseService : IUploadSupabaseService
@@ -44,11 +45,11 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "staff-avatars", userId.ToString());
         }
 
-        public async Task<string?> UploadBlogImageAsync(IFormFile? file)
+        public async Task<string?> UploadBlogImageAsync(int blogId, IFormFile? file)
         {
             // Bucket: blog-images
-            // Path: root or some default folder
-            return await UploadFileInternalAsync(file, "blog-images", "");
+            // Path: {blogId}/filename
+            return await UploadFileInternalAsync(file, "blog-images", blogId.ToString());
         }
 
         public async Task<string?> UploadDriverLicensePhotoAsync(int userId, IFormFile? file)
@@ -100,10 +101,13 @@ namespace SummerCampManagementSystem.BLL.Services
             // Nếu không (Blog), chỉ dùng tên file: "avatar_xyz.jpg"
             var fullPath = string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
 
+            // 2. CHUYỂN IFormFile (Stream) SANG byte[]
             byte[] fileBytes;
             using (var stream = file.OpenReadStream())
             {
+                // Đọc toàn bộ nội dung stream vào mảng byte
                 fileBytes = new byte[file.Length];
+                // Sử dụng ReadAsync/CopyToAsync để an toàn và hiệu quả hơn
                 await stream.ReadAsync(fileBytes, 0, (int)file.Length);
             }
 
