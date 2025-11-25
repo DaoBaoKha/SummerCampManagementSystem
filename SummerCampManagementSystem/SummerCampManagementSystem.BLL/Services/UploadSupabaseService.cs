@@ -45,11 +45,11 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "staff-avatars", userId.ToString());
         }
 
-        public async Task<string?> UploadBlogImageAsync(IFormFile? file)
+        public async Task<string?> UploadBlogImageAsync(int blogId, IFormFile? file)
         {
             // Bucket: blog-images
-            // Path: root or some default folder
-            return await UploadFileInternalAsync(file, "blog-images", "");
+            // Path: {blogId}/filename
+            return await UploadFileInternalAsync(file, "blog-images", blogId.ToString());
         }
 
         public async Task<string?> UploadDriverLicensePhotoAsync(int userId, IFormFile? file)

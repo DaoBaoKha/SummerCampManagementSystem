@@ -50,13 +50,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 camper.avatar = url;
             }
 
-            if (dto.avatar != null)
-            {
-                var url = await _uploadSupabaseService.UploadCamperPhotoAsync(camper.camperId, dto.avatar);
-                camper.avatar = url;
-                await _unitOfWork.CommitAsync();
-            }
-
             if (dto.HealthRecord != null)
             {
                 var healthRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -11,11 +12,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IUserContextService _userContextService;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
 
-        public BlogService(IUnitOfWork unitOfWork, IUserContextService userContextService)
+        public BlogService(IUnitOfWork unitOfWork, IUserContextService userContextService, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _userContextService = userContextService;
+            _uploadSupabaseService = uploadSupabaseService;
         }
 
         private void RunBlogValidationChecks(BlogRequestDto blogPost)
@@ -62,13 +65,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 title = blogPost.Title,
                 content = blogPost.Content,
                 authorId = authorId, 
-                createAt = TimezoneHelper.GetVietnamNow(),
+                createAt = DateTime.UtcNow,
                 isActive = true,
             };
 
             await _unitOfWork.Blogs.CreateAsync(newBlogPost);
             await _unitOfWork.CommitAsync();
 
+            if (blogPost.ImageUrl != null)
+            {
+                var url = await _uploadSupabaseService.UploadBlogImageAsync(newBlogPost.blogId, blogPost.ImageUrl);
+                newBlogPost.imageUrl = url;
+            }
+
+            await _unitOfWork.CommitAsync();
             newBlogPost.author = author;
 
             return MapToBlogResponseDto(newBlogPost);
@@ -151,8 +161,13 @@ namespace SummerCampManagementSystem.BLL.Services
             existingBlogPost.title = blogPost.Title;
             existingBlogPost.content = blogPost.Content;
 
-            _unitOfWork.Blogs.UpdateAsync(existingBlogPost);
+            await _unitOfWork.Blogs.UpdateAsync(existingBlogPost);
 
+            if (blogPost.ImageUrl != null)
+            {
+                var url = await _uploadSupabaseService.UploadBlogImageAsync(existingBlogPost.blogId, blogPost.ImageUrl);
+                existingBlogPost.imageUrl = url;
+            }
             await _unitOfWork.CommitAsync();
 
             existingBlogPost.author = author;
@@ -168,8 +183,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 Title = blog.title,
                 Content = blog.content,
                 CreatedAt = blog.createAt ?? DateTime.MinValue,
+                ImageUrl = blog.imageUrl,
                 AuthorId = blog.authorId ?? 0,
-                AuthorName = blog.author != null ? $"{blog.author.firstName} {blog.author.lastName}" : "N/A"
+                AuthorName = blog.author != null ? $"{blog.author.lastName} {blog.author.firstName}" : "N/A"
             };
         }
     }

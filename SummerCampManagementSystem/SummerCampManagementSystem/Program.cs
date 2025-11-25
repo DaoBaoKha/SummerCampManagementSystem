@@ -87,12 +87,6 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = builder.Configuration["EmailSetting:Password"] ?? "";
 });
 
-var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
-await supabase.InitializeAsync();
-
-builder.Services.AddSingleton(supabase);
-
-
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
