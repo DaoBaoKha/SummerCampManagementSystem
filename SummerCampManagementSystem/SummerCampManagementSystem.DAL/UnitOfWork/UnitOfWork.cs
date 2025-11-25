@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRegistrationRepository Registrations { get; }
         public IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
+        public IReportRepository Reports { get; }
         public IRouteRepository Routes { get; }
         public IRouteStopRepository RouteStops { get; }
         public IVehicleRepository Vehicles { get; }
@@ -36,6 +37,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IGuardianRepository Guardians { get; }
         public ICamperGuardianRepository CamperGuardians { get; }
         public ICamperActivityRepository CamperActivities { get; }
+        public ICamperTransportRepository CamperTransports { get; }
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
         public ITransportScheduleRepository TransportSchedules { get; }
@@ -45,6 +47,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICamperAccomodationRepository CamperAccommodations { get; }
         public IRegistrationCamperRepository RegistrationCampers { get; }
         public IParentCamperRepository ParentCampers { get; }
+        public IDriverRepository Drivers { get; }
+        public ILiveStreamRepository LiveStreams { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
@@ -56,9 +60,11 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
             ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
-            ,IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
-            ,IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
-            ITransportScheduleRepository transportSchedules)
+            , IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
+            , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
+            ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
+            , IReportRepository reports, ICamperTransportRepository camperTransport
+            )
         {
             _context = context;
             Accommodations = accommodations;
@@ -78,11 +84,14 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CamperGuardians = camperGuardians;
             CamperActivities = camperActivities;
             CampStaffAssignments = campStaffAssignments;
+            CamperTransports = camperTransport;
             ChatConversations = chatConversations;
             ChatMessages = chatMessages;
+            Drivers = drivers;
             Guardians = guardians;
             GroupActivities = groupActivities;
             HealthRecords = healthRecords;
+            LiveStreams = liveStreams;
             Locations = locations;
             Promotions = promotions;
             PromotionTypes = promotionTypes;
@@ -99,6 +108,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             UserAccounts = userAccounts;
             Vehicles = vehicles;
             VehicleTypes = vehicleTypes;
+            Reports = reports;
         }
 
         public async Task<int> CommitAsync()

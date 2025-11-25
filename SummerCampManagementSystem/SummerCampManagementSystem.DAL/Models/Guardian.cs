@@ -26,12 +26,14 @@ public partial class Guardian
     public DateOnly? dob { get; set; }
 
     [StringLength(255)]
-    public string answer { get; set; }
-
-    [StringLength(50)]
-    public string category { get; set; }
+    [Unicode(false)]
+    public string email { get; set; }
 
     public bool? isActive { get; set; }
+
+    [StringLength(50)]
+    [Unicode(false)]
+    public string phoneNumber { get; set; }
 
     [InverseProperty("guardian")]
     public virtual ICollection<CamperGuardian> CamperGuardians { get; set; } = new List<CamperGuardian>();

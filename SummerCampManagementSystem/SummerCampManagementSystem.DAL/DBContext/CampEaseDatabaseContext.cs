@@ -60,6 +60,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<CamperGuardian> CamperGuardians { get; set; }
 
+    public virtual DbSet<CamperTransport> CamperTransports { get; set; }
+
     public virtual DbSet<ChatConversation> ChatConversations { get; set; }
 
     public virtual DbSet<ChatMessage> ChatMessages { get; set; }
@@ -153,6 +155,7 @@ public partial class CampEaseDatabaseContext : DbContext
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking);
         }
     }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -343,6 +346,21 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.camper).WithMany(p => p.CamperGuardians).HasConstraintName("FK__CamperGua__campe__2739D489");
 
             entity.HasOne(d => d.guardian).WithMany(p => p.CamperGuardians).HasConstraintName("FK__CamperGua__guard__282DF8C2");
+        });
+
+        modelBuilder.Entity<CamperTransport>(entity =>
+        {
+            entity.Property(e => e.isAbsent).HasDefaultValue(false);
+
+            entity.HasOne(d => d.camper).WithMany(p => p.CamperTransports)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CamperTransport_Camper");
+
+            entity.HasOne(d => d.stopLocation).WithMany(p => p.CamperTransports)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_CamperTransport_Location");
+
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.CamperTransports).HasConstraintName("FK_CamperTransport_TransportSchedule");
         });
 
         modelBuilder.Entity<ChatConversation>(entity =>
@@ -547,6 +565,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<Report>(entity =>
         {
             entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
+
+            entity.HasOne(d => d.activity).WithMany(p => p.Reports).HasConstraintName("FK_Report_Activity");
 
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 

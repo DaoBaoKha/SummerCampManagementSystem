@@ -16,10 +16,12 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<bool> UpdateCamperAsync(int id, CamperRequestDto camper);
         Task<bool> DeleteCamperAsync(int id);
         Task<IEnumerable<CamperWithRegistrationStatus>> GetCampersByCampWithStatus(int campId);
-        Task<CamperWithRegistrationStatus?> GetCamperByCampAndIdWithStatus(int campId, int camperId);
+        Task<CamperWithRegistrationStatus?> GetCamperByCampAndIdWithStatus(int camperId, int campId);
         Task<IEnumerable<CamperWithGuardiansResponseDto>> GetGuardiansByCamperId(int camperId);
         Task<IEnumerable<CamperResponseDto>> GetByParentIdAsync(int parentId);
+        Task<IEnumerable<CamperAttendanceDto>> GetCampersByOptionalScheduleAndStaffAsync(int optionalActivityId);
+        Task<IEnumerable<CamperAttendanceDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId);
         Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId);
-        Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId, int staffId);
+        Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId);
     }
 }

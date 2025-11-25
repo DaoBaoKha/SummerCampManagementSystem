@@ -33,8 +33,8 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<AccommodationResponseDto> CreateAccommodationAsync(AccommodationRequestDto accommodationRequestDto)
         {
             // check and validate supervisor
-            await RunSupervisorValidation((int)accommodationRequestDto.supervisorId, accommodationRequestDto.campId);
-
+            await RunSupervisorValidation(accommodationRequestDto.supervisorId, accommodationRequestDto.campId);
+            
             var accommodationEntity = _mapper.Map<Accommodation>(accommodationRequestDto);
             
             accommodationEntity.isActive = true; 
@@ -83,7 +83,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
 
-        public async Task<AccommodationResponseDto> GetBySupervisorIdAsync(int supervisorId, int campId)
+        public async Task<AccommodationResponseDto?> GetBySupervisorIdAsync(int supervisorId, int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException($"Camp with ID {campId} not found.");
@@ -108,9 +108,9 @@ namespace SummerCampManagementSystem.BLL.Services
             var newSupervisorId = accommodationRequestDto.supervisorId;
 
             existingAccommodation.isActive = true; // ensure accommodation remains active
-
-            await RunSupervisorUpdateValidation(accommodationId, (int)newSupervisorId, (int)campId);
-
+            
+            await RunSupervisorUpdateValidation(accommodationId, newSupervisorId, campId.Value);
+            
             _mapper.Map(accommodationRequestDto, existingAccommodation);
             await _unitOfWork.Accommodations.UpdateAsync(existingAccommodation);
             await _unitOfWork.CommitAsync();
@@ -118,6 +118,14 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<AccommodationResponseDto>(existingAccommodation);
         }
 
+        public async Task<bool> DeleteAccommodationAsync(int accommodationId)
+        {
+            var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
+                ?? throw new KeyNotFoundException("Accommodation not found.");
+            await _unitOfWork.Accommodations.RemoveAsync(accommodation);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
 
         public async Task<IEnumerable<AccommodationResponseDto>> GetActiveAccommodationsAsync()
         {
@@ -129,12 +137,18 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         #region Private Methods
 
-        private async Task RunSupervisorValidation(int supervisorId, int campId)
+        private async Task RunSupervisorValidation(int? supervisorId, int campId)
         {
-            if (supervisorId == 0) throw new ArgumentException("SupervisorId must be provided and non-zero.");
+            if (!supervisorId.HasValue) 
+                return;
+
+            if (supervisorId.Value == 0) 
+                throw new ArgumentException("Supervisor ID cannot be zero.");
+
+            int id = supervisorId.Value;
 
             // check existence and role of the supervisor
-            var staff = await _unitOfWork.Users.GetByIdAsync(supervisorId);
+            var staff = await _unitOfWork.Users.GetByIdAsync(id);
             if (staff == null)
             {
                 throw new KeyNotFoundException($"Supervisor with ID {supervisorId} not found.");
@@ -146,16 +160,16 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // check if staff is assigned to the camp
-            var isAssigned = await _campStaffAssignmentService.IsStaffAssignedToCampAsync(supervisorId, campId);
+            var isAssigned = await _campStaffAssignmentService.IsStaffAssignedToCampAsync(id, campId);
             if (!isAssigned)
             {
                 // add staff to camp if not assigned
-                var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = supervisorId, CampId = campId };
+                var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = id, CampId = campId };
                 await _campStaffAssignmentService.AssignStaffToCampAsync(assignmentDto);
             }
 
             // staff only supervises one accommodation
-            var existingAccommodation = await _unitOfWork.Accommodations.GetBySupervisorIdAsync(supervisorId, campId);
+            var existingAccommodation = await _unitOfWork.Accommodations.GetBySupervisorIdAsync(id, campId);
             if (existingAccommodation != null)
             {
                 throw new InvalidOperationException($"Supervisor with ID {supervisorId} is already supervising accommodation ID {existingAccommodation.accommodationId}. Each staff can only supervise one accommodation.");
@@ -163,12 +177,18 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
 
-        private async Task RunSupervisorUpdateValidation(int accommodationId, int supervisorId, int campId)
+        private async Task RunSupervisorUpdateValidation(int accommodationId, int? supervisorId, int campId)
         {
-            if (supervisorId <= 0) throw new ArgumentException("SupervisorId must be provided and non-zero.");
+            if (!supervisorId.HasValue)
+                return;
+
+            if (supervisorId.Value == 0)
+                throw new ArgumentException("Supervisor ID cannot be zero.");
+
+            int id = supervisorId.Value;
 
             // check existence and role of the supervisor
-            var staff = await _unitOfWork.Users.GetByIdAsync(supervisorId);
+            var staff = await _unitOfWork.Users.GetByIdAsync(id);
             if (staff == null)
             {
                 throw new KeyNotFoundException($"Supervisor with ID {supervisorId} not found.");
@@ -180,7 +200,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // check if the supervisor is already assigned to another accommodation
-            var existingAccommodation = await _unitOfWork.Accommodations.GetBySupervisorIdAsync(supervisorId, campId);
+            var existingAccommodation = await _unitOfWork.Accommodations.GetBySupervisorIdAsync(id, campId);
 
             // check if the existing accommodation is different from the current one being updated
             if (existingAccommodation != null && existingAccommodation.accommodationId != accommodationId)
@@ -189,10 +209,10 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // assign staff to camp if not already assigned
-            var isAssigned = await _campStaffAssignmentService.IsStaffAssignedToCampAsync(supervisorId, campId);
+            var isAssigned = await _campStaffAssignmentService.IsStaffAssignedToCampAsync(id, campId);
             if (!isAssigned)
             {
-                var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = supervisorId, CampId = campId };
+                var assignmentDto = new CampStaffAssignmentRequestDto { StaffId = id, CampId = campId };
                 await _campStaffAssignmentService.AssignStaffToCampAsync(assignmentDto);
             }
         }

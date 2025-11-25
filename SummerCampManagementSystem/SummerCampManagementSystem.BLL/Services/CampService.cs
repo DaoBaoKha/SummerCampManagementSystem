@@ -42,10 +42,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             newCamp.status = CampStatus.Draft.ToString();
 
-            if (newCamp.startDate.HasValue) newCamp.startDate = newCamp.startDate.Value.ToUniversalTime();
-            if (newCamp.endDate.HasValue) newCamp.endDate = newCamp.endDate.Value.ToUniversalTime();
-            if (newCamp.registrationStartDate.HasValue) newCamp.registrationStartDate = newCamp.registrationStartDate.Value.ToUniversalTime();
-            if (newCamp.registrationEndDate.HasValue) newCamp.registrationEndDate = newCamp.registrationEndDate.Value.ToUniversalTime();
+            if (newCamp.startDate.HasValue) newCamp.startDate = newCamp.startDate.Value.ToUtcForStorage();
+            if (newCamp.endDate.HasValue) newCamp.endDate = newCamp.endDate.Value.ToUtcForStorage();
+            if (newCamp.registrationStartDate.HasValue) newCamp.registrationStartDate = newCamp.registrationStartDate.Value.ToUtcForStorage();
+            if (newCamp.registrationEndDate.HasValue) newCamp.registrationEndDate = newCamp.registrationEndDate.Value.ToUtcForStorage();
+
+            newCamp.createdAt = DateTime.UtcNow;
+
 
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
@@ -273,10 +276,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
             _mapper.Map(campRequest, existingCamp);
 
-            if (existingCamp.startDate.HasValue) existingCamp.startDate = existingCamp.startDate.Value.ToUniversalTime();
-            if (existingCamp.endDate.HasValue) existingCamp.endDate = existingCamp.endDate.Value.ToUniversalTime();
-            if (existingCamp.registrationStartDate.HasValue) existingCamp.registrationStartDate = existingCamp.registrationStartDate.Value.ToUniversalTime();
-            if (existingCamp.registrationEndDate.HasValue) existingCamp.registrationEndDate = existingCamp.registrationEndDate.Value.ToUniversalTime();
+            if (existingCamp.startDate.HasValue) existingCamp.startDate = existingCamp.startDate.Value.ToUtcForStorage();
+            if (existingCamp.endDate.HasValue) existingCamp.endDate = existingCamp.endDate.Value.ToUtcForStorage();
+            if (existingCamp.registrationStartDate.HasValue) existingCamp.registrationStartDate = existingCamp.registrationStartDate.Value.ToUtcForStorage();
+            if (existingCamp.registrationEndDate.HasValue) existingCamp.registrationEndDate = existingCamp.registrationEndDate.Value.ToUtcForStorage();
 
             if (existingCamp.status == CampStatus.Rejected.ToString())
             {
@@ -385,7 +388,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // pubished -> OpenForRegistration 
                     if (currentStatus == CampStatus.Published &&
                         camp.registrationStartDate.HasValue &&
-                        camp.registrationStartDate.Value.ToUniversalTime() <= utcNow)
+                        camp.registrationStartDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.OpenForRegistration;
                     }
@@ -393,7 +396,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // openForRegistration -> RegistrationClosed 
                     else if (currentStatus == CampStatus.OpenForRegistration &&
                              camp.registrationEndDate.HasValue &&
-                             camp.registrationEndDate.Value.ToUniversalTime() <= utcNow)
+                             camp.registrationEndDate.Value <= utcNow)
                     {
 
                         /*
@@ -408,7 +411,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // registrationClosed -> InProgress
                     else if (currentStatus == CampStatus.RegistrationClosed &&
                              camp.startDate.HasValue &&
-                             camp.startDate.Value.ToUniversalTime() <= utcNow)
+                             camp.startDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.InProgress;
                     }
@@ -416,7 +419,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // inProgress -> Completed
                     else if (currentStatus == CampStatus.InProgress &&
                              camp.endDate.HasValue &&
-                             camp.endDate.Value.ToUniversalTime() <= utcNow)
+                             camp.endDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.Completed;
                     }

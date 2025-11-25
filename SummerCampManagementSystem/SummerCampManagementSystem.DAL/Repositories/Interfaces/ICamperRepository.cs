@@ -15,6 +15,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<IEnumerable<Camper>> GetGuardiansByCamperId(int camperId);
         Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId);
         Task<IEnumerable<Camper>> GetCampersByOptionalActivityId(int optionalActivityId);
-        Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId, int staffId);
+        Task<IEnumerable<Camper>> GetCampersByCoreScheduleAndStaffAsync(int activityScheduleId, int staffId);
+        Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId);
     }
 }

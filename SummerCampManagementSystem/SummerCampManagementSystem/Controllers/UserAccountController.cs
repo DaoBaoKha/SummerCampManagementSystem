@@ -20,7 +20,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        [HttpGet("user")]
+        [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUserProfile()
         {
             try
@@ -38,7 +38,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPut("user")]
+        [HttpPut]
         public async Task<IActionResult> UpdateUserProfile([FromBody] UserProfileUpdateDto updateDto)
         {
             if (!ModelState.IsValid)

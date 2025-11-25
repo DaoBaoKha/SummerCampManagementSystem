@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -9,6 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -16,11 +19,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ICamperService _camperService;
 
-        public AttendanceLogService(IUnitOfWork unitOfWork, IMapper mapper)
+        public AttendanceLogService(IUnitOfWork unitOfWork, IMapper mapper, ICamperService camperService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _camperService = camperService;
         }
 
         public async Task<IEnumerable<AttendanceLogResponseDto>> GetAllAttendanceLogsAsync()
@@ -352,6 +357,88 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
             return _mapper.Map<AttendanceLogResponseDto>(attendanceLog);
+        }
+
+        public async Task UpdateAttendanceLogAsync(List<AttendanceLogUpdateRequest> updates, int staffId)
+        {
+            if (updates == null || updates.Count == 0)
+                return;
+
+            var logIds = updates.Select(u => u.AttendanceLogId).ToList();
+
+            // Lấy tất cả log 1 lần
+            var logs = await _unitOfWork.AttendanceLogs.GetQueryable()
+                .Where(l => logIds.Contains(l.attendanceLogId))
+                .ToListAsync();
+
+            foreach (var log in logs)
+            {
+                var req = updates.First(u => u.AttendanceLogId == log.attendanceLogId);
+                log.participantStatus = req.participantStatus.ToString();
+                log.timestamp = DateTime.UtcNow;
+                log.staffId = staffId;
+                log.note = req.Note;
+                await _unitOfWork.AttendanceLogs.UpdateAsync(log);
+
+            }
+
+            await _unitOfWork.CommitAsync();
+        }
+
+
+        public async Task CreateAttendanceLogsForClosedCampsAsync()
+        {
+            // 1. Lấy tất cả camp đang RegistrationClosed
+            var closedCamps = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.status == CampStatus.RegistrationClosed.ToString())
+                .ToListAsync();
+
+            foreach (var camp in closedCamps)
+            {
+                // 2. Lấy tất cả activity schedules của camp
+                var activities = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(camp.campId);
+
+                foreach (var activity in activities)
+                {
+                    IEnumerable<CamperSummaryDto> campers;
+
+                    if (activity.activity.activityType == ActivityType.Core.ToString())
+                    {
+                        // Core activity: lấy tất cả camper trong group (API đã xử lý logic optional)
+                        campers = await _camperService.GetCampersByCoreActivityIdAsync(activity.activityScheduleId);
+                    }
+                    else // Optional
+                    {
+                        campers = await _camperService.GetCampersByOptionalActivitySchedule(activity.activityScheduleId);
+                    }
+
+                    foreach (var camper in campers)
+                    {
+                        // Idempotent: kiểm tra log đã tồn tại chưa
+                        bool exists = await _unitOfWork.AttendanceLogs.GetQueryable()
+                            .AnyAsync(l =>
+                                l.camperId == camper.CamperId &&
+                                l.activityScheduleId == activity.activityScheduleId);
+
+                        if (!exists)
+                        {
+                            var log = new AttendanceLog
+                            {
+                                camperId = camper.CamperId,
+                                activityScheduleId = activity.activityScheduleId,
+                                participantStatus = ParticipationStatus.NotYet.ToString(),
+                                eventType = "string",
+                                checkInMethod = "SystemGenerated",
+                                timestamp = DateTime.UtcNow
+                            };
+                            await _unitOfWork.AttendanceLogs.CreateAsync(log);
+                        }
+                    }
+                }
+            }
+
+            // Lưu tất cả log 1 lần
+            await _unitOfWork.CommitAsync();
         }
     }
 }

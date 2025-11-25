@@ -61,7 +61,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterUserRequestDto model)
+        public async Task<IActionResult> Register([FromBody] RegisterUserRequestDto model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);

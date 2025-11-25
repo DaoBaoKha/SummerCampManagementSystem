@@ -52,6 +52,26 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(locations);
         }
 
+        [HttpGet("camps/{campId}/by-time")]
+        public async Task<IActionResult> GetChildLocationsByParentIdAndTime(int campId, [FromQuery] DateTime startTime, [FromQuery] DateTime endTime)
+        {
+            try
+            {
+                var locations = await _locationService.GetChildLocationsByCampIdByTime(campId, startTime, endTime);
+                return Ok(locations);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi hệ thống: {ex.Message}" });
+
+            }
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> CreateLocation([FromBody] LocationCreateDto locationDto)
         {

@@ -177,5 +177,23 @@ namespace SummerCampManagementSystem.API.Controllers
             }
 
         }
+
+        [HttpDelete("{accommodationId}")]
+        public async Task<IActionResult> DeleteAccommodation(int accommodationId)
+        {
+            try
+            {
+                var result = await _accommodationService.DeleteAccommodationAsync(accommodationId);
+                return Ok(new { message = "Xóa chỗ ở thành công." });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
+            }
+        }
     }
 }
