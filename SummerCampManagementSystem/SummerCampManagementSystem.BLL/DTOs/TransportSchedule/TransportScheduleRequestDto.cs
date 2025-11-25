@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using SummerCampManagementSystem.Core.Enums;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
@@ -47,5 +48,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         public string? Status { get; set; }
 
         // add paging here
+    }
+
+    public class TransportScheduleStatusUpdateDto
+    {
+        public TransportScheduleStatus Status { get; set; }
+        public string? CancelReasons { get; set; }
     }
 }
