@@ -28,13 +28,27 @@ namespace SummerCampManagementSystem.Controllers
         /// </summary>
         /// <param name="campId">The camp ID for which folders should be created</param>
         /// <returns>Success or error message</returns>
-        [HttpPost("create-folders/{campId}")]
+        [HttpPost("create-folders/{campId:int}")]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CreateFoldersForCamp(int campId)
         {
             try
             {
                 _logger.LogInformation("Manual folder creation requested for Camp {CampId}", campId);
+
+                // Check if folders already exist first
+                var alreadyExists = await _attendanceFolderService.FoldersExistForCampAsync(campId);
+                if (alreadyExists)
+                {
+                    _logger.LogInformation("Folders already exist for Camp {CampId}", campId);
+                    return Ok(new
+                    {
+                        status = 200,
+                        message = $"Folders already exist for Camp {campId} (idempotent operation)",
+                        campId,
+                        alreadyExisted = true
+                    });
+                }
 
                 var success = await _attendanceFolderService.CreateAttendanceFoldersForCampAsync(campId);
 
@@ -44,7 +58,8 @@ namespace SummerCampManagementSystem.Controllers
                     {
                         status = 200,
                         message = $"Successfully created attendance folders for Camp {campId}",
-                        campId
+                        campId,
+                        alreadyExisted = false
                     });
                 }
                 else
@@ -64,7 +79,8 @@ namespace SummerCampManagementSystem.Controllers
                 {
                     status = 500,
                     message = "Internal server error while creating folders",
-                    error = ex.Message
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
         }
@@ -74,12 +90,14 @@ namespace SummerCampManagementSystem.Controllers
         /// </summary>
         /// <param name="campId">The camp ID to check</param>
         /// <returns>Boolean indicating whether folders exist</returns>
-        [HttpGet("check-folders/{campId}")]
+        [HttpGet("check-folders/{campId:int}")]
         [Authorize(Roles = "Admin,Manager,Staff")]
         public async Task<IActionResult> CheckFoldersExist(int campId)
         {
             try
             {
+                _logger.LogInformation("Checking if folders exist for Camp {CampId}", campId);
+
                 var exists = await _attendanceFolderService.FoldersExistForCampAsync(campId);
 
                 return Ok(new
@@ -99,7 +117,8 @@ namespace SummerCampManagementSystem.Controllers
                 {
                     status = 500,
                     message = "Internal server error while checking folders",
-                    error = ex.Message
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
         }
@@ -109,12 +128,14 @@ namespace SummerCampManagementSystem.Controllers
         /// </summary>
         /// <param name="campId">The camp ID</param>
         /// <returns>Job ID</returns>
-        [HttpPost("schedule-job/{campId}")]
+        [HttpPost("schedule-job/{campId:int}")]
         [Authorize(Roles = "Admin")]
         public IActionResult ScheduleJobImmediately(int campId)
         {
             try
             {
+                _logger.LogInformation("Scheduling immediate job for Camp {CampId}", campId);
+
                 var jobId = AttendanceFolderCreationJob.TriggerImmediately(campId);
 
                 return Ok(new
@@ -132,7 +153,8 @@ namespace SummerCampManagementSystem.Controllers
                 {
                     status = 500,
                     message = "Internal server error while scheduling job",
-                    error = ex.Message
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
         }

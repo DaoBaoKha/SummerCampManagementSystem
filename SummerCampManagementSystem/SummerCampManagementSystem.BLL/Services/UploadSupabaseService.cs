@@ -19,9 +19,16 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<string?> UploadCamperPhotoAsync(int camperId, IFormFile? file)
         {
-            // Bucket: camper-photos
+            // Bucket: camper-photos (for registration before group assignment)
             // Path: {camperId}/filename
             return await UploadFileInternalAsync(file, "camper-photos", camperId.ToString());
+        }
+
+        public async Task<string?> UploadCamperPhotoToAttendanceAsync(int camperId, IFormFile? file)
+        {
+            // Bucket: attendance-sessions (when camper is enrolled in a group)
+            // Path: campers/{camperId}/filename
+            return await UploadFileInternalAsync(file, "attendance-sessions", $"campers/{camperId}");
         }
 
         public async Task<string?> UploadUserAvatarAsync(int userId, IFormFile? file)
@@ -66,7 +73,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "report-camper-photos", reportId.ToString());
         }
 
-            #region Private Helper Method
+        #region Private Helper Method
 
         private async Task<string?> UploadFileInternalAsync(IFormFile? file, string bucketName, string folderPath)
         {

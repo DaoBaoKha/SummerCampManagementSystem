@@ -24,6 +24,8 @@ public partial class Livestream
 
     public int? hostId { get; set; }
 
+    [InverseProperty("livestream")]
+    public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
     [ForeignKey("hostId")]
     [InverseProperty("Livestreams")]
     public virtual UserAccount host { get; set; }

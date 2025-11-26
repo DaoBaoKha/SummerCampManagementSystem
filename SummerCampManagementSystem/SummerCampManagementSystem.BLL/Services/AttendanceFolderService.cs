@@ -125,6 +125,18 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                 }
 
+                // Step 5: Create campers folder structure
+                var campersFolderPath = $"{campFolderPath}/campers";
+                if (!await CreateFolderInBucketAsync(campersFolderPath))
+                {
+                    _logger.LogError("Failed to create campers folder for Camp {CampId}", campId);
+                    return false;
+                }
+                _logger.LogInformation("Created campers folder: {FolderPath}", campersFolderPath);
+
+                // Step 6: Copy confirmed camper photos to attendance-sessions bucket
+                await CopyConfirmedCamperPhotosAsync(campId);
+
                 _logger.LogInformation("Successfully completed folder creation for Camp {CampId}", campId);
                 return true;
             }
@@ -132,6 +144,163 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogError(ex, "Error creating attendance folders for Camp {CampId}", campId);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Copies photos of confirmed campers from camper-photos to attendance-sessions bucket
+        /// Photos are organized into camper_group folders and camperactivity folders
+        /// </summary>
+        private async Task CopyConfirmedCamperPhotosAsync(int campId)
+        {
+            try
+            {
+                _logger.LogInformation("Starting to copy confirmed camper photos for Camp {CampId}", campId);
+
+                // Get all confirmed registrations for this camp
+                var confirmedRegistrations = await _unitOfWork.Registrations
+                    .GetQueryable()
+                    .Where(r => r.campId == campId &&
+                           (r.status == "Confirmed" || r.status == "OnGoing" || r.status == "Completed"))
+                    .Include(r => r.RegistrationCampers)
+                        .ThenInclude(rc => rc.camper)
+                    .ToListAsync();
+
+                // Get optional activities with registrations
+                var optionalActivities = await _unitOfWork.ActivitySchedules
+                    .GetQueryable()
+                    .Where(asc => asc.isOptional && asc.activity.campId == campId)
+                    .Include(asc => asc.CamperActivities)
+                    .ToListAsync();
+
+                int successCount = 0;
+                int failCount = 0;
+
+                foreach (var registration in confirmedRegistrations)
+                {
+                    foreach (var regCamper in registration.RegistrationCampers)
+                    {
+                        // Only process confirmed campers with avatars
+                        if (regCamper.status == "Confirmed" &&
+                            regCamper.camper != null &&
+                            !string.IsNullOrEmpty(regCamper.camper.avatar))
+                        {
+                            try
+                            {
+                                // Copy to camper_group folder if camper belongs to a group
+                                if (regCamper.camper.groupId.HasValue)
+                                {
+                                    var targetFolder = $"camp_{campId}/camper_group_{regCamper.camper.groupId.Value}";
+                                    await CopyCamperPhotoToAttendanceBucket(regCamper.camper.camperId, regCamper.camper.avatar, campId, targetFolder);
+                                    _logger.LogDebug("Copied photo for Camper {CamperId} to camper_group", regCamper.camper.camperId);
+                                }
+
+                                // Copy to camperactivity folders for optional activities this camper is registered for
+                                foreach (var optionalActivity in optionalActivities)
+                                {
+                                    var isRegistered = optionalActivity.CamperActivities?
+                                        .Any(ca => ca.camperId == regCamper.camper.camperId) ?? false;
+
+                                    if (isRegistered)
+                                    {
+                                        var targetFolder = $"camp_{campId}/camperactivity_{optionalActivity.activityScheduleId}";
+                                        await CopyCamperPhotoToAttendanceBucket(regCamper.camper.camperId, regCamper.camper.avatar, campId, targetFolder);
+                                        _logger.LogDebug("Copied photo for Camper {CamperId} to camperactivity_{ActivityId}",
+                                            regCamper.camper.camperId, optionalActivity.activityScheduleId);
+                                    }
+                                }
+
+                                successCount++;
+                            }
+                            catch (Exception ex)
+                            {
+                                failCount++;
+                                _logger.LogWarning(ex, "Failed to copy photo for Camper {CamperId}", regCamper.camper.camperId);
+                                // Continue with other campers even if one fails
+                            }
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Completed copying camper photos for Camp {CampId}. Success: {SuccessCount}, Failed: {FailCount}",
+                    campId, successCount, failCount);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error copying confirmed camper photos for Camp {CampId}", campId);
+                // Don't throw - this shouldn't fail the entire folder creation process
+            }
+        }
+
+        /// <summary>
+        /// Copies a single camper photo from camper-photos bucket to attendance-sessions bucket
+        /// </summary>
+        /// <param name="camperId">The camper ID</param>
+        /// <param name="avatarUrl">The avatar URL from camper-photos bucket</param>
+        /// <param name="campId">The camp ID</param>
+        /// <param name="targetFolder">Optional target folder path (e.g., "camp_12/camper_group_8"). If not provided, uses "camp_{campId}/campers"</param>
+        private async Task CopyCamperPhotoToAttendanceBucket(int camperId, string avatarUrl, int campId, string? targetFolder = null)
+        {
+            try
+            {
+                // Extract the file path from the avatar URL
+                // avatarUrl format: https://...supabase.co/storage/v1/object/public/camper-photos/{camperId}/filename.jpg
+                var uri = new Uri(avatarUrl);
+                var pathParts = uri.AbsolutePath.Split('/');
+
+                // Find the bucket name and get everything after it as the source path
+                var bucketIndex = Array.IndexOf(pathParts, "camper-photos");
+                if (bucketIndex == -1)
+                {
+                    throw new Exception($"Invalid avatar URL format: {avatarUrl}");
+                }
+
+                // Reconstruct source path: {camperId}/filename.jpg
+                var sourcePath = string.Join("/", pathParts.Skip(bucketIndex + 1));
+                var fileName = Path.GetFileName(sourcePath);
+                var ext = Path.GetExtension(fileName).ToLower();
+
+                // Determine content type
+                var contentType = ext switch
+                {
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".webp" => "image/webp",
+                    _ => "image/jpeg"
+                };
+
+                _logger.LogDebug("Copying from camper-photos/{SourcePath} to attendance-sessions", sourcePath);
+
+                // Download from camper-photos bucket using Supabase SDK
+                var storage = _supabaseClient.Storage;
+                var sourceBucket = storage.From("camper-photos");
+                var imageBytes = await sourceBucket.Download(sourcePath, null);
+
+                if (imageBytes == null || imageBytes.Length == 0)
+                {
+                    throw new Exception($"Failed to download photo from camper-photos bucket: {sourcePath}");
+                }
+
+                // Determine target path: use provided folder or default to campers folder
+                var targetBucket = storage.From(BUCKET_NAME);
+                var basePath = string.IsNullOrEmpty(targetFolder) ? $"camp_{campId}/campers" : targetFolder;
+                var targetPath = $"{basePath}/{camperId}/{fileName}";
+
+                await targetBucket.Upload(
+                    imageBytes,
+                    targetPath,
+                    new Supabase.Storage.FileOptions
+                    {
+                        ContentType = contentType,
+                        Upsert = true
+                    });
+
+                _logger.LogDebug("Successfully copied photo to {TargetPath}", targetPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error copying photo for Camper {CamperId} from URL {AvatarUrl}", camperId, avatarUrl);
+                throw;
             }
         }
 
