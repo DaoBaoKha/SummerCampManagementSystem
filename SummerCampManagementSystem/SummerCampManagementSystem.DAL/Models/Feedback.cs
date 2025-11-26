@@ -17,9 +17,9 @@ public partial class Feedback
     [Key]
     public int feedbackId { get; set; }
 
-    public int? registrationId { get; set; }
+    public int registrationId { get; set; }
 
-    public int? userId { get; set; }
+    public int userId { get; set; }
 
     public int? rating { get; set; }
 
@@ -28,7 +28,20 @@ public partial class Feedback
     [Column(TypeName = "datetime")]
     public DateTime? createAt { get; set; }
 
-    public int? campId { get; set; }
+    public int campId { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? updateAt { get; set; }
+
+    [StringLength(50)]
+    public string status { get; set; }
+
+    public string rejectionReason { get; set; }
+
+    public string managerReply { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? replyAt { get; set; }
 
     [ForeignKey("campId")]
     [InverseProperty("Feedbacks")]

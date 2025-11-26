@@ -91,6 +91,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[CamperTransport]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[CampStaffAssignment]",
          "ObjectType": 0
       },

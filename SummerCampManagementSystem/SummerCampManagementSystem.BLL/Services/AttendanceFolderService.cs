@@ -19,7 +19,7 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly Client _supabaseClient;
         private readonly ILogger<AttendanceFolderService> _logger;
-        private const string BUCKET_NAME = "attendance_sessions";
+        private const string BUCKET_NAME = "attendance-sessions";
         private const string MARKER_FILE_NAME = ".folder_marker";
 
         public AttendanceFolderService(
@@ -66,10 +66,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 _logger.LogInformation("Created camp folder: {FolderPath}", campFolderPath);
 
                 // Step 2: Get the CamperGroup for this camp (for core activities)
-                var camperGroup = await _unitOfWork.CamperGroups
-                    .FindAsync(cg => cg.campId == campId);
+                var camperGroups = await _unitOfWork.CamperGroups
+                    .GetByCampIdAsync(campId);
 
-                var firstCamperGroup = camperGroup.FirstOrDefault();
+                var firstCamperGroup = camperGroups.FirstOrDefault();
                 if (firstCamperGroup == null)
                 {
                     _logger.LogWarning("No CamperGroup found for Camp {CampId}. Camp may not have core activities yet.", campId);
@@ -88,11 +88,16 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 // Step 3: Get all ActivitySchedules for optional activities with registered campers
                 // ActivitySchedule has isOptional flag and relates to Activity which has campId
+                var allOptionalSchedules = await _unitOfWork.ActivitySchedules
+                    .GetOptionalScheduleByCampIdAsync(campId);
+
+                // Load with CamperActivities navigation property
                 var optionalActivitySchedules = await _unitOfWork.ActivitySchedules
-                    .GetAllAsync(
-                        filter: asc => asc.isOptional && asc.activity.campId == campId,
-                        includeProperties: "activity,CamperActivities"
-                    );
+                    .GetQueryable()
+                    .Where(asc => asc.isOptional && asc.activity.campId == campId)
+                    .Include(asc => asc.activity)
+                    .Include(asc => asc.CamperActivities)
+                    .ToListAsync();
 
                 // Step 4: Create folders for optional activities that have registered campers
                 foreach (var activitySchedule in optionalActivitySchedules)
@@ -146,7 +151,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 try
                 {
                     // Try to download the marker file
-                    var fileBytes = await bucket.Download(campFolderMarkerPath);
+                    var fileBytes = await bucket.Download(campFolderMarkerPath, null);
                     return fileBytes != null && fileBytes.Length > 0;
                 }
                 catch
@@ -163,7 +168,7 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         /// <summary>
-        /// Creates a folder in the attendance_sessions bucket by uploading a marker file
+        /// Creates a folder in the attendance-sessions bucket by uploading a marker file
         /// Supabase doesn't support empty folders, so we upload a small marker file
         /// </summary>
         public async Task<bool> CreateFolderInBucketAsync(string folderPath)

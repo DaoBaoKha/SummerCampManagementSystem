@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.UnitOfWork;
 using Supabase;
 
 
@@ -8,63 +9,118 @@ namespace SummerCampManagementSystem.BLL.Services
     public class UploadSupabaseService : IUploadSupabaseService
     {
         private readonly Client _client;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public UploadSupabaseService(Client client)
+        public UploadSupabaseService(Client client, IUnitOfWork unitOfWork)
         {
             _client = client;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<string?> UploadCamperPhotoAsync(int camperId, IFormFile? file)
         {
-            if (file == null)
+            // Bucket: camper-photos
+            // Path: {camperId}/filename
+            return await UploadFileInternalAsync(file, "camper-photos", camperId.ToString());
+        }
+
+        public async Task<string?> UploadUserAvatarAsync(int userId, IFormFile? file)
+        {
+            // Bucket: user-avatars
+            // Path: {userId}/filename
+            return await UploadFileInternalAsync(file, "user-avatars", userId.ToString());
+        }
+
+        public async Task<string?> UploadDriverAvatarAsync(int userId, IFormFile? file)
+        {
+            // Bucket: driver-avatars
+            // Path: {driverId}/filename
+            return await UploadFileInternalAsync(file, "driver-avatars", userId.ToString());
+        }
+
+        public async Task<string?> UploadStaffAvatarAsync(int userId, IFormFile? file)
+        {
+            // Bucket: staff-avatars
+            // Path: {staffId}/filename
+            return await UploadFileInternalAsync(file, "staff-avatars", userId.ToString());
+        }
+
+        public async Task<string?> UploadBlogImageAsync(int blogId, IFormFile? file)
+        {
+            // Bucket: blog-images
+            // Path: {blogId}/filename
+            return await UploadFileInternalAsync(file, "blog-images", blogId.ToString());
+        }
+
+        public async Task<string?> UploadDriverLicensePhotoAsync(int userId, IFormFile? file)
+        {
+            // Bucket: driver-license-photos
+            // Path: {driverId}/filename
+            return await UploadFileInternalAsync(file, "driver-license-photos", userId.ToString());
+        }
+
+        public async Task<string?> UploadReportCamperAsync(int reportId, IFormFile? file)
+        {
+            // Bucket: report-camper-photos
+            //Path : {reportId}/filename
+            return await UploadFileInternalAsync(file, "report-camper-photos", reportId.ToString());
+        }
+
+            #region Private Helper Method
+
+        private async Task<string?> UploadFileInternalAsync(IFormFile? file, string bucketName, string folderPath)
+        {
+            if (file == null || file.Length == 0)
                 return null;
 
-            // VALIDATE 1 — File size (giới hạn 5MB)
-            const long maxFileSize = 5 * 1024 * 1024; // 5MB
-            if (file.Length == 0)
-                throw new ArgumentException("File upload is empty.");
-
+            // 1. VALIDATE File Size (Max 5MB)
+            const long maxFileSize = 5 * 1024 * 1024;
             if (file.Length > maxFileSize)
-                throw new ArgumentException("File size cannot exceed 5MB.");
+                throw new ArgumentException($"File size cannot exceed 5MB. Current size: {file.Length / 1024 / 1024}MB");
 
-            // VALIDATE 2 — Extension hợp lệ
+            // 2. VALIDATE File Extension
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
             var ext = Path.GetExtension(file.FileName).ToLower();
 
             if (!allowedExtensions.Contains(ext))
-                throw new ArgumentException("Only JPG, PNG, or WEBP images are allowed.");
+                throw new ArgumentException($"Only JPG, PNG, or WEBP images are allowed. Provided: {ext}");
 
-            // VALIDATE 3 — Content-Type
+            // 3. VALIDATE Content Type
             var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/webp" };
             if (!allowedContentTypes.Contains(file.ContentType))
-                throw new ArgumentException("Invalid image file format.");
+                throw new ArgumentException($"Invalid content type: {file.ContentType}");
 
-            // VALIDATE OK → tiếp tục upload
+            // 4. UPLOAD
             var storage = _client.Storage;
-            var bucket = storage.From("camper-photos");
+            var bucket = storage.From(bucketName);
 
-            // File name an toàn để tránh bị overwrite
+            // Tạo tên file ngẫu nhiên để tránh trùng lặp
             var fileName = $"avatar_{Guid.NewGuid():N}{ext}";
-            var path = $"{camperId}/{fileName}";
 
-            // Convert IFormFile → byte[]
+            // Nếu có folderPath (ví dụ ID), ghép vào đường dẫn: "123/avatar_xyz.jpg"
+            // Nếu không (Blog), chỉ dùng tên file: "avatar_xyz.jpg"
+            var fullPath = string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
+
+            // 2. CHUYỂN IFormFile (Stream) SANG byte[]
             byte[] fileBytes;
             using (var stream = file.OpenReadStream())
             {
+                // Đọc toàn bộ nội dung stream vào mảng byte
                 fileBytes = new byte[file.Length];
+                // Sử dụng ReadAsync/CopyToAsync để an toàn và hiệu quả hơn
                 await stream.ReadAsync(fileBytes, 0, (int)file.Length);
             }
 
-            // Upload
-            await bucket.Upload(fileBytes, path, new Supabase.Storage.FileOptions
+            await bucket.Upload(fileBytes, fullPath, new Supabase.Storage.FileOptions
             {
                 ContentType = file.ContentType,
-                Upsert = true
+                Upsert = true // Ghi đè nếu file trùng tên (dù đã dùng GUID nhưng an toàn hơn)
             });
 
-            // Trả về public URL
-            return bucket.GetPublicUrl(path);
+            // 5. RETURN Public URL
+            return bucket.GetPublicUrl(fullPath);
         }
 
+        #endregion
     }
 }

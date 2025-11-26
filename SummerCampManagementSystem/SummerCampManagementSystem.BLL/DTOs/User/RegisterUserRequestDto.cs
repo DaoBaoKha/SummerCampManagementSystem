@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.Core.Enums;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace SummerCampManagementSystem.BLL.DTOs.User

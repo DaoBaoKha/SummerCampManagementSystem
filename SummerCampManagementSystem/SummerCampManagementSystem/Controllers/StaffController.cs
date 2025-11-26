@@ -135,6 +135,29 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [Authorize(Roles = "Admin, Manager")]
+        [HttpGet("camps/{campId}/available-in-time")]
+        public async Task<IActionResult> GetAvailableActivityStaff(int campId, DateTime startTime, DateTime endTime)
+        {
+            try
+            {
+                var result = await _staffService.GetAvailableActivityStaffsByTime(campId, startTime, endTime);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (ArgumentException arEx)
+            {
+                return BadRequest(new { message = arEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin, Manager")]
         [HttpGet("camps/{campId}/available-group-staff")]
         public async Task<IActionResult> GetAvailableGroupStaff(int campId)
         {

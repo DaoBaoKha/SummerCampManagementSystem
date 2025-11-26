@@ -28,23 +28,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         }
         public async Task<IEnumerable<UserAccount>> GetAvailableStaffByCampId(int campId)
         {
-            var camp = await _context.Camps
-                .Where(c => c.campId == campId)
-                .Select(c => new { c.startDate, c.endDate })
-                .FirstOrDefaultAsync();
-
-            if (camp == null)
-                throw new KeyNotFoundException("Camp not found.");
-
-            var (start, end) = (camp.startDate, camp.endDate);
-
-            return await _context.UserAccounts
-                .Where(u => u.role == "Staff")
-                .Where(u =>
-                    !u.CampStaffAssignments.Any(csa =>
-                        csa.campId != campId &&
-                        csa.camp.startDate <= end &&
-                        csa.camp.endDate >= start))
+            return await _context.CampStaffAssignments
+                .Where(csa => csa.campId == campId)
+                .Select(csa => csa.staff)
+                .Where(staff => staff.role == "Staff")
                 .ToListAsync();
         }
 

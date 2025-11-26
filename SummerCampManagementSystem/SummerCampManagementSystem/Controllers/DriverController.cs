@@ -5,15 +5,17 @@ using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/drivers")]
+    [Route("api/driver")]
     [ApiController]
     public class DriverController : ControllerBase
     {
         private readonly IDriverService _driverService;
+        private readonly ILogger<DriverController> _logger;
 
-        public DriverController(IDriverService driverService)
+        public DriverController(IDriverService driverService, ILogger<DriverController> logger)
         {
             _driverService = driverService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -30,16 +32,75 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var userResponse = await _driverService.RegisterDriverAsync(model);
 
+                _logger.LogInformation("Driver registered successfully. Attempting to create location URI.");
+
                 return CreatedAtAction(nameof(GetDriverByUserId), new { userId = userResponse.UserId }, userResponse);
             }
             // email already exists
             catch (ArgumentException ex)
             {
+                _logger.LogWarning("Registration failed: {Message}", ex.Message);
                 return BadRequest(new { message = ex.Message }); 
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "CRITICAL ERROR: Failed to register driver or create CreatedAtAction response. Host/URI issue suspected. Host: {Host}, Scheme: {Scheme}", 
+                                 HttpContext.Request.Host.Value, HttpContext.Request.Scheme);
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Đăng ký thất bại do lỗi hệ thống.", detail = ex.Message });
+            }
+        }
+
+        [HttpPost("upload-photo")]
+        [Authorize(Roles = "Driver")]
+        public async Task<IActionResult> UploadDriverLicensePhoto([FromForm] DriverLicensePhotoUploadDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                   ?? "Dữ liệu tải lên không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+            try
+            {
+                var userId = int.Parse(User.FindFirst("UserId")?.Value ?? "0");
+                var photoUrl = await _driverService.UpdateDriverLicensePhotoAsync(model.LicensePhoto);
+                return Ok(new { LicensePhotoUrl = photoUrl });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Tải ảnh giấy phép lái xe thất bại do lỗi hệ thống.", detail = ex.Message });
+            }
+        }
+
+        [HttpPost("upload-photo-by-token")]
+        public async Task<IActionResult> UploadDriverLicensePhotoByToken([FromForm] DriverLicenseUploadByTokenDto model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                       ?? "Dữ liệu tải lên không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+
+            try
+            {
+                var photoUrl = await _driverService.UpdateDriverLicensePhotoByTokenAsync(model.UploadToken, model.LicensePhoto);
+
+                return Ok(new { message = "Upload ảnh giấy phép lái xe thành công. Đang chờ phê duyệt.", LicensePhotoUrl = photoUrl });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                // token invalid or not existed
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // token expired or used
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Tải ảnh giấy phép lái xe thất bại do lỗi hệ thống.", detail = ex.Message });
             }
         }
 
@@ -71,7 +132,21 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-  
+        [HttpGet("status")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetDriversByStatus([FromQuery] string status)
+        {
+            try
+            {
+                var drivers = await _driverService.GetDriverByStatusAsync(status);
+                return Ok(drivers);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ.", detail = ex.Message });
+            }
+        }
+
 
         [HttpPut("{driverId}")]
         [Authorize]
@@ -96,6 +171,40 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("{driverId}/status")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> UpdateDriverStatus(int driverId, [FromQuery] DriverStatusUpdateDto updateDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
+                                           ?? "Dữ liệu trạng thái không hợp lệ.";
+                return BadRequest(new { message = errorMessage });
+            }
+
+            try
+            {
+                var updatedDriver = await _driverService.UpdateDriverStatusAsync(driverId, updateDto);
+
+                return Ok(new { message = $"Trạng thái Driver {driverId} đã được cập nhật thành {updatedDriver.Role}.", driver = updatedDriver });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex) // error status update
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex) // flow error
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ." });
+            }
+        }
 
         [HttpDelete("{driverId}")]
         [Authorize(Roles = "Admin")]

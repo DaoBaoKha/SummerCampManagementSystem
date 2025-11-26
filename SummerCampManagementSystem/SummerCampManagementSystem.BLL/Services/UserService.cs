@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -22,14 +24,17 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMemoryCache _cache;
         private readonly IEmailService _emailService;
         private readonly IMapper _mapper;
+        private readonly ILogger<UserService> _logger;
 
-        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache, IEmailService emailService, IMapper mapper)
+        public UserService(IUnitOfWork unitOfWork, IConfiguration config, IMemoryCache memoryCache,
+            IEmailService emailService, IMapper mapper, ILogger<UserService> logger)
         {
             _unitOfWork = unitOfWork;
             _config = config;
             _cache = memoryCache;
             _emailService = emailService;
             _mapper = mapper;
+            _logger = logger;
         }
 
 
@@ -41,11 +46,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (user == null || string.IsNullOrEmpty(user.password) || !VerifyPassword(model.Password, user.password))
                 {
+                    _logger.LogWarning("Login attempt failed for {Email}: Invalid credentials.", model.Email);
                     return (null, "Email hoặc mật khẩu không chính xác!", "INVALID_CREDENTIALS");
                 }
                 
                 if(user.isActive == false)
                 {
+                    _logger.LogWarning("Login attempt blocked for {Email}: Account not active.", model.Email);
                     return (null, "Tài khoản chưa được xác thục. Vui lòng kiểm tra email để kích hoạt tài khoản.", "ACCOUNT_NOT_ACTIVE");
                 }
 
@@ -56,7 +63,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Login failed: {ex.Message}");
+                _logger.LogError(ex, "CRITICAL ERROR during user login for email: {Email}. Full stack trace below.", model.Email);
                 return (null, "Đăng nhập thất bại. Vui lòng thử lại sau.", "INTERNAL_ERROR");
             }
         }
@@ -96,9 +103,20 @@ namespace SummerCampManagementSystem.BLL.Services
             var jwtIssuer = _config["Jwt:Issuer"];
             var jwtAudience = _config["Jwt:Audience"];
 
-            if (string.IsNullOrEmpty(jwtKey) || string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
+            if (string.IsNullOrEmpty(jwtKey))
             {
-                throw new InvalidOperationException("JWT configuration is incomplete.");
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Key is null or empty. Check Google Secret Manager 'jwt-secret'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Key is missing.");
+            }
+            if (string.IsNullOrEmpty(jwtIssuer))
+            {
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Issuer is null or empty. Check Google Secret Manager 'jwt-issuer'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Issuer is missing.");
+            }
+            if (string.IsNullOrEmpty(jwtAudience))
+            {
+                _logger.LogError("JWT_CONFIG_MISSING: The Jwt:Audience is null or empty. Check Google Secret Manager 'jwt-audience'.");
+                throw new InvalidOperationException("JWT configuration is incomplete: Audience is missing.");
             }
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -170,6 +188,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 return null;
             }
 
+            // default avatar
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"] 
+                               ?? "https://via.placeholder.com/150";
+
             var newUser = new UserAccount
             {
                 firstName = model.FirstName,
@@ -177,7 +199,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 email = model.Email,
                 phoneNumber = model.PhoneNumber,
                 password = HashPassword(model.Password),
-                avatar = string.Empty,
+                avatar = defaultAvatar,
                 dob = model.Dob,
                 role = UserRole.User.ToString(), // Default role
                 isActive = false,
@@ -186,7 +208,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.Users.CreateAsync(newUser);
             await _unitOfWork.CommitAsync();
-
 
             var otp = new Random().Next(100000, 999999).ToString();
 
@@ -214,7 +235,12 @@ namespace SummerCampManagementSystem.BLL.Services
             if (await _unitOfWork.Users.GetUserByEmail(model.Email) != null)
                 return null;
 
+            // default avatar
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"]
+                               ?? "https://via.placeholder.com/150";
+
             var newUser = _mapper.Map<UserAccount>(model);
+            newUser.avatar = defaultAvatar;
             newUser.password = HashPassword(model.Password);
             newUser.isActive = true; // Admin tạo → active sẵn
             newUser.createAt = DateTime.UtcNow;
@@ -386,6 +412,5 @@ namespace SummerCampManagementSystem.BLL.Services
 
             };
         }
-
     }
 }

@@ -9,5 +9,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface ICamperGuardianRepository : IGenericRepository<CamperGuardian>
     {
+        Task<IEnumerable<CamperGuardian>> GetByGuardianId(int guardianId);
     }
 }

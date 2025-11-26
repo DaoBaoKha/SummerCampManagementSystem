@@ -36,6 +36,9 @@ public partial class Location
     [InverseProperty("location")]
     public virtual ICollection<ActivitySchedule> ActivitySchedules { get; set; } = new List<ActivitySchedule>();
 
+    [InverseProperty("stopLocation")]
+    public virtual ICollection<CamperTransport> CamperTransports { get; set; } = new List<CamperTransport>();
+
     [InverseProperty("location")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 

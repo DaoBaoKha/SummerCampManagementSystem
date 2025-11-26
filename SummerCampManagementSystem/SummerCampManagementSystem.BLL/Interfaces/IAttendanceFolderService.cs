@@ -13,8 +13,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         /// <summary>
         /// Creates the folder hierarchy for a camp's attendance sessions
-        /// Creates: attendance_sessions/camp_{campId}/camper_group_{groupId}/ and 
-        /// attendance_sessions/camp_{campId}/camperactivity_{activityId}/ for each registered optional activity
+        /// Creates: attendance-sessions/camp_{campId}/camper_group_{groupId}/ and 
+        /// attendance-sessions/camp_{campId}/camperactivity_{activityId}/ for each registered optional activity
         /// </summary>
         /// <param name="campId">The camp ID for which folders should be created</param>
         /// <returns>True if folders were created successfully, false otherwise</returns>
@@ -28,7 +28,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<bool> FoldersExistForCampAsync(int campId);
 
         /// <summary>
-        /// Creates a folder in the attendance_sessions bucket
+        /// Creates a folder in the attendance-sessions bucket
         /// </summary>
         /// <param name="folderPath">The relative path of the folder to create</param>
         /// <returns>True if folder was created successfully, false otherwise</returns>

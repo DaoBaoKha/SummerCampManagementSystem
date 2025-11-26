@@ -1,4 +1,6 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.User;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.User;
+using SummerCampManagementSystem.Core.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace SummerCampManagementSystem.BLL.DTOs.Driver
@@ -25,5 +27,27 @@ namespace SummerCampManagementSystem.BLL.DTOs.Driver
         [Required(ErrorMessage = "Địa chỉ tài xế là bắt buộc.")]
         [StringLength(255, ErrorMessage = "Địa chỉ không được vượt quá 255 ký tự.")]
         public string DriverAddress { get; set; } = null!;
+    }
+
+    public class DriverLicensePhotoUploadDto
+    {
+        [Required(ErrorMessage = "Ảnh giấy phép lái xe là bắt buộc.")]
+        public IFormFile LicensePhoto { get; set; } = null!;
+    }
+
+    public class DriverStatusUpdateDto
+    {
+        [Required(ErrorMessage = "Trạng thái là bắt buộc.")]
+        public DriverStatus Status { get; set; }
+    }
+
+    public class DriverLicenseUploadByTokenDto
+    {
+        [Required(ErrorMessage = "Token upload là bắt buộc.")]
+        [StringLength(50, ErrorMessage = "Token không hợp lệ.")]
+        public string UploadToken { get; set; } = null!;
+
+        [Required(ErrorMessage = "Ảnh giấy phép lái xe là bắt buộc.")]
+        public IFormFile LicensePhoto { get; set; } = null!;
     }
 }

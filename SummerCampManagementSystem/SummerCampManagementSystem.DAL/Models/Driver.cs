@@ -25,6 +25,18 @@ public partial class Driver
     [StringLength(255)]
     public string driverAddress { get; set; }
 
+    public string licensePhoto { get; set; }
+
+    [StringLength(50)]
+    public string status { get; set; }
+
+    public string UploadToken { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? TokenExpiry { get; set; }
+
+    public bool? IsTokenUsed { get; set; }
+
     [InverseProperty("driver")]
     public virtual ICollection<DriverVehicle> DriverVehicles { get; set; } = new List<DriverVehicle>();
 
