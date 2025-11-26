@@ -24,6 +24,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
         {
+
+            requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
+            requestDto.EndTime = requestDto.EndTime.ToUtcForStorageTime();
+
             await CheckForeignKeyExistence(requestDto);
 
             await CheckScheduleConflicts(
@@ -154,6 +158,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình chưa được thực hiện hoặc đã hoàn thành.");
             }
 
+            requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
+            requestDto.EndTime = requestDto.EndTime.ToUtcForStorageTime();
 
             // validation conflict except current schedule
             await CheckScheduleConflicts(
@@ -235,6 +241,9 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
                 ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+
+            TimeOnly? utcStartTime = actualStartTime.ToUtcForStorageTime();
+            TimeOnly? utcEndTime = actualEndTime.ToUtcForStorageTime();
 
             ApplyActualTimeAndDetermineStatus(existingSchedule, actualStartTime, actualEndTime);
 
