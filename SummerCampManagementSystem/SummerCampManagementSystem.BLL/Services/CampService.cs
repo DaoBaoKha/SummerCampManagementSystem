@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Jobs;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -52,6 +53,16 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
+
+            // Schedule Hangfire job for attendance folder creation when registration ends
+            if (newCamp.registrationEndDate.HasValue)
+            {
+                var jobId = AttendanceFolderCreationJob.ScheduleForCamp(
+                    newCamp.campId,
+                    newCamp.registrationEndDate.Value);
+                _logger.LogInformation("Scheduled attendance folder creation job {JobId} for Camp {CampId} at {RegistrationEndDate}",
+                    jobId, newCamp.campId, newCamp.registrationEndDate.Value);
+            }
 
             // get the created camp with related entities
             var createdCamp = await GetCampsWithIncludes()
@@ -289,6 +300,16 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
             await _unitOfWork.CommitAsync();
 
+            // Reschedule Hangfire job if registration end date changed
+            if (existingCamp.registrationEndDate.HasValue)
+            {
+                var jobId = AttendanceFolderCreationJob.ScheduleForCamp(
+                    existingCamp.campId,
+                    existingCamp.registrationEndDate.Value);
+                _logger.LogInformation("Rescheduled attendance folder creation job {JobId} for Camp {CampId} at {RegistrationEndDate}",
+                    jobId, existingCamp.campId, existingCamp.registrationEndDate.Value);
+            }
+
             return _mapper.Map<CampResponseDto>(existingCamp);
         }
 
@@ -325,7 +346,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new Exception($"Camp with ID {campId} not found.");
             }
 
-            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) || 
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
             {
                 throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
@@ -492,7 +513,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
             }
 
-            if (reqStartDate >= reqEndDate) 
+            if (reqStartDate >= reqEndDate)
             {
                 throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
             }
@@ -531,7 +552,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var newCampEndDate = reqEndDate;
             var locationId = campRequest.LocationId.Value;
 
-            DateTime newStartDateTime = newCampStartDate.Date; 
+            DateTime newStartDateTime = newCampStartDate.Date;
             DateTime newEndDateTime = newCampEndDate.Date.AddDays(1).AddTicks(-1);
 
             var overlappingCamps = await _unitOfWork.Camps.GetQueryable()
@@ -551,7 +572,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private async Task ApproveCampAndSchedulesAsync(int campId)
         {
-      
+
             string approvedStatus = TransportScheduleStatus.NotYet.ToString();
 
             // APPROVE ALL ACTIVITY SCHEDULES

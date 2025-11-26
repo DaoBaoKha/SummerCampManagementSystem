@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using Net.payOS;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Jobs;
 using SummerCampManagementSystem.BLL.Mappings;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
@@ -315,6 +316,12 @@ builder.Services.AddScoped<IStaffService, StaffService>();
 
 builder.Services.AddScoped<IUploadSupabaseService, UploadSupabaseService>();
 
+// Attendance folder service for facial recognition
+builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
+
+// Hangfire job for attendance folder creation
+builder.Services.AddScoped<AttendanceFolderCreationJob>();
+
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
@@ -381,7 +388,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.Never;
-    
+
     // Add custom DateTime converter for Vietnam timezone
     options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
 });
