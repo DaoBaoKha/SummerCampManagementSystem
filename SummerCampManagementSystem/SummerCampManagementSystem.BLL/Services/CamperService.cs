@@ -46,8 +46,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (dto.avatar != null)
             {
+                // Upload to camper-photos bucket only (for profile/management)
                 var url = await _uploadSupabaseService.UploadCamperPhotoAsync(camper.camperId, dto.avatar);
                 camper.avatar = url;
+                // Note: Copy to attendance-sessions happens when registration period ends
             }
 
             if (dto.HealthRecord != null)
@@ -102,7 +104,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId)
         {
             var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
-                ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found."); 
+                ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
             var campers = await _unitOfWork.Campers.GetCampersByOptionalActivityId(optionalActivityId);
             return _mapper.Map<IEnumerable<CamperSummaryDto>>(campers);
         }
@@ -134,7 +136,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var activity = await _unitOfWork.ActivitySchedules.GetByIdAsync(optionalActivityId)
                 ?? throw new KeyNotFoundException($"Activity Schedule with id {optionalActivityId} not found.");
-          
+
             var campers = await _unitOfWork.Campers.GetCampersByOptionalActivityId(optionalActivityId);
 
             var logs = await _unitOfWork.AttendanceLogs.GetAttendanceLogsByScheduleId(optionalActivityId);
@@ -267,14 +269,17 @@ namespace SummerCampManagementSystem.BLL.Services
             if (existingCamper == null) return false;
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
+
             _mapper.Map(dto, existingCamper);
-           
+
             await _unitOfWork.Campers.UpdateAsync(existingCamper);
 
             if (dto.avatar != null)
             {
+                // Upload to camper-photos bucket only (for profile/management)
                 var url = await _uploadSupabaseService.UploadCamperPhotoAsync(existingCamper.camperId, dto.avatar);
                 existingCamper.avatar = url;
+                // Note: Copy to attendance-sessions happens when registration period ends
             }
 
             if (dto.HealthRecord != null)

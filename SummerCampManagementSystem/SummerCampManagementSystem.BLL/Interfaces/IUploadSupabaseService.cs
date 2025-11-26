@@ -10,6 +10,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public interface IUploadSupabaseService
     {
         Task<string?> UploadCamperPhotoAsync(int camperId, IFormFile? file);
+        Task<string?> UploadCamperPhotoToAttendanceAsync(int camperId, IFormFile? file);
         Task<string?> UploadUserAvatarAsync(int userId, IFormFile? file);
         Task<string?> UploadDriverAvatarAsync(int driverId, IFormFile? file);
         Task<string?> UploadStaffAvatarAsync(int staffId, IFormFile? file);

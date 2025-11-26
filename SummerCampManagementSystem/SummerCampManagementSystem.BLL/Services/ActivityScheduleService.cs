@@ -31,7 +31,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(id)
                 ?? throw new KeyNotFoundException("Activity schedule not found.");
-            return schedule == null ? null :_mapper.Map<ActivityScheduleResponseDto>(schedule);
+            return schedule == null ? null : _mapper.Map<ActivityScheduleResponseDto>(schedule);
         }
 
         public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
