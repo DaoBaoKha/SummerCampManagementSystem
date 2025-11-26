@@ -57,6 +57,10 @@ public partial class ActivitySchedule
     [InverseProperty("ActivitySchedules")]
     public virtual Activity activity { get; set; }
 
+    [ForeignKey("livestreamId")]
+    [InverseProperty("ActivitySchedules")]
+    public virtual Livestream livestream { get; set; }
+
     [ForeignKey("locationId")]
     [InverseProperty("ActivitySchedules")]
     public virtual Location location { get; set; }
