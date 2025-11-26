@@ -165,6 +165,8 @@ builder.Services.AddScoped<ILiveStreamRepository, LiveStreamRepository>();
 builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);

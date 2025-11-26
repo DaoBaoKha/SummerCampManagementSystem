@@ -81,9 +81,6 @@ public partial class UserAccount
     [InverseProperty("user")]
     public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 

@@ -14,6 +14,7 @@ using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
+using SummerCampManagementSystem.BLL.DTOs.Feedback;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using SummerCampManagementSystem.BLL.DTOs.Livestream;
@@ -366,6 +367,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //LiveStream mappings
             CreateMap<Livestream, LivestreamResponseDto>();
             CreateMap<LivestreamRequestDto, Livestream>();
+
+            //Feedback mappings
+            CreateMap<FeedbackRequestDto, Feedback>()
+                .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Pending"));
+            CreateMap<Feedback, FeedbackResponseDto>();
         }
     }
 }
