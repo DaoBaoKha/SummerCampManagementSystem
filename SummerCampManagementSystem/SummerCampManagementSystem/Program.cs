@@ -208,6 +208,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
     // Add custom DateTime converter for Vietnam timezone
     options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
+
+    // add custom timeOnly converter for Vietnam timezone
+    options.JsonSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
 });
 
 // JWT Authentication
