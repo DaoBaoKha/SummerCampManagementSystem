@@ -76,7 +76,20 @@ namespace SummerCampManagementSystem.BLL.Services
 
             feedback.managerReply = dto.Reply;
             feedback.replyAt = DateTime.UtcNow;
-            feedback.status = "Replied";
+            feedback.status = "Approved";
+            await _unitOfWork.Feedbacks.UpdateAsync(feedback);
+            await _unitOfWork.CommitAsync();
+            return _mapper.Map<FeedbackResponseDto>(feedback);
+        }
+
+        public async Task<FeedbackResponseDto> RejectFeedback(int feedbackId, FeedbackRejectedRequestDto dto)
+        {
+            var feedback = await _unitOfWork.Feedbacks.GetByIdAsync(feedbackId)
+                ?? throw new KeyNotFoundException($"Feedback with id {feedbackId} not found");
+
+            feedback.rejectionReason = dto.RejectionReason;
+            feedback.status = "Rejected";
+
             await _unitOfWork.Feedbacks.UpdateAsync(feedback);
             await _unitOfWork.CommitAsync();
             return _mapper.Map<FeedbackResponseDto>(feedback);

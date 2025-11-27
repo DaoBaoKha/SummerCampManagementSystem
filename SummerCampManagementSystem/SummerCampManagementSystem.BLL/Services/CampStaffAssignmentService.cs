@@ -79,18 +79,18 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Assignment with ID {assignmentId} not found.");
             }
 
-           await EnsureStaffNotInUseAsync(assignment.staffId.Value);
+           await EnsureStaffNotInUseAsync(assignment.staffId.Value, assignment.campId.Value);
 
             await _unitOfWork.CampStaffAssignments.RemoveAsync(assignment);
             await _unitOfWork.CommitAsync();
             return true;
         }
 
-        private async Task EnsureStaffNotInUseAsync(int staffId)
+        private async Task EnsureStaffNotInUseAsync(int staffId, int campId)
         {
             // 1. GROUPS
             var groups = await _unitOfWork.CamperGroups.GetQueryable()
-                .Where(g => g.supervisorId == staffId)
+                .Where(g => g.supervisorId == staffId && g.campId == campId)
                 .Select(g => g.camperGroupId) 
                 .ToListAsync();
 
@@ -105,7 +105,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 2. ACTIVITIES
             var activities = await _unitOfWork.ActivitySchedules.GetQueryable()
-                .Where(a => a.staffId == staffId)
+                .Where(a => a.staffId == staffId && a.activity.campId == campId)
                 .Select(a => a.activityScheduleId)
                 .ToListAsync();
 
@@ -120,7 +120,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 3. ACCOMMODATIONS
             var accommodations = await _unitOfWork.Accommodations.GetQueryable()
-                .Where(ac => ac.supervisorId == staffId)
+                .Where(ac => ac.supervisorId == staffId && ac.campId == campId)
                 .Select(ac => ac.accommodationId) 
                 .ToListAsync();
 

@@ -20,4 +20,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.Feedback
     {
         public string Reply { get; set; } = null!;
     }
+
+    public class FeedbackRejectedRequestDto
+    {
+        [Required]
+        public string RejectionReason { get; set; } = null!;
+    }
 }
