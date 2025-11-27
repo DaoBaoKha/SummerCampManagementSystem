@@ -19,6 +19,12 @@
         public int ActivityScheduleId { get; set; }
     }
 
+    public class TransportChoiceDto
+    {
+        public int CamperId { get; set; }
+        public bool RequestTransport { get; set; }
+    }
+
     public class UpdateRegistrationRequestDto
     {
         public List<int> CamperIds { get; set; }
@@ -30,5 +36,7 @@
     public class GeneratePaymentLinkRequestDto
     {
         public List<OptionalChoiceDto>? OptionalChoices { get; set; }
+
+        public List<TransportChoiceDto>? TransportChoices { get; set; }
     }
 }
