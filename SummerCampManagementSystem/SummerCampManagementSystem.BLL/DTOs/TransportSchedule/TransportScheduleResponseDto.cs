@@ -8,10 +8,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
     public class TransportScheduleResponseDto
     {
         public int TransportScheduleId { get; set; }
-        public int RouteId { get; set; }
-        public int DriverId { get; set; }
-        public int VehicleId { get; set; }
-
         public RouteNameDto RouteName { get; set; }
         public DriverNameDto DriverFullName { get; set; }
         public VehicleNameDto VehicleName { get; set; }
