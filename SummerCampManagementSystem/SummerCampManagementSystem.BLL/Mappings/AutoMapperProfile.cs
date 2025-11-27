@@ -84,6 +84,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Guardians,
                     opt => opt.MapFrom(src => src.CamperGuardians.Select(cg => cg.guardian)));
 
+            CreateMap<Camper, RegistrationCamperDetailDto>();
+
             // CamperGroup mapping
             CreateMap<CamperGroup, CamperGroupResponseDto>()
                  .ForMember(dest => dest.SupervisorName, opt => opt.MapFrom(src => src.supervisor.lastName + " " + src.supervisor.firstName));
@@ -196,7 +198,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Registration mapping
             CreateMap<Registration, RegistrationResponseDto>()
                 .ForMember(dest => dest.Camp, opt => opt.MapFrom(src => src.camp))
-                .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.RegistrationCampers.Select(rc => rc.camper)))
+                .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.RegistrationCampers))
                 .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion))
                 .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities)); 
 
@@ -287,8 +289,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // RegistrationCamper mappings
             CreateMap<RegistrationCamperResponseDto, RegistrationCamper>();
             CreateMap<RegistrationCamper, RegistrationCamperResponseDto>()
-                .ForMember(dest => dest.Camp,
-                           opt => opt.MapFrom(src => src.registration.camp));
+                .ForMember(dest => dest.Camp, opt => opt.MapFrom(src => src.registration.camp))
+                .ForMember(dest => dest.RequestTransport, opt => opt.MapFrom(src => src.requestTransport));
+
+            CreateMap<RegistrationCamper, RegistrationCamperDetailDto>()
+                .IncludeMembers(src => src.camper)
+                .ForMember(dest => dest.RequestTransport, opt => opt.MapFrom(src => src.requestTransport));
+
 
             //Vehicle mappings
             CreateMap<VehicleRequestDto, Vehicle>();
