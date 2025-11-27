@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Feedback;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -18,6 +19,7 @@ namespace SummerCampManagementSystem.API.Controllers
             _feedbackService = feedbackService;
         }
         // GET: api/<FeedbackController>
+
         [HttpGet]
         public async Task<IActionResult> GetAllFeedback()
         {
@@ -82,6 +84,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Manager")]
         [HttpPut("manager-reply/{id}")]
         public async Task<IActionResult> ReplyFeedback(int id, FeedbackReplyRequestDto reply)
         {
@@ -89,6 +92,25 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 var repliedFeedback = await _feedbackService.ReplyFeedback(id, reply);
                 return Ok(repliedFeedback);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Manager")]
+        [HttpPut("reject/{id}")]
+        public async Task<IActionResult> RejectFeedback(int id, FeedbackRejectedRequestDto reject)
+        {
+            try
+            {
+                var rejectedFeedback = await _feedbackService.RejectFeedback(id, reject);
+                return Ok(rejectedFeedback);
             }
             catch (KeyNotFoundException ex)
             {
