@@ -260,6 +260,37 @@ namespace SummerCampManagementSystem.API.Controllers
                 "Face recognition requested for ActivitySchedule {ActivityScheduleId}",
                 request.ActivityScheduleId);
 
+            // Get activity schedule to find camp ID
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(request.ActivityScheduleId);
+            if (activitySchedule == null)
+            {
+                return NotFound(new { success = false, message = $"Activity schedule {request.ActivityScheduleId} not found" });
+            }
+
+            // Get camp ID from activity schedule
+            var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId);
+            if (activity == null)
+            {
+                return NotFound(new { success = false, message = $"Activity {activitySchedule.activityId} not found" });
+            }
+
+            if (!activity.campId.HasValue)
+            {
+                return BadRequest(new { success = false, message = "Activity has no associated camp" });
+            }
+
+            int campId = activity.campId.Value;
+            _logger.LogInformation("Loading face database for Camp {CampId} before recognition", campId);
+
+            // Ensure face database is loaded for this camp
+            var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId);
+            if (!loadResult.Success)
+            {
+                _logger.LogWarning("Failed to load face database for Camp {CampId}: {Message}", campId, loadResult.Message);
+                // Continue anyway - maybe it's already loaded or will work with cache
+            }
+
+            // Perform recognition
             var result = await _pythonAiService.RecognizeAsync(request);
 
             if (result.Success)

@@ -62,10 +62,10 @@ builder.Services.AddSingleton(sp => new PayOS(
     builder.Configuration["PayOS:ChecksumKey"] ?? ""
 ));
 
-// Supabase
+// Supabase - Use ServiceRoleKey for admin operations (storage uploads, etc.)
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
-var supabaseKey = builder.Configuration["Supabase:Key"] ?? "";
-var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
+var supabaseServiceRoleKey = builder.Configuration["Supabase:ServiceRoleKey"] ?? "";
+var supabase = new Supabase.Client(supabaseUrl, supabaseServiceRoleKey);
 await supabase.InitializeAsync();
 builder.Services.AddSingleton(supabase);
 
