@@ -206,11 +206,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Add activity schedule ID
                 content.Add(new StringContent(request.ActivityScheduleId.ToString()), "activity_schedule_id");
 
-                // Add confidence threshold if provided
-                if (request.ConfidenceThreshold.HasValue)
-                {
-                    content.Add(new StringContent(request.ConfidenceThreshold.Value.ToString("F2")), "confidence_threshold");
-                }
+           
 
                 // Add photo file
                 var fileStream = request.Photo.OpenReadStream();

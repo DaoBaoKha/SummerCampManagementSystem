@@ -157,14 +157,18 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogInformation("Starting to copy confirmed camper photos for Camp {CampId}", campId);
 
-                // Get all confirmed registrations for this camp
-                var confirmedRegistrations = await _unitOfWork.Registrations
+                // Get all camper groups for this camp
+                var camperGroups = await _unitOfWork.CamperGroups
+                    .GetByCampIdAsync(campId);
+
+                // Get all campers that belong to these groups (with avatars)
+                var groupIds = camperGroups.Select(cg => cg.camperGroupId).ToList();
+                var campersInGroups = await _unitOfWork.Campers
                     .GetQueryable()
-                    .Where(r => r.campId == campId &&
-                           (r.status == "Confirmed" || r.status == "OnGoing" || r.status == "Completed"))
-                    .Include(r => r.RegistrationCampers)
-                        .ThenInclude(rc => rc.camper)
+                    .Where(c => c.groupId.HasValue && groupIds.Contains(c.groupId.Value) && !string.IsNullOrEmpty(c.avatar))
                     .ToListAsync();
+
+                _logger.LogInformation("Found {Count} campers with photos in Camp {CampId}", campersInGroups.Count, campId);
 
                 // Get optional activities with registrations
                 var optionalActivities = await _unitOfWork.ActivitySchedules
@@ -176,49 +180,38 @@ namespace SummerCampManagementSystem.BLL.Services
                 int successCount = 0;
                 int failCount = 0;
 
-                foreach (var registration in confirmedRegistrations)
+                foreach (var camper in campersInGroups)
                 {
-                    foreach (var regCamper in registration.RegistrationCampers)
+                    try
                     {
-                        // Only process confirmed campers with avatars
-                        if (regCamper.status == "Confirmed" &&
-                            regCamper.camper != null &&
-                            !string.IsNullOrEmpty(regCamper.camper.avatar))
+                        // Copy to camper_group folder
+                        var targetFolder = $"camp_{campId}/camper_group_{camper.groupId.Value}";
+                        await CopyCamperPhotoToAttendanceBucket(camper.camperId, camper.avatar, campId, targetFolder);
+                        _logger.LogInformation("✅ Copied photo for Camper {CamperId} ({CamperName}) to {Folder}",
+                            camper.camperId, camper.camperName, targetFolder);
+
+                        // Copy to camperactivity folders for optional activities this camper is registered for
+                        foreach (var optionalActivity in optionalActivities)
                         {
-                            try
+                            var isRegistered = optionalActivity.CamperActivities?
+                                .Any(ca => ca.camperId == camper.camperId) ?? false;
+
+                            if (isRegistered)
                             {
-                                // Copy to camper_group folder if camper belongs to a group
-                                if (regCamper.camper.groupId.HasValue)
-                                {
-                                    var targetFolder = $"camp_{campId}/camper_group_{regCamper.camper.groupId.Value}";
-                                    await CopyCamperPhotoToAttendanceBucket(regCamper.camper.camperId, regCamper.camper.avatar, campId, targetFolder);
-                                    _logger.LogDebug("Copied photo for Camper {CamperId} to camper_group", regCamper.camper.camperId);
-                                }
-
-                                // Copy to camperactivity folders for optional activities this camper is registered for
-                                foreach (var optionalActivity in optionalActivities)
-                                {
-                                    var isRegistered = optionalActivity.CamperActivities?
-                                        .Any(ca => ca.camperId == regCamper.camper.camperId) ?? false;
-
-                                    if (isRegistered)
-                                    {
-                                        var targetFolder = $"camp_{campId}/camperactivity_{optionalActivity.activityScheduleId}";
-                                        await CopyCamperPhotoToAttendanceBucket(regCamper.camper.camperId, regCamper.camper.avatar, campId, targetFolder);
-                                        _logger.LogDebug("Copied photo for Camper {CamperId} to camperactivity_{ActivityId}",
-                                            regCamper.camper.camperId, optionalActivity.activityScheduleId);
-                                    }
-                                }
-
-                                successCount++;
-                            }
-                            catch (Exception ex)
-                            {
-                                failCount++;
-                                _logger.LogWarning(ex, "Failed to copy photo for Camper {CamperId}", regCamper.camper.camperId);
-                                // Continue with other campers even if one fails
+                                var activityTargetFolder = $"camp_{campId}/camperactivity_{optionalActivity.activityScheduleId}";
+                                await CopyCamperPhotoToAttendanceBucket(camper.camperId, camper.avatar, campId, activityTargetFolder);
+                                _logger.LogInformation("✅ Copied photo for Camper {CamperId} to camperactivity_{ActivityId}",
+                                    camper.camperId, optionalActivity.activityScheduleId);
                             }
                         }
+
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failCount++;
+                        _logger.LogWarning(ex, "❌ Failed to copy photo for Camper {CamperId}", camper.camperId);
+                        // Continue with other campers even if one fails
                     }
                 }
 
@@ -284,8 +277,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Determine target path: use provided folder or default to campers folder
                 var targetBucket = storage.From(BUCKET_NAME);
                 var basePath = string.IsNullOrEmpty(targetFolder) ? $"camp_{campId}/campers" : targetFolder;
-                var targetPath = $"{basePath}/{camperId}/{fileName}";
 
+                // Rename file to include camper ID for identification: avatar_<camperId>_<original>.jpg
+                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                var extension = Path.GetExtension(fileName);
+                var newFileName = $"avatar_{camperId}_{fileNameWithoutExt}{extension}";
+                var targetPath = $"{basePath}/{newFileName}";
+
+                // Upload the actual photo
+                _logger.LogDebug("Uploading photo to: {TargetPath}", targetPath);
                 await targetBucket.Upload(
                     imageBytes,
                     targetPath,
@@ -344,12 +344,17 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             try
             {
+                _logger.LogInformation("🪣 CreateFolder: bucket='{BucketName}', path='{FolderPath}'", BUCKET_NAME, folderPath);
                 var storage = _supabaseClient.Storage;
+
                 var bucket = storage.From(BUCKET_NAME);
+                _logger.LogInformation("✅ Bucket reference created for: {BucketName}", BUCKET_NAME);
 
                 // Create a marker file to represent the folder
                 var markerFilePath = $"{folderPath}/{MARKER_FILE_NAME}";
                 var markerContent = Encoding.UTF8.GetBytes($"Folder created at {DateTime.UtcNow:O}");
+
+                _logger.LogInformation("📤 Uploading marker to: {MarkerPath}", markerFilePath);
 
                 await bucket.Upload(
                     markerContent,
