@@ -5,6 +5,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.AI
     /// <summary>
     /// Request DTO for recognizing faces in an activity schedule photo
     /// </summary>
+    /// <remarks>
+    /// Confidence threshold is configured in Python service .env file (single source of truth)
+    /// </remarks>
     public class RecognizeFaceRequest
     {
         /// <summary>
@@ -16,11 +19,5 @@ namespace SummerCampManagementSystem.BLL.DTOs.AI
         /// The photo file containing faces to recognize
         /// </summary>
         public IFormFile Photo { get; set; } = null!;
-
-        /// <summary>
-        /// Optional: Confidence threshold override (0.0 - 1.0)
-        /// If not provided, uses default from configuration
-        /// </summary>
-        public float? ConfidenceThreshold { get; set; }
     }
 }

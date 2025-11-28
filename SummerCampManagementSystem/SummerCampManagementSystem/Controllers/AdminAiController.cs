@@ -8,9 +8,11 @@ using SummerCampManagementSystem.BLL.DTOs.AI;
 using SummerCampManagementSystem.BLL.HostedServices;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Jobs;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -295,6 +297,57 @@ namespace SummerCampManagementSystem.API.Controllers
 
             if (result.Success)
             {
+                // // Get current user ID from JWT token
+                // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                // int? staffId = userIdClaim != null && int.TryParse(userIdClaim, out var id) ? id : (int?)null;
+
+                // // Save attendance logs for recognized campers
+                // if (result.RecognizedCampers != null && result.RecognizedCampers.Count > 0)
+                // {
+                //     _logger.LogInformation(
+                //         "Saving {Count} attendance logs for ActivitySchedule {ActivityScheduleId}",
+                //         result.RecognizedCampers.Count,
+                //         request.ActivityScheduleId);
+
+                //     foreach (var recognizedCamper in result.RecognizedCampers)
+                //     {
+                //         if (recognizedCamper.CamperId <= 0)
+                //         {
+                //             _logger.LogWarning("Skipping attendance log for invalid CamperId: {CamperId}", recognizedCamper.CamperId);
+                //             continue;
+                //         }
+
+                //         var attendanceLog = new AttendanceLog
+                //         {
+                //             camperId = recognizedCamper.CamperId,
+                //             staffId = staffId,
+                //             activityScheduleId = request.ActivityScheduleId,
+                //             participantStatus = "Present", // Recognized face = Present
+                //             timestamp = DateTime.UtcNow,
+                //             checkInMethod = "FaceRecognition", // AI-based check-in
+                //             eventType = "CheckIn",
+                //             note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}"
+                //         };
+
+                //         await _unitOfWork.AttendanceLogs.CreateAsync(attendanceLog);
+                //         _logger.LogDebug(
+                //             "Created attendance log for Camper {CamperId} with confidence {Confidence}",
+                //             recognizedCamper.CamperId,
+                //             recognizedCamper.Confidence);
+                //     }
+
+                //     // Update activity schedule status to indicate attendance has been checked
+                //     activitySchedule.status = "AttendanceChecked";
+                //     await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
+
+                //     await _unitOfWork.CommitAsync();
+                //     _logger.LogInformation("Successfully saved all attendance logs");
+                // }
+                // else
+                // {
+                //     _logger.LogInformation("No campers recognized, no attendance logs created");
+                // }
+
                 return Ok(result);
             }
             else
