@@ -22,6 +22,8 @@ public partial class RegistrationCamper
     [StringLength(50)]
     public string status { get; set; }
 
+    public bool? requestTransport { get; set; }
+
     [ForeignKey("camperId")]
     [InverseProperty("RegistrationCampers")]
     public virtual Camper camper { get; set; }

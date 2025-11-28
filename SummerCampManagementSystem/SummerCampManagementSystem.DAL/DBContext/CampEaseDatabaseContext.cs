@@ -417,17 +417,9 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.feedbackId).HasName("PK__Feedback__2613FD244309CC64");
 
-            entity.HasOne(d => d.camp).WithMany(p => p.Feedbacks)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Feedback__campId__7849DB76");
-
             entity.HasOne(d => d.registration).WithMany(p => p.Feedbacks)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__Feedback__regist__76619304");
-
-            entity.HasOne(d => d.user).WithMany(p => p.Feedbacks)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__Feedback__userId__7755B73D");
         });
 
         modelBuilder.Entity<GroupActivity>(entity =>

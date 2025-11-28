@@ -48,6 +48,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IDriverRepository Drivers { get; }
         ILiveStreamRepository LiveStreams { get; }
         IReportRepository Reports { get; }
+        IFeedbackRepository Feedbacks { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();

@@ -20,9 +20,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.UserAccount
         [Phone(ErrorMessage = "Invalid phone number format.")]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [StringLength(255)]
-        public string Avatar { get; set; } = string.Empty;
-
         public DateOnly Dob { get; set; }
     }
 

@@ -88,9 +88,6 @@ public partial class Camp
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 
     [InverseProperty("camp")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
-
-    [InverseProperty("camp")]
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
 
     [InverseProperty("camp")]
