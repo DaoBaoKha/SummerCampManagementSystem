@@ -242,13 +242,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                .ForMember(dest => dest.isOptional, opt => opt.MapFrom(src => true))
                .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
-        
+
             //CamperActivity mappings
             CreateMap<CamperActivity, CamperActivityResponseDto>()
-                .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper))
-                .ForMember(dest => dest.Activity, opt => opt.MapFrom(src => src.activitySchedule));
-
-
+                .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
+                
             CreateMap<CamperActivityCreateDto, CamperActivity>()
                 .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
             CreateMap<CamperActivityUpdateDto, CamperActivity>();

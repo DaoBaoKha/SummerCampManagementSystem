@@ -21,7 +21,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        
+
         public async Task<ActivitySchedule?> GetScheduleById(int id)
         {
             return await _context.ActivitySchedules
@@ -76,7 +76,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(s => s.location)
-                .Include (s => s.staff)
+                .Include(s => s.staff)
                 .Include(s => s.activity)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
@@ -117,7 +117,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.staff)
                 .Include(a => a.activity)
                 .Include(a => a.location)
-                .Include(a => a.activity.camp) 
+                .Include(a => a.activity.camp)
                 .Where(a => a.staffId == staffId && a.activity.campId == campId)
                 .ToListAsync();
         }
@@ -167,6 +167,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .FirstOrDefaultAsync(a => a.isOptional && a.coreActivityId == coreActivityId);
+        }
+
+        public async Task<bool> IsCamperofCamp(int campId, int camperId)
+        {
+            return await _context.RegistrationCampers
+                .AnyAsync(rc =>
+                    rc.registration.campId == campId &&
+                    rc.camperId == camperId
+                );
         }
     }
 }
