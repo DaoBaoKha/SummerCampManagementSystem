@@ -282,78 +282,103 @@ namespace SummerCampManagementSystem.API.Controllers
             }
 
             int campId = activity.campId.Value;
-            _logger.LogInformation("Loading face database for Camp {CampId} before recognition", campId);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-            // Ensure face database is loaded for this camp
-            var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId);
-            if (!loadResult.Success)
+            // Check if face database is already loaded (FAST - just HTTP call, no download)
+            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync();
+            if (!loadedCamps.ContainsKey(campId) || loadedCamps[campId] == 0)
             {
-                _logger.LogWarning("Failed to load face database for Camp {CampId}: {Message}", campId, loadResult.Message);
-                // Continue anyway - maybe it's already loaded or will work with cache
-            }
-
-            // Perform recognition
-            var result = await _pythonAiService.RecognizeAsync(request);
-
-            if (result.Success)
-            {
-                // // Get current user ID from JWT token
-                // var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                // int? staffId = userIdClaim != null && int.TryParse(userIdClaim, out var id) ? id : (int?)null;
-
-                // // Save attendance logs for recognized campers
-                // if (result.RecognizedCampers != null && result.RecognizedCampers.Count > 0)
-                // {
-                //     _logger.LogInformation(
-                //         "Saving {Count} attendance logs for ActivitySchedule {ActivityScheduleId}",
-                //         result.RecognizedCampers.Count,
-                //         request.ActivityScheduleId);
-
-                //     foreach (var recognizedCamper in result.RecognizedCampers)
-                //     {
-                //         if (recognizedCamper.CamperId <= 0)
-                //         {
-                //             _logger.LogWarning("Skipping attendance log for invalid CamperId: {CamperId}", recognizedCamper.CamperId);
-                //             continue;
-                //         }
-
-                //         var attendanceLog = new AttendanceLog
-                //         {
-                //             camperId = recognizedCamper.CamperId,
-                //             staffId = staffId,
-                //             activityScheduleId = request.ActivityScheduleId,
-                //             participantStatus = "Present", // Recognized face = Present
-                //             timestamp = DateTime.UtcNow,
-                //             checkInMethod = "FaceRecognition", // AI-based check-in
-                //             eventType = "CheckIn",
-                //             note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}"
-                //         };
-
-                //         await _unitOfWork.AttendanceLogs.CreateAsync(attendanceLog);
-                //         _logger.LogDebug(
-                //             "Created attendance log for Camper {CamperId} with confidence {Confidence}",
-                //             recognizedCamper.CamperId,
-                //             recognizedCamper.Confidence);
-                //     }
-
-                //     // Update activity schedule status to indicate attendance has been checked
-                //     activitySchedule.status = "AttendanceChecked";
-                //     await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
-
-                //     await _unitOfWork.CommitAsync();
-                //     _logger.LogInformation("Successfully saved all attendance logs");
-                // }
-                // else
-                // {
-                //     _logger.LogInformation("No campers recognized, no attendance logs created");
-                // }
-
-                return Ok(result);
+                _logger.LogInformation("Face database not loaded for Camp {CampId}, loading now...", campId);
+                var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId);
+                if (!loadResult.Success)
+                {
+                    _logger.LogError("Failed to load face database for Camp {CampId}: {Message}", campId, loadResult.Message);
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = $"Failed to load face database: {loadResult.Message}"
+                    });
+                }
+                _logger.LogInformation("Face database loaded: {FaceCount} faces for Camp {CampId}", loadResult.FaceCount, campId);
             }
             else
             {
+                _logger.LogInformation("Face database already loaded for Camp {CampId} ({FaceCount} faces)", campId, loadedCamps[campId]);
+            }
+
+            // Perform recognition
+            stopwatch.Stop();
+            var preprocessingTime = stopwatch.ElapsedMilliseconds;
+            _logger.LogInformation("Preprocessing completed in {Time}ms, starting recognition...", preprocessingTime);
+
+            stopwatch.Restart();
+            var result = await _pythonAiService.RecognizeAsync(request);
+            stopwatch.Stop();
+
+            _logger.LogInformation(
+                "Recognition completed in {RecognitionTime}ms (Python: {PythonTime}ms, Total: {TotalTime}ms)",
+                stopwatch.ElapsedMilliseconds,
+                result.ProcessingTimeMs,
+                preprocessingTime + stopwatch.ElapsedMilliseconds);
+
+            if (!result.Success)
+            {
                 return StatusCode(500, result);
             }
+
+            // Get current user ID from JWT token
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            int? staffId = userIdClaim != null && int.TryParse(userIdClaim, out var id) ? id : (int?)null;
+
+            // Save attendance logs for recognized campers
+            if (result.RecognizedCampers != null && result.RecognizedCampers.Count > 0)
+            {
+                _logger.LogInformation(
+                    "Saving {Count} attendance logs for ActivitySchedule {ActivityScheduleId}",
+                    result.RecognizedCampers.Count,
+                    request.ActivityScheduleId);
+
+                foreach (var recognizedCamper in result.RecognizedCampers)
+                {
+                    if (recognizedCamper.CamperId <= 0)
+                    {
+                        _logger.LogWarning("Skipping attendance log for invalid CamperId: {CamperId}", recognizedCamper.CamperId);
+                        continue;
+                    }
+
+                    var attendanceLog = new AttendanceLog
+                    {
+                        camperId = recognizedCamper.CamperId,
+                        staffId = staffId,
+                        activityScheduleId = request.ActivityScheduleId,
+                        participantStatus = "Present",
+                        timestamp = DateTime.UtcNow,
+                        checkInMethod = "FaceRecognition",
+                        eventType = "CheckIn",
+                        note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}"
+                    };
+
+                    await _unitOfWork.AttendanceLogs.CreateAsync(attendanceLog);
+                }
+
+                // Update activity schedule status
+                activitySchedule.status = "AttendanceChecked";
+                await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
+
+                await _unitOfWork.CommitAsync();
+                _logger.LogInformation("Successfully saved {Count} attendance logs", result.RecognizedCampers.Count);
+            }
+            else
+            {
+                _logger.LogInformation("No campers recognized, no attendance logs created");
+            }
+
+            return Ok(result);
         }
+            else
+            {
+                return StatusCode(500, result);
+    }
+}
     }
 }
