@@ -56,9 +56,24 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var group = _mapper.Map<CamperGroup>(camperGroup);
 
+
             await _unitOfWork.CamperGroups.CreateAsync(group);
             await _unitOfWork.CommitAsync();
 
+            var coreSchedules = _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(camperGroup.CampId);
+
+            foreach (var core in  coreSchedules.Result)
+            {
+                var groupActivity = new GroupActivity
+                {
+                    camperGroupId = group.camperGroupId,
+                    activityScheduleId = core.activityScheduleId
+                };
+                await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
+            }
+
+            await _unitOfWork.CommitAsync();
+            
             return _mapper.Map<CamperGroupResponseDto>(group);
         }
 

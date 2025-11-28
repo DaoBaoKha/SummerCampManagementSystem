@@ -92,7 +92,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("You must complete payment before selecting optional activities.");
 
             // 4. Lấy activity
-            var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId);
+            var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityScheduleId);
             if (activity == null)
                 throw new KeyNotFoundException("Activity not found.");
 
@@ -105,7 +105,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("You can only select optional activities.");
 
             // 7. Check duplicate
-            bool exists = await _unitOfWork.CamperActivities.IsApprovedAsync(dto.CamperId, dto.ActivityId);
+            bool exists = await _unitOfWork.CamperActivities.IsApprovedAsync(dto.CamperId, dto.ActivityScheduleId);
             if (exists)
                 throw new InvalidOperationException("Camper already registered for this activity.");
 

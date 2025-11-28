@@ -15,8 +15,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.AttendanceLog
         public DateTime Timestamp { get; set; }
         public string EventType { get; set; } = "";
         public string CheckInMethod { get; set; } = "";
-        public int? VehicleId { get; set; }
-        public int? TransportScheduleId { get; set; }
         public int staffId { get; set; }
         public int activityScheduleId { get; set; }
         public string Note { get; set; } = "";

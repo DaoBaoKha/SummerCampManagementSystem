@@ -385,14 +385,18 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
+            var isCamperInCamp = await _unitOfWork.ActivitySchedules
+                .IsCamperofCamp(campId, camperId);
+
+            if (!isCamperInCamp) 
+                throw new InvalidOperationException("Camper is not enrolled in the camp.");
+
             var schedules = await _unitOfWork.ActivitySchedules
                 .GetAllWithActivityAndAttendanceAsync(campId, camperId);
 
-
-
             var joinedOptionalCoreIds = schedules
                 .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
-                .Select(s => s.coreActivityId)        // lấy giá trị int
+                .Select(s => s.activityScheduleId)        // lấy giá trị int
                 .ToHashSet();
 
 
