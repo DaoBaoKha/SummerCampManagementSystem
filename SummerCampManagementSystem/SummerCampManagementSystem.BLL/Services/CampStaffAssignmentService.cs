@@ -89,9 +89,9 @@ namespace SummerCampManagementSystem.BLL.Services
         private async Task EnsureStaffNotInUseAsync(int staffId, int campId)
         {
             // 1. GROUPS
-            var groups = await _unitOfWork.CamperGroups.GetQueryable()
+            var groups = await _unitOfWork.Groups.GetQueryable()
                 .Where(g => g.supervisorId == staffId && g.campId == campId)
-                .Select(g => g.camperGroupId) 
+                .Select(g => g.groupId) 
                 .ToListAsync();
 
             if (groups.Any())

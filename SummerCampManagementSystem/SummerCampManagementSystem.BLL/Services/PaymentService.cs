@@ -101,10 +101,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     foreach (var camperLink in registration.RegistrationCampers)
                     {
-                        // only update camper at "Registered"
-                        if (camperLink.status == RegistrationCamperStatus.Registered.ToString())
+                        // only update camper at "Approved"
+                        if (camperLink.status == RegistrationCamperStatus.Approved.ToString())
                         {
                             camperLink.status = RegistrationCamperStatus.Confirmed.ToString();
+                            await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
                         }
                     }
 

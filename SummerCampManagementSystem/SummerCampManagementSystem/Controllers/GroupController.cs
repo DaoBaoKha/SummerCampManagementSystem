@@ -1,39 +1,39 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.Group;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/campergroup")]
+    [Route("api/group")]
     [ApiController]
-    public class CamperGroupController : ControllerBase
+    public class GroupController : ControllerBase
     {
-        private readonly ICamperGroupService _camperGroupService;
+        private readonly IGroupService _groupService;
         private readonly IUserContextService _userContextService;
 
-        public CamperGroupController(ICamperGroupService camperGroupService, IUserContextService userContextService)
+        public GroupController(IGroupService GroupService, IUserContextService userContextService)
         {
-            _camperGroupService = camperGroupService;
+            _groupService = GroupService;
             _userContextService = userContextService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllCamperGroups()
+        public async Task<IActionResult> GetAllGroups()
         {
-            var camperGroups = await _camperGroupService.GetAllCamperGroupsAsync();
-            return Ok(camperGroups);
+            var Groups = await _groupService.GetAllGroupsAsync();
+            return Ok(Groups);
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCamperGroupById(int id)
+        public async Task<IActionResult> GetGroupById(int id)
         {
             try 
             {
-                var camperGroup = await _camperGroupService.GetCamperGroupByIdAsync(id);
-                return Ok(camperGroup);
+                var Group = await _groupService.GetGroupByIdAsync(id);
+                return Ok(Group);
             }
             catch (KeyNotFoundException ex)
             {
@@ -46,12 +46,12 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("activityScheduleId/{id}")]
-        public async Task<IActionResult> GetCamperGroupsByActivityScheduleId(int id)
+        public async Task<IActionResult> GetGroupsByActivityScheduleId(int id)
         {
             try
             {
-                var camperGroups = await _camperGroupService.GetGroupsByActivityScheduleId(id);
-                return Ok(camperGroups);
+                var Groups = await _groupService.GetGroupsByActivityScheduleId(id);
+                return Ok(Groups);
             }
             catch (KeyNotFoundException ex)
             {
@@ -69,7 +69,7 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                var groups = await _camperGroupService.GetGroupsByCampIdAsync(campId);
+                var groups = await _groupService.GetGroupsByCampIdAsync(campId);
                 return Ok(groups);
             }
             catch (KeyNotFoundException ex)
@@ -83,7 +83,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto camperGroup)
+        public async Task<IActionResult> CreateGroup([FromBody] GroupRequestDto Group)
         {
             if (!ModelState.IsValid)
             {
@@ -94,10 +94,10 @@ namespace SummerCampManagementSystem.API.Controllers
 
             try
             {
-                var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
+                var newGroup = await _groupService.CreateGroupAsync(Group);
 
-                return CreatedAtAction(nameof(GetCamperGroupById),
-                    new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+                return CreatedAtAction(nameof(GetGroupById),
+                    new { id = newGroup.GroupId }, newGroup);
             }
             catch (KeyNotFoundException ex)
             {
@@ -115,19 +115,19 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCamperGroup(int id, [FromBody] CamperGroupRequestDto camperGroup)
+        public async Task<IActionResult> UpdateGroup(int id, [FromBody] GroupRequestDto Group)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var updatedCamperGroup = await _camperGroupService.UpdateCamperGroupAsync(id, camperGroup);
-            if (updatedCamperGroup == null)
-                return NotFound(new { message = $"CamperGroup with ID {id} not found" });
+            var updatedGroup = await _groupService.UpdateGroupAsync(id, Group);
+            if (updatedGroup == null)
+                return NotFound(new { message = $"Group with ID {id} not found" });
 
-            return Ok(updatedCamperGroup);
+            return Ok(updatedGroup);
         }
 
-        [HttpPut("{camperGroupId}/assign-staff/{staffId}")]
-        public async Task<IActionResult> AssignStaffToGroup(int camperGroupId, int staffId)
+        [HttpPut("{GroupId}/assign-staff/{staffId}")]
+        public async Task<IActionResult> AssignStaffToGroup(int GroupId, int staffId)
         {
             if (!ModelState.IsValid)
             {
@@ -138,8 +138,8 @@ namespace SummerCampManagementSystem.API.Controllers
 
             try
             {
-                var updatedCamperGroup = await _camperGroupService.AssignStaffToGroup(camperGroupId, staffId);
-                return Ok(updatedCamperGroup);
+                var updatedGroup = await _groupService.AssignStaffToGroup(GroupId, staffId);
+                return Ok(updatedGroup);
             }
             catch (KeyNotFoundException ex)
             {
@@ -157,11 +157,11 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCamperGroup(int id)
+        public async Task<IActionResult> DeleteGroup(int id)
         {
             try
             {
-                await _camperGroupService.DeleteCamperGroupAsync(id);
+                await _groupService.DeleteGroupAsync(id);
                 return NoContent(); 
             }
             catch (KeyNotFoundException ex)

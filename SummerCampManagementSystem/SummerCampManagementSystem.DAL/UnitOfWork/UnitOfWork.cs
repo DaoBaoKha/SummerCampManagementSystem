@@ -35,6 +35,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
+        public IGroupRepository Groups { get; }
         public ICamperGuardianRepository CamperGuardians { get; }
         public ICamperActivityRepository CamperActivities { get; }
         public ICamperTransportRepository CamperTransports { get; }
@@ -64,7 +65,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
             , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
-            , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks
+            , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
             )
         {
             _context = context;
@@ -92,6 +93,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Feedbacks = feedbacks;
             Guardians = guardians;
             GroupActivities = groupActivities;
+            Groups = groups;
             HealthRecords = healthRecords;
             LiveStreams = liveStreams;
             Locations = locations;

@@ -21,8 +21,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(a => a.activity.campId)
                 .ToListAsync();
 
-            var groupCampIds = await _context.CamperGroups
-                .Where(g => g.supervisorId == staffId)
+            var groupCampIds = await _context.Groups
+                .Where(g => g.supervisorId == staffId) 
                 .Select(g => g.campId)
                 .ToListAsync();
 

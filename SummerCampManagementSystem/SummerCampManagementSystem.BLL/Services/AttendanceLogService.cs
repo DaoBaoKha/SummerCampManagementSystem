@@ -147,7 +147,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("This is not a core Activity Schedule.");
             }
 
-            bool isCamperInActivity = await _unitOfWork.AttendanceLogs.IsCoreScheduleOfCamper(camper.groupId.Value, attendanceLogDto.ActivityScheduleId);
+            var camperGroupLink = await _unitOfWork.CamperGroups.GetQueryable()
+                    .FirstOrDefaultAsync(cg => cg.camperId == attendanceLogDto.CamperId);
+
+            if (camperGroupLink == null)
+            {
+                throw new InvalidOperationException("Camper is not assigned to any group.");
+            }
+
+            int camperGroupId = camperGroupLink.groupId;
+
+            bool isCamperInActivity = await _unitOfWork.AttendanceLogs.IsCoreScheduleOfCamper(camperGroupId, attendanceLogDto.ActivityScheduleId);
             if (!isCamperInActivity)
             {
                 throw new InvalidOperationException("This Camper does not participate in this Activity Schedule.");
@@ -346,7 +356,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("This is not a core Activity Schedule.");
             }
 
-            bool isCamperInActivity = await _unitOfWork.AttendanceLogs.IsCoreScheduleOfCamper(camper.groupId.Value, attendanceLogDto.ActivityScheduleId);
+            var camperGroupLink = await _unitOfWork.CamperGroups.GetQueryable()
+                .FirstOrDefaultAsync(cg => cg.camperId == attendanceLogDto.CamperId);
+
+            if (camperGroupLink == null)
+            {
+                throw new InvalidOperationException("Camper is not assigned to any group, cannot check attendance for core schedule.");
+            }
+
+            int camperGroupId = camperGroupLink.groupId;
+
+            bool isCamperInActivity = await _unitOfWork.AttendanceLogs.IsCoreScheduleOfCamper(camperGroupId, attendanceLogDto.ActivityScheduleId); 
             if (!isCamperInActivity)
             {
                 throw new InvalidOperationException("This Camper does not participate in this Activity Schedule.");

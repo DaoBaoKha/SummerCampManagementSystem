@@ -114,7 +114,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
                 {
-                    camperLink.status = RegistrationCamperStatus.Registered.ToString();
+                    camperLink.status = RegistrationCamperStatus.Approved.ToString();
                     await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
                 }
             }
@@ -291,9 +291,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // validate Campers
             if (!registration.RegistrationCampers.Any() ||
-                !registration.RegistrationCampers.All(rc => rc.status == RegistrationCamperStatus.Registered.ToString()))
+                !registration.RegistrationCampers.All(rc => rc.status == RegistrationCamperStatus.Approved.ToString()))
             {
-                throw new InvalidOperationException("All campers must be in 'Registered' state.");
+                throw new InvalidOperationException("All campers must be in 'Approved' state.");
             }
 
 

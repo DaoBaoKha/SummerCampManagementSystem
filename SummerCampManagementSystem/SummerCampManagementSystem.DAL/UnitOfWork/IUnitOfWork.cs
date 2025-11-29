@@ -33,6 +33,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
         IGuardianRepository Guardians { get; }
+        IGroupRepository Groups { get; }
         ICamperGuardianRepository CamperGuardians { get; }
         ICamperActivityRepository CamperActivities { get; }
         ICamperTransportRepository CamperTransports { get; }
