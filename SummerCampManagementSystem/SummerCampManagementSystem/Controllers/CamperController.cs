@@ -132,7 +132,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [Authorize(Roles = "User")]             
         [HttpPost]
-        public async Task<IActionResult> Create([FromForm] CamperRequestDto dto)
+        public async Task<IActionResult> Create([FromForm] CamperCreateDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -153,7 +153,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, CamperRequestDto dto)
+        public async Task<IActionResult> Update(int id, CamperUpdateDto dto)
         {
             if (!ModelState.IsValid)
             {

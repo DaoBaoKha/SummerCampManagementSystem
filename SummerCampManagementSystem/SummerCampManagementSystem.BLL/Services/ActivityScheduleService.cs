@@ -31,7 +31,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(id)
                 ?? throw new KeyNotFoundException("Activity schedule not found.");
-            return schedule == null ? null :_mapper.Map<ActivityScheduleResponseDto>(schedule);
+            return schedule == null ? null : _mapper.Map<ActivityScheduleResponseDto>(schedule);
         }
 
         public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
@@ -124,8 +124,8 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new InvalidOperationException("Staff has another activity scheduled during this time.");
             }
 
-            var groups = await _unitOfWork.CamperGroups.GetByCampIdAsync(camp.campId);
-            var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
+            var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+            var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             if (dto.IsLiveStream == true && dto.StaffId == null)
                 throw new InvalidOperationException("StaffId is required when livestream is enabled.");
@@ -167,7 +167,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     var groupActivity = new GroupActivity
                     {
-                        camperGroupId = group.camperGroupId,
+                        groupId = group.groupId,
                         activityScheduleId = schedule.activityScheduleId,
                     };
                     await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
@@ -345,8 +345,8 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // 🔹 Update các field
-            var groups = await _unitOfWork.CamperGroups.GetByCampIdAsync(camp.campId);
-            var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
+            var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+            var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             _mapper.Map(dto, schedule);
 
@@ -385,14 +385,18 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
+            var isCamperInCamp = await _unitOfWork.ActivitySchedules
+                .IsCamperofCamp(campId, camperId);
+
+            if (!isCamperInCamp) 
+                throw new InvalidOperationException("Camper is not enrolled in the camp.");
+
             var schedules = await _unitOfWork.ActivitySchedules
                 .GetAllWithActivityAndAttendanceAsync(campId, camperId);
 
-
-
             var joinedOptionalCoreIds = schedules
                 .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
-                .Select(s => s.coreActivityId)        // lấy giá trị int
+                .Select(s => s.activityScheduleId)        // lấy giá trị int
                 .ToHashSet();
 
 

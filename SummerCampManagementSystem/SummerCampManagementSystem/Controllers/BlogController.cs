@@ -34,7 +34,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> CreateBlogPost([FromBody] BlogRequestDto blogPost)
+        public async Task<IActionResult> CreateBlogPost([FromForm] BlogRequestDto blogPost)
         {
             if (!ModelState.IsValid)
             {
@@ -58,7 +58,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdateBlogPost(int id, [FromBody] BlogRequestDto blogPost)
+        public async Task<IActionResult> UpdateBlogPost(int id, [FromForm] BlogRequestDto blogPost)
         {
             if (!ModelState.IsValid)
             {

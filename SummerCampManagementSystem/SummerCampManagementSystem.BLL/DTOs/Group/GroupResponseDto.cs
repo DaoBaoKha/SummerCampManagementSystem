@@ -1,8 +1,8 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.CamperGroup
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Group
 {
-    public class CamperGroupResponseDto
+    public class GroupResponseDto
     {
-        public int CamperGroupId { get; set; }
+        public int GroupId { get; set; }
         public string GroupName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public int? MaxSize { get; set; }      
@@ -13,11 +13,11 @@
         public int? MaxAge { get; set; }      
     }
 
-    public class CamperGroupWithCampDetailsResponseDto 
+    public class GroupWithCampDetailsResponseDto 
     {
         public int CampId { get; set; }
         public string CampName { get; set; } = string.Empty;
-        public int CamperGroupId { get; set; }
+        public int GroupId { get; set; }
         public string GroupName { get; set; } = string.Empty;
         public int MinAge { get; set; }
         public int MaxAge { get; set; }

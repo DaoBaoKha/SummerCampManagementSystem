@@ -7,7 +7,9 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.HttpOverrides;
 using Net.payOS;
 using SummerCampManagementSystem.BLL.Helpers;
+using SummerCampManagementSystem.BLL.HostedServices;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Jobs;
 using SummerCampManagementSystem.BLL.Mappings;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
@@ -60,10 +62,10 @@ builder.Services.AddSingleton(sp => new PayOS(
     builder.Configuration["PayOS:ChecksumKey"] ?? ""
 ));
 
-// Supabase
+// Supabase - Use ServiceRoleKey for admin operations (storage uploads, etc.)
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
-var supabaseKey = builder.Configuration["Supabase:Key"] ?? "";
-var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
+var supabaseServiceRoleKey = builder.Configuration["Supabase:ServiceRoleKey"] ?? "";
+var supabase = new Supabase.Client(supabaseUrl, supabaseServiceRoleKey);
 await supabase.InitializeAsync();
 builder.Services.AddSingleton(supabase);
 
@@ -87,11 +89,9 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = builder.Configuration["EmailSetting:Password"] ?? "";
 });
 
-
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
-builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
@@ -148,6 +148,8 @@ builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
+builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransportScheduleRepository, TransportScheduleRepository>();
@@ -166,7 +168,21 @@ builder.Services.AddScoped<ILiveStreamRepository, LiveStreamRepository>();
 builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Register Hangfire jobs
+builder.Services.AddScoped<AttendanceFolderCreationJob>();
+builder.Services.AddScoped<PreloadCampFaceDbJob>();
+builder.Services.AddScoped<CleanupCampFaceDbJob>();
+
+// Register Python AI service
+builder.Services.AddScoped<IPythonAiService, PythonAiService>();
+
+// Register hosted services
+builder.Services.AddHostedService<CampBackgroundInitializer>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
@@ -209,6 +225,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
     // Add custom DateTime converter for Vietnam timezone
     options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
+
+    // add custom timeOnly converter for Vietnam timezone
+    options.JsonSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
 });
 
 // JWT Authentication
@@ -224,7 +243,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "")) 
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
         };
 
         options.Events = new JwtBearerEvents

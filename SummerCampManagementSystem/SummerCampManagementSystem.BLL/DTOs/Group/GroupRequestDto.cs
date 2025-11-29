@@ -1,8 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace SummerCampManagementSystem.BLL.DTOs.CamperGroup
+namespace SummerCampManagementSystem.BLL.DTOs.Group
 {
-    public class CamperGroupRequestDto
+    public class GroupRequestDto
     {
         [Required(ErrorMessage = "Camp ID is required.")]
         public int CampId { get; set; } 

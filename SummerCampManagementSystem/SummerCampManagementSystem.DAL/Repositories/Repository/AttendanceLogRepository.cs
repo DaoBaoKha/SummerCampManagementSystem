@@ -21,7 +21,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.GroupActivities
                 .AnyAsync(ga =>
                     ga.activityScheduleId == activityScheduleId &&
-                    ga.camperGroupId == camperGroupId);
+                    ga.groupId == camperGroupId);
         }
 
         public async Task<bool> IsOptionalScheduleOfCamper(int activityScheduleId, int camperId)

@@ -66,9 +66,6 @@ public partial class UserAccount
     [InverseProperty("staff")]
     public virtual ICollection<CampStaffAssignment> CampStaffAssignments { get; set; } = new List<CampStaffAssignment>();
 
-    [InverseProperty("supervisor")]
-    public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
-
     [InverseProperty("createByNavigation")]
     public virtual ICollection<Camp> Camps { get; set; } = new List<Camp>();
 
@@ -81,8 +78,8 @@ public partial class UserAccount
     [InverseProperty("user")]
     public virtual ICollection<Driver> Drivers { get; set; } = new List<Driver>();
 
-    [InverseProperty("user")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    [InverseProperty("supervisor")]
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
 
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();

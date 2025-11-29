@@ -1,18 +1,18 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+﻿using SummerCampManagementSystem.BLL.DTOs.Group;
 using SummerCampManagementSystem.DAL.Models;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
-    public interface ICamperGroupService
+    public interface IGroupService
     {
-        Task<IEnumerable<CamperGroupResponseDto>> GetAllCamperGroupsAsync();
-        Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id);
-        Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto camperGroup);
-        Task<CamperGroupResponseDto?> UpdateCamperGroupAsync(int id, CamperGroupRequestDto camperGroup);
-        Task<bool> DeleteCamperGroupAsync(int id);
-        Task<CamperGroupResponseDto> AssignStaffToGroup(int camperGroupId, int staffId);
-        Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId);
-        Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByActivityScheduleId(int activityScheduleId);
-        Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByCampIdAsync(int campId);
+        Task<IEnumerable<GroupResponseDto>> GetAllGroupsAsync();
+        Task<GroupResponseDto?> GetGroupByIdAsync(int id);
+        Task<GroupResponseDto> CreateGroupAsync(GroupRequestDto Group);
+        Task<GroupResponseDto?> UpdateGroupAsync(int id, GroupRequestDto Group);
+        Task<bool> DeleteGroupAsync(int id);
+        Task<GroupResponseDto> AssignStaffToGroup(int GroupId, int staffId);
+        Task<GroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId);
+        Task<IEnumerable<GroupResponseDto>> GetGroupsByActivityScheduleId(int activityScheduleId);
+        Task<IEnumerable<GroupResponseDto>> GetGroupsByCampIdAsync(int campId);
     }
 }

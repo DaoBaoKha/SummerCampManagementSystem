@@ -6,7 +6,9 @@ using SummerCampManagementSystem.BLL.Interfaces;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [ApiController]
+    [Authorize(Roles = "Admin, Manager")]
     [Route("api/campstaffassignment")]
+
     public class CampStaffAssignmentsController : ControllerBase
     {
         private readonly ICampStaffAssignmentService _assignmentService;
@@ -74,7 +76,6 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(assignments); 
         }
 
-       // [Authorize(Roles = "Admin, Manager")]
         [HttpGet("availableStaff/{campId}")]
         public async Task<IActionResult> GetAvailableStaffByCampId(int campId)
         {
