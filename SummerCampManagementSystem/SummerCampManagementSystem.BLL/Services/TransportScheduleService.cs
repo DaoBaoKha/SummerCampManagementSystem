@@ -247,6 +247,26 @@ namespace SummerCampManagementSystem.BLL.Services
 
             ApplyActualTimeAndDetermineStatus(existingSchedule, actualStartTime, actualEndTime);
 
+            // auto change status of all camper in transportSchedule to completed when update endTime
+            if (existingSchedule.status == TransportScheduleStatus.Completed.ToString() && existingSchedule.actualEndTime.HasValue)
+            {
+                // find camperTransport status = Onboard
+                var campersOnBoard = await _unitOfWork.CamperTransports.GetQueryable()
+                    .Where(ct => ct.transportScheduleId == id &&
+                                 ct.status == CamperTransportStatus.Onboard.ToString())
+                    .ToListAsync();
+
+                var now = TimezoneHelper.GetVietnamNow();
+
+                foreach (var ct in campersOnBoard)
+                {
+                    ct.status = CamperTransportStatus.Completed.ToString();
+                    ct.checkOutTime = now;
+
+                    await _unitOfWork.CamperTransports.UpdateAsync(ct);
+                }
+            }
+
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
 

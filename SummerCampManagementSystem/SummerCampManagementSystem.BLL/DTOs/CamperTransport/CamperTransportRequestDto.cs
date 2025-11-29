@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using SummerCampManagementSystem.BLL.DTOs.Camper;
+using System.ComponentModel.DataAnnotations;
 
 namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
 {
@@ -8,7 +9,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
         public int TransportScheduleId { get; set; }
 
         [Required]
-        public int CamperId { get; set; }
+        public CamperNameDto Camper { get; set; }
 
         [Required]
         public int StopLocationId { get; set; }
@@ -30,6 +31,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
         public DateTime? CheckInTime { get; set; }
         public DateTime? CheckOutTime { get; set; }
         public string? Status { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public class CamperTransportAttendanceDto
+    {
+        [Required]
+        public int CamperTransportId { get; set; }
+
         public string? Note { get; set; }
     }
 }
