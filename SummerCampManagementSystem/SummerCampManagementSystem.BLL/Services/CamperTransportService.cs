@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -21,11 +22,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<CamperTransportResponseDto>> GetCampersByScheduleIdAsync(int transportScheduleId)
         {
-            var camperTransports = await _unitOfWork.CamperTransports.GetQueryable()
-                .Include(ct => ct.camper)
-                .Include(ct => ct.stopLocation)
-                .Where(ct => ct.transportScheduleId == transportScheduleId)
-                .ToListAsync();
+            var camperTransports = await GetCamperTransportsWithIncludes()
+                .Where(c => c.transportScheduleId == transportScheduleId).ToListAsync();
 
             return _mapper.Map<IEnumerable<CamperTransportResponseDto>>(camperTransports);
         }
@@ -144,5 +142,96 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return true;
         }
+
+        public async Task<bool> CamperCheckInAsync(CamperTransportAttendanceDto request)
+        {
+            var entity = await _unitOfWork.CamperTransports.GetByIdAsync(request.CamperTransportId)
+                ?? throw new KeyNotFoundException("Không tìm thấy dữ liệu.");
+
+            await ValidateTripInProgressAsync(entity.transportScheduleId);  
+
+            if (entity.status != CamperTransportStatus.Assigned.ToString())
+                throw new InvalidOperationException($"Không thể Check-in. Trạng thái hiện tại: {entity.status}");
+
+            entity.status = CamperTransportStatus.Onboard.ToString();
+            entity.checkInTime = TimezoneHelper.GetVietnamNow();
+            entity.isAbsent = false;
+
+            if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+            await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<bool> CamperCheckOutAsync(CamperTransportAttendanceDto request)
+        {
+            var entity = await _unitOfWork.CamperTransports.GetByIdAsync(request.CamperTransportId)
+                ?? throw new KeyNotFoundException("Không tìm thấy dữ liệu.");
+
+            // check status = Onboard before checkout
+            if (entity.status != CamperTransportStatus.Onboard.ToString())
+                throw new InvalidOperationException($"Không thể Check-out. Camper chưa lên xe (Status: {entity.status})");
+
+            entity.status = CamperTransportStatus.Completed.ToString();
+            entity.checkOutTime = TimezoneHelper.GetVietnamNow();
+
+            if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+            await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<bool> CamperMarkAbsentAsync(CamperTransportAttendanceDto request)
+        {
+            var entity = await _unitOfWork.CamperTransports.GetByIdAsync(request.CamperTransportId)
+                ?? throw new KeyNotFoundException("Không tìm thấy dữ liệu.");
+
+            await ValidateTripInProgressAsync(entity.transportScheduleId);
+
+            entity.status = CamperTransportStatus.Absent.ToString();
+            entity.isAbsent = true;
+            entity.checkInTime = null;
+            entity.checkOutTime = null;
+
+            if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+            await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<CamperTransportResponseDto>> GetAllCamperTransportAsync()
+        {
+            var camperTransports = await GetCamperTransportsWithIncludes().ToListAsync();
+
+            return _mapper.Map<IEnumerable<CamperTransportResponseDto>>(camperTransports);
+
+        }
+
+        #region Private Methods
+
+        private IQueryable<CamperTransport> GetCamperTransportsWithIncludes()
+        {
+            //load related entities
+            return _unitOfWork.CamperTransports.GetQueryable()
+                .Include(c => c.camper)
+                .Include(c => c.stopLocation);
+        }
+
+        private async Task ValidateTripInProgressAsync(int transportScheduleId)
+        {
+            var schedule = await _unitOfWork.TransportSchedules.GetByIdAsync(transportScheduleId);
+
+            if (schedule == null)
+                throw new KeyNotFoundException("Không tìm thấy lịch trình chuyến đi.");
+
+            if (schedule.status != TransportScheduleStatus.InProgress.ToString())
+            {
+                throw new InvalidOperationException($"Chuyến đi chưa bắt đầu (Trạng thái hiện tại: {schedule.status}). Vui lòng bấm 'Start Trip'!");
+            }
+        }
+        #endregion
     }
 }
