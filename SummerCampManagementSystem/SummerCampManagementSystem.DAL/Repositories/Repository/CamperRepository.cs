@@ -54,7 +54,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<bool> IsStaffSupervisorOfCamperAsync(int staffId, int camperId)
         {
             return await _context.Campers
-                .AnyAsync(c => c.camperId == camperId && c.group.supervisorId == staffId);
+                .Where(c => c.camperId == camperId)
+                .SelectMany(c => c.CamperGroups)
+                .AnyAsync(cg => cg.group.supervisorId == staffId); 
         }
 
         public async Task<IEnumerable<Camper>> GetCampersByOptionalActivityId(int optionalActivityId)
@@ -68,8 +70,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.GroupActivities
                 .Where(ga => ga.activityScheduleId == activityScheduleId
-                          && ga.camperGroup.supervisorId == staffId)
-                .SelectMany(ga => ga.camperGroup.Campers)
+                             && ga.group.supervisorId == staffId)
+                .SelectMany(ga => ga.group.CamperGroups) 
+                .Select(cg => cg.camper) 
+                .Distinct() 
                 .ToListAsync();
         }
 
@@ -77,7 +81,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.GroupActivities
                 .Where(ga => ga.activityScheduleId == activityScheduleId)
-                .SelectMany(ga => ga.camperGroup.Campers)
+                .SelectMany(ga => ga.group.CamperGroups)
+                .Select(cg => cg.camper) 
+                .Distinct()
                 .ToListAsync();
         }
     }

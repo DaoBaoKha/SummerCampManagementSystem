@@ -92,7 +92,6 @@ builder.Services.Configure<EmailSetting>(opts =>
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
-builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
@@ -149,6 +148,8 @@ builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
+builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransportScheduleRepository, TransportScheduleRepository>();

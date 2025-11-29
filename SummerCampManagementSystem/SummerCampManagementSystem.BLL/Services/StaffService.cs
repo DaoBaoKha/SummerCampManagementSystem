@@ -38,7 +38,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             foreach (var staff in staffInCamp)
             {
-                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
+                if (await _unitOfWork.Groups.isSupervisor(staff.UserId, campId))
                     continue;
 
                 if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
@@ -74,7 +74,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             foreach (var staff in staffInCamp)
             {
-                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
+                if (await _unitOfWork.Groups.isSupervisor(staff.UserId, campId))
                     continue;
 
                 if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(
@@ -98,7 +98,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             foreach (var staff in staffInCamp)
             {
-                if (await _unitOfWork.CamperGroups.isSupervisor(staff.UserId, campId))
+                if (await _unitOfWork.Groups.isSupervisor(staff.UserId, campId))
                     continue;
 
                 if (await _unitOfWork.ActivitySchedules.IsStaffBusyAsync(staff.UserId, startTime, endTime))

@@ -10,13 +10,13 @@ namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("GroupActivity", Schema = "dbo")]
 [Index("activityScheduleId", Name = "IX_GroupActivity_activityId")]
-[Index("camperGroupId", Name = "IX_GroupActivity_camperGroupId")]
+[Index("groupId", Name = "IX_GroupActivity_camperGroupId")]
 public partial class GroupActivity
 {
     [Key]
     public int groupActivityId { get; set; }
 
-    public int? camperGroupId { get; set; }
+    public int? groupId { get; set; }
 
     public int? activityScheduleId { get; set; }
 
@@ -27,7 +27,7 @@ public partial class GroupActivity
     [InverseProperty("GroupActivities")]
     public virtual ActivitySchedule activitySchedule { get; set; }
 
-    [ForeignKey("camperGroupId")]
+    [ForeignKey("groupId")]
     [InverseProperty("GroupActivities")]
-    public virtual CamperGroup camperGroup { get; set; }
+    public virtual Group group { get; set; }
 }

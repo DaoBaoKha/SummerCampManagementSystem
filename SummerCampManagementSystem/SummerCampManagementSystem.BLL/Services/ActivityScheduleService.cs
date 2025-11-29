@@ -124,8 +124,8 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new InvalidOperationException("Staff has another activity scheduled during this time.");
             }
 
-            var groups = await _unitOfWork.CamperGroups.GetByCampIdAsync(camp.campId);
-            var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
+            var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+            var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             if (dto.IsLiveStream == true && dto.StaffId == null)
                 throw new InvalidOperationException("StaffId is required when livestream is enabled.");
@@ -167,7 +167,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     var groupActivity = new GroupActivity
                     {
-                        camperGroupId = group.camperGroupId,
+                        groupId = group.groupId,
                         activityScheduleId = schedule.activityScheduleId,
                     };
                     await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
@@ -345,8 +345,8 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // 🔹 Update các field
-            var groups = await _unitOfWork.CamperGroups.GetByCampIdAsync(camp.campId);
-            var currentCapacity = groups.Sum(g => g.Campers?.Count ?? 0);
+            var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+            var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             _mapper.Map(dto, schedule);
 

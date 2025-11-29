@@ -115,7 +115,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     // only take status = confirmed
                     if ((rc.status == RegistrationCamperStatus.Confirmed.ToString() ||
-                         rc.status == RegistrationCamperStatus.Registered.ToString()) &&
+                         rc.status == RegistrationCamperStatus.Confirmed.ToString()) &&
                          rc.requestTransport == true && !existingCamperIds.Contains(rc.camperId))
                     {
                         // check duplicate

@@ -363,7 +363,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var hasGroupsOrStaff = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.campId == campId)
-                .Select(c => c.CampStaffAssignments.Any() || c.CamperGroups.Any()) // check staff or group
+                .Select(c => c.CampStaffAssignments.Any() || c.Groups.Any()) // check staff or group
                 .FirstOrDefaultAsync();
 
             if (!hasActivities)

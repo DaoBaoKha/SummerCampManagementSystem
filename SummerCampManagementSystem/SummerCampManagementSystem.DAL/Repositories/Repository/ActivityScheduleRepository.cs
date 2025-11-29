@@ -129,13 +129,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(a => a.activity)
                 .Include(a => a.staff)
                 .Include(a => a.GroupActivities)
-                    .ThenInclude(ga => ga.camperGroup)
+                    .ThenInclude(ga => ga.group)
                 .Where(a =>
                     a.activity.campId == campId &&
                     (
                         (a.staffId == staffId && a.coreActivityId != null) ||
                         (a.staffId == staffId && a.activity.activityType == ActivityType.Resting.ToString()) ||
-                        a.GroupActivities.Any(ga => ga.camperGroup.supervisorId == staffId)
+                        a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
                     )
                     && a.status.ToLower() == "pendingattendance"
                     )
