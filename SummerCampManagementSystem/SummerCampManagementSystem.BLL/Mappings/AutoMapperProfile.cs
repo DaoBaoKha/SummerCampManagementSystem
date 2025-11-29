@@ -72,7 +72,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
             CreateMap<Camper, CamperNameDto>();
-            CreateMap<CamperRequestDto, Camper>();
+            CreateMap<CamperCreateDto, Camper>();
+               
+            CreateMap<CamperUpdateDto, Camper>()
+                 .ForAllMembers(opts =>
+                                opts.Condition((src, dest, srcMember) => srcMember != null)); 
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
                     src.dob.HasValue
@@ -131,7 +135,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Driver, DriverLicenseUploadByTokenDto>();
 
             // HealthRecord mappings
-            CreateMap<HealthRecordCreateDto, HealthRecord>();
+            CreateMap<HealthRecordCreateDto, HealthRecord>()
+                 .ForAllMembers(opts =>
+                                opts.Condition((src, dest, srcMember) => srcMember != null));
             CreateMap<HealthRecord, HealthRecordResponseDto>();
 
             //Guardian mappings

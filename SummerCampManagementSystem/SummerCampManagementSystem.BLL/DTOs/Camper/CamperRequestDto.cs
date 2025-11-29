@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.DTOs.Camper
 {
-    public class CamperRequestDto
+    public class CamperCreateDto
     {
         [Required]
         [StringLength(255)]
@@ -19,11 +19,27 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         [StringLength(50)]
         public string Gender { get; set; } = null!;
 
+        [Required]
         public DateOnly Dob { get; set; }
-        public int? GroupId { get; set; }
+
         public IFormFile? avatar { get; set; }
 
 
+        public HealthRecordCreateDto? HealthRecord { get; set; }
+
+    }
+
+    public class CamperUpdateDto
+    {
+    
+        public string? CamperName { get; set; }
+
+        
+        public string? Gender { get; set; }
+
+        public DateOnly? Dob { get; set; }
+
+        public IFormFile? avatar { get; set; }
         public HealthRecordCreateDto? HealthRecord { get; set; }
 
     }

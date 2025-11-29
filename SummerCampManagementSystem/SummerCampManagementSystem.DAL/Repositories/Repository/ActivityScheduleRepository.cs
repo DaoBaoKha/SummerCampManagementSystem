@@ -18,6 +18,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.ActivitySchedules
                 .Include(s => s.location)
                 .Include(s => s.staff)
+                .Include(s => s.livestream)
                 .ToListAsync();
         }
 
@@ -27,6 +28,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.ActivitySchedules
                 .Include(s => s.location)
                 .Include(s => s.staff)
+                .Include(s => s.livestream)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
         public async Task<bool> IsTimeOverlapAsync(int? campId, DateTime start, DateTime end, int? excludeScheduleId = null)
@@ -48,6 +50,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .Where(s => s.activity.campId == campId && s.coreActivityId != null)
                 .ToListAsync();
         }

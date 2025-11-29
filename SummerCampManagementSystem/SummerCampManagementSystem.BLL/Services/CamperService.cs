@@ -33,7 +33,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
         }
 
-        public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto, int parentId)
+        public async Task<CamperResponseDto> CreateCamperAsync(CamperCreateDto dto, int parentId)
         {
             if (dto.Dob >= new DateOnly(2019, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2019.");
@@ -263,7 +263,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return result;
         }
 
-        public async Task<bool> UpdateCamperAsync(int id, CamperRequestDto dto)
+        public async Task<bool> UpdateCamperAsync(int id, CamperUpdateDto dto)
         {
             var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
             if (existingCamper == null) return false;
