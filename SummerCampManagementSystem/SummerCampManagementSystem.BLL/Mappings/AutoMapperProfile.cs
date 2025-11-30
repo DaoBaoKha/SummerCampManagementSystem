@@ -9,6 +9,7 @@ using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
+using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
@@ -98,6 +99,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
+            CreateMap<Group, GroupNameDto>();
+
             // CamperTransport mapping
             CreateMap<CamperTransportRequestDto, CamperTransport>();
             CreateMap<CamperTransportUpdateDto, CamperTransport>();
@@ -105,6 +108,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<CamperTransport, CamperTransportResponseDto>()
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.stopLocation))
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
+
+            // CamperGroup mapping
+            CreateMap<CamperGroup, CamperGroupResponseDto>()
+                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper)) 
+                .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));  
+            CreateMap<CamperGroupRequestDto, CamperGroup>();
 
             // Driver mappings
 

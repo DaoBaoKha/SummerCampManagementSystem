@@ -23,4 +23,11 @@
         public int MaxAge { get; set; }
 
     }
+
+    public class GroupNameDto
+    {
+        public int GroupId { get; set; }
+
+        public string GroupName { get; set; }
+    }
 }
