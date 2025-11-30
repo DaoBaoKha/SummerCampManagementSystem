@@ -61,6 +61,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .Where(s => s.activity.campId == campId && s.coreActivityId == null)
                 .ToListAsync();
         }
@@ -71,6 +72,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .Where(s => s.activity.campId == campId)
                 .ToListAsync();
         }
@@ -81,6 +83,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
         }
 
@@ -120,6 +123,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.staff)
                 .Include(a => a.activity)
                 .Include(a => a.location)
+                .Include(s => s.livestream)
                 .Include(a => a.activity.camp)
                 .Where(a => a.staffId == staffId && a.activity.campId == campId)
                 .ToListAsync();
@@ -131,6 +135,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(a => a.activity)
                 .Include(a => a.staff)
+                .Include(s => s.livestream)
                 .Include(a => a.GroupActivities)
                     .ThenInclude(ga => ga.group)
                 .Where(a =>
@@ -151,6 +156,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(a => a.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
                 .Where(s => s.activity.campId == campId)
                 .ToListAsync();
@@ -162,6 +168,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.activity)
+                .Include(s => s.livestream)
                 .Where(s => s.startTime >= fromDate && s.endTime <= toDate)
                 .ToListAsync();
         }
