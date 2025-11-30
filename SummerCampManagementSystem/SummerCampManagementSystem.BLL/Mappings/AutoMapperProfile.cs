@@ -73,10 +73,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Camper, CamperSummaryDto>();
             CreateMap<Camper, CamperNameDto>();
             CreateMap<CamperCreateDto, Camper>();
-               
+
             CreateMap<CamperUpdateDto, Camper>()
-                 .ForAllMembers(opts =>
-                                opts.Condition((src, dest, srcMember) => srcMember != null)); 
+                 .ForMember(x => x.HealthRecord, opt => opt.Ignore())
+                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+                       
+
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
                     src.dob.HasValue
@@ -293,6 +295,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // RegistrationCamper mappings
             CreateMap<RegistrationCamperResponseDto, RegistrationCamper>();
             CreateMap<RegistrationCamper, RegistrationCamperResponseDto>()
+                .ForMember(dest => dest.GroupId,
+                            opt => opt.MapFrom(src =>
+                            src.registration.camp.Groups
+                                .Where(g => g.CamperGroups.Any(cg => cg.camperId == src.camperId))
+                                .Select(g => g.groupId)
+                                .FirstOrDefault()
+                            ))
                 .ForMember(dest => dest.Camp, opt => opt.MapFrom(src => src.registration.camp))
                 .ForMember(dest => dest.RequestTransport, opt => opt.MapFrom(src => src.requestTransport));
 

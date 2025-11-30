@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.Campers
                 .Include(c => c.HealthRecord) 
+                .Include(c => c.CamperGroups)
                 .ToListAsync();
         }
 
