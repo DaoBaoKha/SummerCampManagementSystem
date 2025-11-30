@@ -109,6 +109,8 @@ builder.Services.AddScoped<ICampStaffAssignmentRepository, CampStaffAssignmentRe
 builder.Services.AddScoped<ICampStaffAssignmentService, CampStaffAssignmentService>();
 builder.Services.AddScoped<ICamperTransportRepository, CamperTransportRepository>();
 builder.Services.AddScoped<ICamperTransportService, CamperTransportService>();
+builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
+builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
