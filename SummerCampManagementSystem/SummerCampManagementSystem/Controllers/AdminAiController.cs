@@ -375,5 +375,10 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(result);
         }
+            else
+            {
+                return StatusCode(500, result);
+    }
+}
     }
 }
