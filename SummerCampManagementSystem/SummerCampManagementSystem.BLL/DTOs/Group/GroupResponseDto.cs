@@ -23,4 +23,10 @@
         public int MaxAge { get; set; }
 
     }
+
+    public class GroupSummaryDto
+    {
+        public int GroupId { get; set; }
+        public string GroupName { get; set; } = string.Empty;
+    }
 }

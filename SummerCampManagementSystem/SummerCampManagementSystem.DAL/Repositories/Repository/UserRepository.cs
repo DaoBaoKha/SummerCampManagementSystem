@@ -17,6 +17,11 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.email == email);
         }
+        public async Task<UserAccount?> GetByGoogleIdAsync(string googleId)
+        {
+            return await _context.UserAccounts
+                .FirstOrDefaultAsync(u => u.googleId == googleId);
+        }
 
     }
 }
