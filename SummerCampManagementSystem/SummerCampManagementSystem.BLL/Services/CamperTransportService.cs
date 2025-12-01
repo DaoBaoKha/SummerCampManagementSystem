@@ -157,15 +157,6 @@ namespace SummerCampManagementSystem.BLL.Services
             if (entities.Count != request.CamperTransportIds.Count)
                 throw new KeyNotFoundException("Một số CamperTransportId(s) không tìm thấy dữ liệu.");
 
-            // check if trip started
-            foreach (var schedule in entities.Select(ct => ct.transportSchedule).Distinct())
-            {
-                if (schedule.status != TransportScheduleStatus.InProgress.ToString())
-                {
-                    throw new InvalidOperationException($"Chuyến đi (ID: {schedule.transportScheduleId}) chưa bắt đầu. Vui lòng bấm 'Start Trip'!");
-                }
-            }
-
             var now = TimezoneHelper.GetVietnamNow();
 
             foreach (var entity in entities)
@@ -233,15 +224,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (entities.Count != request.CamperTransportIds.Count)
                 throw new KeyNotFoundException("Một số CamperTransportId(s) không tìm thấy dữ liệu.");
-
-            // check if trip started
-            foreach (var schedule in entities.Select(ct => ct.transportSchedule).Distinct())
-            {
-                if (schedule.status != TransportScheduleStatus.InProgress.ToString())
-                {
-                    throw new InvalidOperationException($"Chuyến đi (ID: {schedule.transportScheduleId}) chưa bắt đầu. Không thể đánh vắng.");
-                }
-            }
 
             foreach (var entity in entities)
             {
