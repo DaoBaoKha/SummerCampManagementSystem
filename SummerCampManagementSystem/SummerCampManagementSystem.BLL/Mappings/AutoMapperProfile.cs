@@ -99,7 +99,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Group, GroupWithCampDetailsResponseDto>()
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
-            CreateMap<Group, GroupSummaryDto>();
+            CreateMap<Group, GroupNameDto>();
 
             CreateMap<Group, GroupNameDto>();
 

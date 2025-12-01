@@ -33,6 +33,17 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(route);
         }
 
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetRouteByCampId(int campId)
+        {
+            var route = await _routeService.GetRoutesByCampIdAsync(campId);
+            if (route == null)
+            {
+                return NotFound();
+            }
+            return Ok(route);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateRoute([FromBody] RouteRequestDto routeRequestDto)
         {
