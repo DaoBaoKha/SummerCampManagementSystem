@@ -28,6 +28,10 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',
 
+      # --- AUTHENTICATION ---
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
+
       # --- DATABASE ---
       '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
       
@@ -63,7 +67,7 @@ steps:
 
       # --- SUPABASE ---
       '--set-secrets', 'Supabase__Url=supabase-url:latest',
-      '--set-secrets', 'Supabase__Key=supabase-key:latest',
+      '--set-secrets', 'Supabase__Key=supabase-service-role-key:latest',
 
       # --- DEFAULT AVATAR (AppSetting Section) ---
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
@@ -84,6 +88,8 @@ steps:
       '--min-instances', '0',
       '--allow-unauthenticated',
 
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
       '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
       '--set-secrets', 'Jwt__Key=jwt-secret:latest',
       '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
@@ -105,7 +111,7 @@ steps:
       '--set-secrets', 'GeminiApi__ApiBaseUrl=gemini-base-url:latest',
       '--set-secrets', 'GeminiApi__ModelName=gemini-model-name:latest',
       '--set-secrets', 'Supabase__Url=supabase-url:latest',
-      '--set-secrets', 'Supabase__Key=supabase-key:latest',
+      '--set-secrets', 'Supabase__Key=supabase-service-role-key:latest',
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
       '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
     ]
