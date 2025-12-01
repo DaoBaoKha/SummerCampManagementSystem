@@ -280,6 +280,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
             }
         };
+    })
+    .AddGoogle(opts =>
+    {
+        opts.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
     });
 
 // Swagger Configuration

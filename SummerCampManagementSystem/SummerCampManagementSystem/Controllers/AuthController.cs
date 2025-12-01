@@ -139,5 +139,16 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(new { message = "Đặt lại mật khẩu không thành công!" });
             return Ok(resetResponse);
         }
+
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin(GoogleLoginRequestDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var (authResponse, errorMessage) = await _userService.GoogleLoginAsync(model);
+            if (errorMessage != null)
+                return BadRequest(new { message = errorMessage });
+            return Ok(authResponse);
+        }
     }
 }

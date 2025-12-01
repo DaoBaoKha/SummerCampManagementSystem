@@ -1,9 +1,11 @@
 ﻿using AutoMapper;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.SqlServer.Server;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -80,6 +82,87 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 Console.WriteLine($"Logout failed: {ex.Message}");
                 return false;
+            }
+        }
+
+        public async Task<(AuthResponseDto? authResponse, string? errorMessage)> GoogleLoginAsync(GoogleLoginRequestDto model)
+        {
+            try
+            {
+                var googleClientId = _config["Authentication:Google:ClientId"];
+                if (string.IsNullOrEmpty(googleClientId))
+                {
+                    return (null, "Google Client ID is not configured.");
+                }
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken, new GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new[] { googleClientId }
+                });
+
+                if (payload == null)
+                {
+                    return (null, "Invalid Google token.");
+                }
+
+                // Check existing user by Google ID
+                var existingUserByGoogleId = await _unitOfWork.Users.GetByGoogleIdAsync(payload.Subject);
+                if (existingUserByGoogleId != null)
+                {
+                    //existingUserByGoogleId.fullName = payload.Name;
+                    existingUserByGoogleId.firstName = payload.GivenName;
+                    existingUserByGoogleId.lastName = payload.FamilyName;
+                    if (string.IsNullOrEmpty(existingUserByGoogleId.avatar))
+                    {
+                        existingUserByGoogleId.avatar = payload.Picture;
+                    }
+                    existingUserByGoogleId.isEmailConsent = payload.EmailVerified;
+                    //existingUserByGoogleId.UpdatedAt = DateTime.UtcNow;
+
+                    await _unitOfWork.Users.UpdateAsync(existingUserByGoogleId);
+                    await _unitOfWork.CommitAsync();
+
+                    var authResponse = await CreateAuthResponseAsync(existingUserByGoogleId);
+                    authResponse.Message = "Google login successful!";
+
+                    return (authResponse, null);
+                }
+
+                // Check existing user by email
+                var existingUserByEmail = await _unitOfWork.Users.GetUserByEmail(payload.Email);
+
+                if (existingUserByEmail != null)
+                {
+                    existingUserByEmail.googleId = payload.Subject;
+                    if (string.IsNullOrEmpty(existingUserByEmail.avatar))
+                    {
+                        existingUserByEmail.avatar = payload.Picture;
+                    }
+                    existingUserByEmail.isEmailConsent = payload.EmailVerified;
+                    //existingUserByEmail.FullName = payload.Name;
+                    existingUserByEmail.firstName = payload.GivenName;
+                    existingUserByEmail.lastName = payload.FamilyName;
+                    //existingUserByEmail.UpdatedAt = DateTime.UtcNow;
+
+                    await _unitOfWork.Users.UpdateAsync(existingUserByEmail);
+                    await _unitOfWork.CommitAsync();
+
+                    var authResponse = await CreateAuthResponseAsync(existingUserByEmail);
+                    authResponse.Message = "Google account linked successfully!";
+
+                    return (authResponse, null);
+                }
+
+                // User does not exist, return special message for frontend to handle Google register
+                return (null, "GOOGLE_REGISTER_REQUIRED");
+            }
+            catch (InvalidJwtException)
+            {
+                return (null, "Invalid Google token format.");
+            }
+            catch (Exception ex)
+            {
+                return (null, $"Google login failed: {ex.Message}");
             }
         }
 
