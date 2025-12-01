@@ -237,7 +237,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // RouteStop mappings
             CreateMap<RouteStopRequestDto, RouteStop>();
-            CreateMap<RouteStop, RouteStopResponseDto>();
+
+            CreateMap<RouteStop, RouteStopResponseDto>()
+                .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.location))
+                .ForMember(dest => dest.Route, opt => opt.MapFrom(src => src.route));
 
 
             //Activity mappings

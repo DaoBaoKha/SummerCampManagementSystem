@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.RouteStop;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -11,53 +12,107 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        
+
         public RouteStopService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
-        public async Task<RouteStopResponseDto> AddRouteStopAsync(RouteStopRequestDto routeStopRequestDto)
+        #region Public Methods
+
+        public async Task<RouteStopResponseDto> AddRouteStopAsync(RouteStopRequestDto dto)
         {
-            var route = await _unitOfWork.Routes.GetByIdAsync(routeStopRequestDto.routeId);
-            if (route == null)
+            // validate BR before add
+            await ValidateRouteStopAsync(dto);
+
+            var newStop = _mapper.Map<RouteStop>(dto);
+            newStop.status = "Active";
+
+            try
             {
-                throw new KeyNotFoundException($"Route with ID {routeStopRequestDto.routeId} not found.");
+                await _unitOfWork.RouteStops.CreateAsync(newStop);
+                await _unitOfWork.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemException("Lỗi hệ thống khi tạo điểm dừng: " + ex.Message);
             }
 
-            var newRouteStop = _mapper.Map<RouteStop>(routeStopRequestDto);
-            newRouteStop.status = "Active";
-            await _unitOfWork.RouteStops.CreateAsync(newRouteStop);
-            await _unitOfWork.CommitAsync();
+            var routeStop = await GetRouteStopByIdAsync(newStop.routeStopId);
 
-            newRouteStop.route = route;
-
-            return _mapper.Map<RouteStopResponseDto>(newRouteStop);
+            return _mapper.Map<RouteStopResponseDto>(routeStop);
         }
 
-        public async Task<bool> DeleteRouteStopAsync(int routeStopId)
+        public async Task<RouteStopResponseDto> UpdateRouteStopAsync(int id, RouteStopRequestDto dto)
         {
-            var existingRouteStop = await _unitOfWork.RouteStops.GetByIdAsync(routeStopId);
-            if (existingRouteStop == null) throw new KeyNotFoundException($"Route Stop with ID {routeStopId} not found.");
+            var existing = await _unitOfWork.RouteStops.GetByIdAsync(id);
+            if (existing == null)
+                throw new NotFoundException($"Không tìm thấy điểm dừng có ID {id}.");
 
-            existingRouteStop.status = "Inactive";
+            // validate BR before add
+            await ValidateRouteStopAsync(dto, id);
 
-            await _unitOfWork.RouteStops.UpdateAsync(existingRouteStop);
-            await _unitOfWork.CommitAsync();
+            _mapper.Map(dto, existing);
+
+            try
+            {
+                await _unitOfWork.RouteStops.UpdateAsync(existing);
+                await _unitOfWork.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemException("Lỗi hệ thống khi cập nhật điểm dừng: " + ex.Message);
+            }
+
+            var routeStop = await GetRouteStopByIdAsync(existing.routeStopId);
+
+
+            return _mapper.Map<RouteStopResponseDto>(routeStop);
+        }
+
+        public async Task<bool> DeleteRouteStopAsync(int id)
+        {
+            var existing = await _unitOfWork.RouteStops.GetByIdAsync(id);
+            if (existing == null)
+                throw new NotFoundException($"Không tìm thấy điểm dừng có ID {id}.");
+
+            existing.status = "Inactive";
+
+            try
+            {
+                await _unitOfWork.RouteStops.UpdateAsync(existing);
+                await _unitOfWork.CommitAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new SystemException("Lỗi hệ thống khi xóa điểm dừng: " + ex.Message);
+            }
 
             return true;
+        }
+
+        public async Task<IEnumerable<RouteStopResponseDto>> GetAllRouteStopsAsync()
+        {
+            var routeStops = await GetRouteStopsWithIncludes().ToListAsync();
+            return _mapper.Map<IEnumerable<RouteStopResponseDto>>(routeStops);
+        }
+
+        public async Task<RouteStopResponseDto> GetRouteStopByIdAsync(int routeStopId)
+        {
+            var routeStop = await GetRouteStopsWithIncludes().FirstOrDefaultAsync(r => r.routeStopId == routeStopId)
+                ?? throw new NotFoundException($"Không tìm thấy điểm dừng có ID {routeStopId}.");
+
+            return _mapper.Map<RouteStopResponseDto>(routeStop);
         }
 
         public async Task<IEnumerable<RouteStopResponseDto>> GetRouteStopsByRouteIdAsync(int routeId)
         {
             var route = await _unitOfWork.Routes.GetByIdAsync(routeId);
             if (route == null)
-            {
-                throw new KeyNotFoundException($"Route with ID {routeId} not found.");
-            }
+                throw new NotFoundException($"Không tìm thấy tuyến đường có ID {routeId}.");
 
-            var routeStops = await _unitOfWork.RouteStops.GetQueryable()
+            var routeStops = await GetRouteStopsWithIncludes()
                 .Where(rs => rs.routeId == routeId && rs.status == "Active")
                 .OrderBy(rs => rs.stopOrder)
                 .ToListAsync();
@@ -65,20 +120,48 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<RouteStopResponseDto>>(routeStops);
         }
 
-        public async Task<RouteStopResponseDto> UpdateRouteStopAsync(int routeStopId, RouteStopRequestDto routeStopRequestDto)
+        #endregion
+
+        #region Private Methods
+
+        private async Task ValidateRouteStopAsync(RouteStopRequestDto dto, int? routeStopId = null)
         {
-            var existingRouteStop = await _unitOfWork.RouteStops.GetByIdAsync(routeStopId);
+            // stopOrder > 0
+            if (dto.stopOrder <= 0)
+                throw new BusinessRuleException("Thứ tự điểm dừng phải lớn hơn 0.");
 
-            if (existingRouteStop == null)
-            {
-                throw new KeyNotFoundException($"Route Stop with ID {routeStopId} not found.");
-            }
+            // stopOrder not duplicated 
+            var stopOrderExists = await _unitOfWork.RouteStops.GetQueryable()
+                .AnyAsync(rs => rs.routeId == dto.routeId
+                        && rs.stopOrder == dto.stopOrder
+                        && (routeStopId == null || rs.routeStopId != routeStopId)
+                        && rs.status == "Active");
+                    if (stopOrderExists) throw new BusinessRuleException($"Thứ tự điểm dừng {dto.stopOrder} đã tồn tại trong Route {dto.routeId}."); 
 
-            _mapper.Map(routeStopRequestDto, existingRouteStop);
-            await _unitOfWork.RouteStops.UpdateAsync(existingRouteStop);
-            await _unitOfWork.CommitAsync();
+            // estimatedTime >= 0 
+            if (dto.estimatedTime.HasValue && dto.estimatedTime < 0)
+                throw new BusinessRuleException("Thời gian ước tính phải lớn hơn hoặc bằng 0.");
 
-            return _mapper.Map<RouteStopResponseDto>(existingRouteStop);
+            // route check
+            var route = await _unitOfWork.Routes.GetByIdAsync(dto.routeId);
+            if (route == null)
+                throw new NotFoundException($"Route với ID {dto.routeId} không tồn tại."); 
+
+            // location check
+            var location = await _unitOfWork.Locations.GetByIdAsync(dto.locationId);
+            if (location == null)
+                throw new NotFoundException($"Location với ID {dto.locationId} không tồn tại."); 
+
+        }
+
+
+        private IQueryable<RouteStop> GetRouteStopsWithIncludes()
+        {
+            return _unitOfWork.RouteStops.GetQueryable()
+                .Include(rs => rs.location)
+                .Include(rs => rs.route);
         }
+
+        #endregion
     }
 }
