@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -283,6 +284,70 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return licensePhotoUrl;
+        }
+
+        public async Task<IEnumerable<DriverResponseDto>> GetAvailableDriversAsync(DateOnly? date, TimeOnly? startTime, TimeOnly? endTime)
+        {
+            // if date = null -> get current date
+            var checkDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+            // time validation
+            if (startTime.HasValue != endTime.HasValue)
+            {
+                throw new BusinessRuleException("Phải nhập cả thời gian bắt đầu (startTime) và thời gian kết thúc (endTime) nếu nhập một trong hai.");
+            }
+
+            // if time = null -> get all time from current date
+            var checkStartTime = startTime ?? new TimeOnly(0, 0, 0); // 00:00:00
+            var checkEndTime = endTime ?? new TimeOnly(23, 59, 59); // 23:59:59
+
+            if (checkStartTime >= checkEndTime)
+            {
+                throw new BusinessRuleException("Thời gian bắt đầu phải sớm hơn thời gian kết thúc.");
+            }
+
+            if (checkDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
+            {
+                throw new BusinessRuleException("Không thể tìm tài xế cho ngày đã qua.");
+            }
+
+            // status to check conflict
+            var activeScheduleStatuses = new[]
+            {
+                TransportScheduleStatus.Draft.ToString(),
+                TransportScheduleStatus.NotYet.ToString(),
+                TransportScheduleStatus.InProgress.ToString()
+            };
+
+            // find all unavailable driver
+            var conflictingDriverIds = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(s => s.date == checkDate && activeScheduleStatuses.Contains(s.status))
+
+                // conflict logic: 
+                // current schedule ends right after searching (checkStartTime)
+                // current schedule starts right before searching (checkEndTime)
+                .Where(s => s.endTime > checkStartTime && s.startTime < checkEndTime)
+                .Where(s => s.driverId.HasValue) // only schedule with driverId
+                .Select(s => s.driverId.Value)
+                .Distinct()
+                .ToListAsync();
+
+            // find all approved driver
+            var allApprovedDrivers = _unitOfWork.Drivers.GetQueryable()
+                .Where(d => d.status == DriverStatus.Approved.ToString())
+                .Include(d => d.user);
+
+            // exclude conflict driver
+            var availableDrivers = await allApprovedDrivers
+                .Where(d => !conflictingDriverIds.Contains(d.driverId))
+                .ToListAsync();
+
+            if (!availableDrivers.Any())
+            {
+                return Enumerable.Empty<DriverResponseDto>();
+            }
+
+            return _mapper.Map<IEnumerable<DriverResponseDto>>(availableDrivers);
         }
     }
 }
