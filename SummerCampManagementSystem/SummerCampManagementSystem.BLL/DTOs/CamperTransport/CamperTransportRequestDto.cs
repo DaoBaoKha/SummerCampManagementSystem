@@ -37,7 +37,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
     public class CamperTransportAttendanceDto
     {
         [Required]
-        public int CamperTransportId { get; set; }
+        public List<int> CamperTransportIds { get; set; } = new List<int>();
 
         public string? Note { get; set; }
     }

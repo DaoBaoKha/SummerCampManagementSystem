@@ -58,9 +58,10 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             return _context.RegistrationCampers
                 .Include(rc => rc.registration)
-                    .ThenInclude(r => r.camp)
-                        .ThenInclude(camp => camp.Groups)
-                            .ThenInclude(g => g.CamperGroups);
+                    .ThenInclude(r => r.camp) // load camp for campid
+                .Include(rc => rc.camper)    // load camper
+                    .ThenInclude(c => c.CamperGroups) // load camper list
+                        .ThenInclude(cg => cg.group);  // load group 
         }
         #endregion
     }

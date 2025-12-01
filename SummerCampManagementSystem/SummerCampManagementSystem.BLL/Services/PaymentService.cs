@@ -79,6 +79,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Load Registration & RegistrationCampers
                 var registration = await _unitOfWork.Registrations.GetQueryable()
                     .Include(r => r.RegistrationCampers)
+                    .ThenInclude(rc => rc.camper)
                     .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
 
                 // respond to the webhook based on the verification result
@@ -92,21 +93,27 @@ namespace SummerCampManagementSystem.BLL.Services
                         return;
                     }
 
-                    transaction.status = TransactionStatus.Confirmed.ToString();
-
                     /*
                     * STATUS REGISTRATION & REGISTRATION CAMPER = CONFIRMED
                     */
+
+                    transaction.status = TransactionStatus.Confirmed.ToString();
                     registration.status = RegistrationStatus.Confirmed.ToString();
+
+                    // get list of camperId(s) to assign group
+                    var confirmedCamperIds = new List<int>();
 
                     foreach (var camperLink in registration.RegistrationCampers)
                     {
                         // only update camper at "Approved"
-                        if (camperLink.status == RegistrationCamperStatus.Approved.ToString())
-                        {
+                       if (camperLink.status == RegistrationCamperStatus.Approved.ToString())
+                       {
                             camperLink.status = RegistrationCamperStatus.Confirmed.ToString();
                             await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
-                        }
+                            
+                            // get camper status = confirmed
+                            confirmedCamperIds.Add(camperLink.camperId);
+                       }
                     }
 
                     // find optionalActivities with status holding
@@ -122,6 +129,12 @@ namespace SummerCampManagementSystem.BLL.Services
                             activity.status = "Confirmed";
                             await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
                         }
+                    }
+
+                    // auto assign group
+                    if (registration.campId.HasValue && confirmedCamperIds.Any())
+                    {
+                        await AssignCampersToGroupsAsync(registration.campId.Value, confirmedCamperIds);
                     }
 
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
@@ -278,5 +291,77 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return response;
         }
+
+        #region Private Methods
+
+        private async Task AssignCampersToGroupsAsync(int campId, List<int> camperIds)
+        {
+            // get group list of campId with camper in that group
+            // check maxSize
+            var availableGroups = await _unitOfWork.Groups.GetQueryable()
+                .Where(g => g.campId == campId)
+                .Include(g => g.CamperGroups)
+                .ToListAsync();
+
+            if (!availableGroups.Any()) return;
+
+            // get list camper need to be assgined
+            var campers = await _unitOfWork.Campers.GetQueryable()
+                .Where(c => camperIds.Contains(c.camperId))
+                .ToListAsync();
+
+            var newCamperGroups = new List<CamperGroup>();
+            var today = DateOnly.FromDateTime(DateTime.Now); 
+
+            foreach (var camper in campers)
+            {
+                // if camper dob == null -> cant assign
+                if (camper.dob == null) continue;
+
+                // find exactly dob by DateOnly
+                int age = today.Year - camper.dob.Value.Year;
+                if (today < camper.dob.Value.AddYears(age))
+                {
+                    age--;
+                }
+
+                // find suitable group
+                // get age between minAge maxAge
+                // available group -> maxSize == 0 is unlimited or count < maxSize
+                var suitableGroup = availableGroups
+                    .FirstOrDefault(g =>
+                        age >= g.minAge &&
+                        age <= g.maxAge &&
+                        (g.maxSize == 0 || g.CamperGroups.Count < g.maxSize)
+                    );
+
+                if (suitableGroup != null)
+                {
+                    var mapping = new CamperGroup
+                    {
+                        camperId = camper.camperId,
+                        groupId = suitableGroup.groupId,
+                        status = CamperGroupStatus.Active.ToString() 
+                    };
+
+                    newCamperGroups.Add(mapping);
+
+                    /*
+                    logic "First Come First Served"
+                    if group a maxSize = 10 and current has 9
+                    camper a make payment successfully -> add into db -> add to group a memory list (list ảo)
+                    camper b make payment successfully -> group a already 10/10 -> skip
+                     */
+                    suitableGroup.CamperGroups.Add(mapping);
+                }
+            }
+
+            if (newCamperGroups.Any())
+            {
+                await _unitOfWork.CamperGroups.AddRangeAsync(newCamperGroups);
+            }
+        }
+
+        #endregion
     }
 }

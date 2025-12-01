@@ -1,11 +1,12 @@
 ﻿using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.HttpOverrides;
 using Net.payOS;
+using SummerCampManagementSystem.API.Middlewares;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.HostedServices;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -14,6 +15,7 @@ using SummerCampManagementSystem.BLL.Mappings;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -22,7 +24,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SummerCampManagementSystem.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -109,6 +110,8 @@ builder.Services.AddScoped<ICampStaffAssignmentRepository, CampStaffAssignmentRe
 builder.Services.AddScoped<ICampStaffAssignmentService, CampStaffAssignmentService>();
 builder.Services.AddScoped<ICamperTransportRepository, CamperTransportRepository>();
 builder.Services.AddScoped<ICamperTransportService, CamperTransportService>();
+builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
+builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
@@ -349,42 +352,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
-// Global Error Handler
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.ContentType = "application/json";
-        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-        var ex = exceptionFeature?.Error;
 
-        int statusCode = ex switch
-        {
-            KeyNotFoundException => StatusCodes.Status404NotFound,
-            ArgumentException => StatusCodes.Status400BadRequest,
-            InvalidOperationException => StatusCodes.Status409Conflict,
-            _ => StatusCodes.Status500InternalServerError
-        };
-
-        context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsJsonAsync(new
-        {
-            status = statusCode,
-            error = statusCode switch
-            {
-                404 => "Not Found",
-                400 => "Bad Request",
-                409 => "Conflict",
-                _ => "Internal Server Error"
-            },
-            path = context.Request.Path
-        });
-    });
-});
 
 app.UseHangfireDashboard("/hangfire");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.MapControllers();
 app.Run();
