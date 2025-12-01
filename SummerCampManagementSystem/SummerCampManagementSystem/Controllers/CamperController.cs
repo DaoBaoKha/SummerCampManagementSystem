@@ -130,7 +130,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "User")]             
+        [Authorize(Roles = "User, Admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CamperCreateDto dto)
         {

@@ -199,14 +199,10 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             try
             {
-                _logger.LogInformation("Recognizing faces for ActivitySchedule {ActivityScheduleId}", request.ActivityScheduleId);
+                _logger.LogInformation("Recognizing faces for ActivitySchedule {ActivityScheduleId}, CampId: {CampId}, GroupId: {GroupId}",
+                    request.ActivityScheduleId, request.CampId, request.GroupId);
 
                 using var content = new MultipartFormDataContent();
-
-                // Add activity schedule ID
-                content.Add(new StringContent(request.ActivityScheduleId.ToString()), "activity_schedule_id");
-
-
 
                 // Add photo file
                 var fileStream = request.Photo.OpenReadStream();
@@ -214,7 +210,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 streamContent.Headers.ContentType = new MediaTypeHeaderValue(request.Photo.ContentType);
                 content.Add(streamContent, "photo", request.Photo.FileName);
 
-                var response = await _httpClient.PostAsync($"/api/recognition/recognize/{request.ActivityScheduleId}", content);
+                // Use group-specific endpoint if groupId is available (core activities)
+                // Otherwise use legacy endpoint (optional activities)
+                HttpResponseMessage response;
+                if (request.GroupId.HasValue)
+                {
+                    response = await _httpClient.PostAsync($"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}", content);
+                }
+                else
+                {
+                    response = await _httpClient.PostAsync($"/api/recognition/recognize/{request.ActivityScheduleId}", content);
+                }
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
