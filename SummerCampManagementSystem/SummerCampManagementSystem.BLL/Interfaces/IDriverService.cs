@@ -15,5 +15,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<string> UpdateDriverLicensePhotoAsync(IFormFile file);
         Task<DriverResponseDto> UpdateDriverStatusAsync(int driverId, DriverStatusUpdateDto updateDto);
         Task<string> UpdateDriverLicensePhotoByTokenAsync(string uploadToken, IFormFile file);
+        Task<IEnumerable<DriverResponseDto>> GetAvailableDriversAsync(DateOnly? date, TimeOnly? startTime, TimeOnly? endTime);
     }
 }
