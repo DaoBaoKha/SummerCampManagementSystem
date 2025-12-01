@@ -9,7 +9,6 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/transportschedules")]
     [ApiController]
-    [Authorize(Roles = "Admin, Manager")] 
     public class TransportScheduleController : ControllerBase
     {
         private readonly ITransportScheduleService _scheduleService;
@@ -20,6 +19,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> CreateSchedule([FromBody] TransportScheduleRequestDto model)
         {
             if (!ModelState.IsValid)
@@ -49,11 +49,31 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetScheduleById(int id)
         {
             try
             {
                 var response = await _scheduleService.GetScheduleByIdAsync(id);
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi lấy lịch trình.", detail = ex.Message });
+            }
+        }
+
+        [HttpGet("driver-schedule")]
+        [Authorize(Roles = "Driver")]
+        public async Task<IActionResult> GetDriverScheduleAsync()
+        {
+            try
+            {
+                var response = await _scheduleService.GetDriverSchedulesAsync();
                 return Ok(response);
             }
             catch (KeyNotFoundException ex)
@@ -73,6 +93,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// <param name="searchDto"></param>
         /// <returns></returns>
         [HttpGet]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)
         {
             // check if any search criteria is provided
@@ -93,6 +114,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> UpdateSchedule(int id, [FromBody] TransportScheduleRequestDto model)
         {
             if (!ModelState.IsValid)

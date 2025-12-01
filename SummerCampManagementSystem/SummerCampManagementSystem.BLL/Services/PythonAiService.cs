@@ -206,8 +206,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Add activity schedule ID
                 content.Add(new StringContent(request.ActivityScheduleId.ToString()), "activity_schedule_id");
 
-                // Note: Confidence threshold is now configured in Python .env file (single source of truth)
-                // No longer passed as request parameter
+
 
                 // Add photo file
                 var fileStream = request.Photo.OpenReadStream();

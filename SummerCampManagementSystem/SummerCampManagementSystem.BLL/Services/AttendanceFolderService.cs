@@ -66,7 +66,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 _logger.LogInformation("Created camp folder: {FolderPath}", campFolderPath);
 
                 // Step 2: Get the CamperGroup for this camp (for core activities)
-                var camperGroups = await _unitOfWork.CamperGroups
+                var camperGroups = await _unitOfWork.Groups
                     .GetByCampIdAsync(campId);
 
                 var firstCamperGroup = camperGroups.FirstOrDefault();
@@ -77,10 +77,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 else
                 {
                     // Create camper_group folder
-                    var camperGroupFolderPath = $"{campFolderPath}/camper_group_{firstCamperGroup.camperGroupId}";
+                    var camperGroupFolderPath = $"{campFolderPath}/camper_group_{firstCamperGroup.groupId}";
                     if (!await CreateFolderInBucketAsync(camperGroupFolderPath))
                     {
-                        _logger.LogError("Failed to create camper group folder for CamperGroup {GroupId}", firstCamperGroup.camperGroupId);
+                        _logger.LogError("Failed to create camper group folder for CamperGroup {GroupId}", firstCamperGroup.groupId);
                         return false;
                     }
                     _logger.LogInformation("Created camper group folder: {FolderPath}", camperGroupFolderPath);
@@ -158,15 +158,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 _logger.LogInformation("Starting to copy confirmed camper photos for Camp {CampId}", campId);
 
                 // Get all camper groups for this camp
-                var camperGroups = await _unitOfWork.CamperGroups
+                var camperGroups = await _unitOfWork.Groups
                     .GetByCampIdAsync(campId);
 
                 // Get all campers that belong to these groups (with avatars)
-                var groupIds = camperGroups.Select(cg => cg.camperGroupId).ToList();
+                var groupIds = camperGroups.Select(cg => cg.groupId).ToList();
                 var campersInGroups = await _unitOfWork.Campers
-                    .GetQueryable()
-                    .Where(c => c.groupId.HasValue && groupIds.Contains(c.groupId.Value) && !string.IsNullOrEmpty(c.avatar))
-                    .ToListAsync();
+                     .GetQueryable()
+                     .Where(c => c.CamperGroups.Any(cg => groupIds.Contains(cg.groupId)))
+                     .Where(c => !string.IsNullOrEmpty(c.avatar))
+                     .Include(c => c.CamperGroups)
+                     .ToListAsync();
 
                 _logger.LogInformation("Found {Count} campers with photos in Camp {CampId}", campersInGroups.Count, campId);
 
@@ -184,11 +186,16 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     try
                     {
-                        // Copy to camper_group folder
-                        var targetFolder = $"camp_{campId}/camper_group_{camper.groupId.Value}";
-                        await CopyCamperPhotoToAttendanceBucket(camper.camperId, camper.avatar, campId, targetFolder);
-                        _logger.LogInformation("✅ Copied photo for Camper {CamperId} ({CamperName}) to {Folder}",
-                            camper.camperId, camper.camperName, targetFolder);
+                        var camperGroupLink = camper.CamperGroups?.FirstOrDefault();
+
+                        if (camperGroupLink != null)
+                        {
+                            // Copy to camper_group folder
+                            var targetFolder = $"camp_{campId}/camper_group_{camperGroupLink.groupId}";
+                            await CopyCamperPhotoToAttendanceBucket(camper.camperId, camper.avatar, campId, targetFolder);
+                            _logger.LogInformation("✅ Copied photo for Camper {CamperId} ({CamperName}) to {Folder}",
+                                camper.camperId, camper.camperName, targetFolder);
+                        }
 
                         // Copy to camperactivity folders for optional activities this camper is registered for
                         foreach (var optionalActivity in optionalActivities)

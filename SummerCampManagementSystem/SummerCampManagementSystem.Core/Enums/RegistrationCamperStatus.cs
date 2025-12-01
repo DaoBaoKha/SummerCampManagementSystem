@@ -3,7 +3,7 @@
     public enum RegistrationCamperStatus
     {
         PendingApproval = 1, 
-        Registered = 2,
+        Approved = 2,
         Canceled = 3,
         PendingAssignGroup = 4,
         Confirmed = 5,

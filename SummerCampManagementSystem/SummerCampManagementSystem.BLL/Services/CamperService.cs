@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -33,7 +34,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CamperResponseDto>>(campers);
         }
 
-        public async Task<CamperResponseDto> CreateCamperAsync(CamperRequestDto dto, int parentId)
+        public async Task<CamperResponseDto> CreateCamperAsync(CamperCreateDto dto, int parentId)
         {
             if (dto.Dob >= new DateOnly(2019, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2019.");
@@ -263,17 +264,18 @@ namespace SummerCampManagementSystem.BLL.Services
             return result;
         }
 
-        public async Task<bool> UpdateCamperAsync(int id, CamperRequestDto dto)
+        public async Task<bool> UpdateCamperAsync(int id, CamperUpdateDto dto)
         {
             var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
+
             if (existingCamper == null) return false;
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             _mapper.Map(dto, existingCamper);
-
             await _unitOfWork.Campers.UpdateAsync(existingCamper);
 
+            // Avatar
             if (dto.avatar != null)
             {
                 // Upload to camper-photos bucket only (for profile/management)
@@ -282,30 +284,31 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Note: Copy to attendance-sessions happens when registration period ends
             }
 
+            // HealthRecord
             if (dto.HealthRecord != null)
             {
-                var existingHealthRecord = existingCamper.HealthRecord;
-
-                if (existingHealthRecord == null)
+                if (existingCamper.HealthRecord == null)
                 {
-                    // Thêm mới nếu chưa có
+                    // Add mới
                     var newRecord = _mapper.Map<HealthRecord>(dto.HealthRecord);
                     newRecord.camperId = existingCamper.camperId;
+                    newRecord.createAt = DateTime.UtcNow;
+                    //existingCamper.HealthRecord = newRecord;
                     await _unitOfWork.HealthRecords.CreateAsync(newRecord);
                 }
                 else
                 {
-                    // Cập nhật nếu đã có
-                    _mapper.Map(dto.HealthRecord, existingHealthRecord);
-                    await _unitOfWork.HealthRecords.UpdateAsync(existingHealthRecord);
+                    // Update
+                    _mapper.Map(dto.HealthRecord, existingCamper.HealthRecord);
+                    await _unitOfWork.HealthRecords.UpdateAsync(existingCamper.HealthRecord);
+
                 }
             }
+
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
 
             return true;
         }
-
-
     }
 }

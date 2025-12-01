@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
-using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
@@ -11,168 +11,121 @@ namespace SummerCampManagementSystem.BLL.Services
     public class CamperGroupService : ICamperGroupService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IValidationService _validationService;
-        private readonly IMapper _mapper;
-        public CamperGroupService(IUnitOfWork unitOfWork, IValidationService validationService, IMapper mapper)
+        private readonly IMapper _mapper; 
+
+        public CamperGroupService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
-            _validationService = validationService;
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CamperGroupResponseDto>> GetAllCamperGroupsAsync()
+        public async Task<IEnumerable<CamperGroupResponseDto>> GetCamperGroupsAsync(CamperGroupSearchDto searchDto)
         {
-            var groups = await _unitOfWork.CamperGroups.GetAllCamperGroups();
-            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
-        }
+            var query = _unitOfWork.CamperGroups.GetQueryable()
+                .Include(cg => cg.camper) 
+                .Include(cg => cg.group)  
+                .AsNoTracking();
 
-        public async Task<CamperGroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
-        {
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
-            if (camp == null)
-                throw new KeyNotFoundException($"Camp with ID {campId} not found.");
-
-            var group = await _unitOfWork.CamperGroups.GetGroupBySupervisorIdAsync(supervisorId, campId);
-
-            if (group == null)
+            if (searchDto.CamperId.HasValue)
             {
-                throw new KeyNotFoundException($"Camper Group supervised by Staff ID {supervisorId} in Camp ID {campId} not found.");
+                query = query.Where(cg => cg.camperId == searchDto.CamperId.Value);
             }
 
-            return _mapper.Map<CamperGroupWithCampDetailsResponseDto>(group);
+            if (searchDto.GroupId.HasValue)
+            {
+                query = query.Where(cg => cg.groupId == searchDto.GroupId.Value);
+            }
+
+            if (searchDto.CampId.HasValue)
+            {
+                query = query.Where(cg => cg.group.campId == searchDto.CampId.Value);
+            }
+
+            if (searchDto.CamperName != null) 
+            {
+                query = query.Where(cg => cg.camper.camperName.Contains(searchDto.CamperName));
+            }
+
+            var entities = await query.ToListAsync();
+
+            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(entities);
         }
 
-        public async Task<CamperGroupResponseDto?> GetCamperGroupByIdAsync(int id)
+        public async Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto requestDto)
         {
-            var camperGroup = await _unitOfWork.CamperGroups.GetCamperGroupById(id)
-                ?? throw new KeyNotFoundException($"Camper Group with ID {id} not found.");
+            // validation
+            var camperExists = await _unitOfWork.Campers.GetQueryable().AnyAsync(c => c.camperId == requestDto.camperId);
+            if (!camperExists) throw new KeyNotFoundException("Camper not found.");
 
-            return camperGroup == null ? null : _mapper.Map<CamperGroupResponseDto>(camperGroup);
-        }
+            var groupExists = await _unitOfWork.Groups.GetQueryable().AnyAsync(g => g.groupId == requestDto.groupId);
+            if (!groupExists) throw new KeyNotFoundException("Group not found.");
 
-        public async Task<CamperGroupResponseDto> CreateCamperGroupAsync(CamperGroupRequestDto camperGroup)
-        {
-            await RunGroupSupervisorValidation(camperGroup.SupervisorId, camperGroup.CampId);
+            var existing = await _unitOfWork.CamperGroups.GetQueryable()
+                .FirstOrDefaultAsync(cg => cg.camperId == requestDto.camperId && cg.groupId == requestDto.groupId);
+            
+            if (existing != null) throw new InvalidOperationException("Camper is already in this group.");
 
-            var group = _mapper.Map<CamperGroup>(camperGroup);
+            // create entity
+            var camperGroup = _mapper.Map<CamperGroup>(existing);
+            camperGroup.status = CamperGroupStatus.Active.ToString();
 
-            await _unitOfWork.CamperGroups.CreateAsync(group);
+            await _unitOfWork.CamperGroups.CreateAsync(camperGroup);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<CamperGroupResponseDto>(group);
+            var createdEntity = await _unitOfWork.CamperGroups.GetQueryable()
+                .Include(cg => cg.camper)
+                .Include(cg => cg.group)
+                .FirstOrDefaultAsync(cg => cg.camperGroupId == camperGroup.camperGroupId);
+
+            return _mapper.Map<CamperGroupResponseDto>(createdEntity);
         }
 
-        public async Task<CamperGroupResponseDto> AssignStaffToGroup(int camperGroupId, int staffId)
+        public async Task<CamperGroupResponseDto> UpdateCamperGroupAsync(int id, CamperGroupRequestDto requestDto)
         {
-            var group = await _unitOfWork.CamperGroups.GetByIdAsync(camperGroupId)
-                ?? throw new KeyNotFoundException($"Camper Group with ID {camperGroupId} not found.");
+            var mapping = await _unitOfWork.CamperGroups.GetQueryable()
+                .Include(cg => cg.camper)
+                .Include(cg => cg.group)
+                .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
 
-            var campId = group.campId ?? throw new InvalidOperationException("Camper Group is not assigned to a Camp.");
+            if (mapping == null) throw new KeyNotFoundException("CamperGroup mapping not found.");
 
-            await RunGroupSupervisorValidation(staffId, campId, camperGroupId);
+            // validation
+            if (requestDto.groupId.HasValue && requestDto.groupId != mapping.groupId)
+            {
+                 var groupExists = await _unitOfWork.Groups.GetQueryable().AnyAsync(g => g.groupId == requestDto.groupId);
+                 if (!groupExists) throw new KeyNotFoundException("New Group not found.");
+                 mapping.groupId = requestDto.groupId.Value;
+            }
 
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found."); 
+            if (requestDto.camperId.HasValue && requestDto.camperId != mapping.camperId)
+            {
+                 var camperExists = await _unitOfWork.Campers.GetQueryable().AnyAsync(c => c.camperId == requestDto.camperId);
+                 if (!camperExists) throw new KeyNotFoundException("New Camper not found.");
+                 mapping.camperId = requestDto.camperId.Value;
+            }
 
-            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException("Staff not found."); 
-
-            bool staffConflict = await _unitOfWork.ActivitySchedules
-            .IsStaffBusyAsync(staffId, camp.startDate.Value, camp.endDate.Value);
-
-            if (staffConflict)
-                throw new InvalidOperationException("Staff has another activity scheduled during this time.");
-
-            group.supervisorId = staffId;
-            await _unitOfWork.CamperGroups.UpdateAsync(group);
+            await _unitOfWork.CamperGroups.UpdateAsync(mapping);
             await _unitOfWork.CommitAsync();
+            
+            var updatedEntity = await _unitOfWork.CamperGroups.GetQueryable()
+                .Include(cg => cg.camper)
+                .Include(cg => cg.group)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
 
-            return _mapper.Map<CamperGroupResponseDto>(group);
-        }
-
-        public async Task<CamperGroupResponseDto?> UpdateCamperGroupAsync(int id, CamperGroupRequestDto camperGroup)
-        {
-            var existingCamperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Camper Group with ID {id} not found.");
-
-            await RunGroupSupervisorValidation(camperGroup.SupervisorId, camperGroup.CampId, id);
-
-            _mapper.Map(camperGroup, existingCamperGroup);
-
-            await _unitOfWork.CamperGroups.UpdateAsync(existingCamperGroup);
-            await _unitOfWork.CommitAsync();
-
-            return _mapper.Map<CamperGroupResponseDto>(existingCamperGroup);
+            return _mapper.Map<CamperGroupResponseDto>(updatedEntity);
         }
 
         public async Task<bool> DeleteCamperGroupAsync(int id)
         {
-            var existingCamperGroup = await _unitOfWork.CamperGroups.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Camper Group with ID {id} not found."); 
+            var mapping = await _unitOfWork.CamperGroups.GetByIdAsync(id);
+            if (mapping == null) return false;
 
-            await _unitOfWork.CamperGroups.RemoveAsync(existingCamperGroup);
+            mapping.status = CamperGroupStatus.Inactive.ToString();
+
+            await _unitOfWork.CamperGroups.UpdateAsync(mapping);
             await _unitOfWork.CommitAsync();
-
             return true;
         }
-
-        public async Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByActivityScheduleId(int activityScheduleId)
-        {
-            var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
-                ?? throw new KeyNotFoundException("Activity Schedule not found.");
-            var groups = await _unitOfWork.CamperGroups.GetGroupsByActivityScheduleIdAsync(activityScheduleId);
-            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
-        }
-
-
-        public async Task<IEnumerable<CamperGroupResponseDto>> GetGroupsByCampIdAsync(int campId)
-        {
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException($"Camp with ID {campId} not found.");
-
-            var groups = await _unitOfWork.CamperGroups.GetQueryable()
-                .Include(g => g.supervisor)
-                .Where(g => g.campId == campId)
-                .ToListAsync();
-
-            return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(groups);
-        }
-
-        #region Private Methods
-
-        private async Task<(UserAccount staff, Camp camp)> RunGroupSupervisorValidation(int? supervisorId, int campId, int? groupId = null)
-        {
-            // if supervisorId is null or <= 0, skip validation and return camp only
-            if (!supervisorId.HasValue || supervisorId.Value <= 0)
-            {
-                var campOnly = await _unitOfWork.Camps.GetByIdAsync(campId)
-                    ?? throw new KeyNotFoundException($"Camp with ID {campId} not found.");
-                return (null, campOnly);
-            }
-
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException($"Camp with ID {campId} not found.");
-
-            var staff = await _unitOfWork.Users.GetByIdAsync(supervisorId.Value)
-                ?? throw new KeyNotFoundException($"Supervisor with ID {supervisorId.Value} not found.");
-
-            // check role
-            if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"User with ID {supervisorId.Value} is a '{staff.role}', not a Staff member.");
-            }
-
-            // check if staff is already assigned to another group in the same camp 
-            var existingGroup = await _unitOfWork.CamperGroups.GetGroupBySupervisorIdAsync(supervisorId.Value, campId);
-
-            if (existingGroup != null && existingGroup.camperGroupId != groupId)
-            {
-                throw new InvalidOperationException($"Supervisor ID {supervisorId.Value} is already assigned to Camper Group ID {existingGroup.camperGroupId} in Camp ID {campId}.");
-            }
-
-            return (staff, camp);
-        }
-
-        #endregion
     }
 }

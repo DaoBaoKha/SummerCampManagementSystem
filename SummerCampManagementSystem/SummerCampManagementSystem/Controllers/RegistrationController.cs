@@ -76,19 +76,32 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
         [HttpPost]
-        //use create registration dto
         public async Task<IActionResult> CreateRegistration([FromBody] CreateRegistrationRequestDto registration)
         {
-            if (registration == null || !registration.CamperIds.Any())
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            try
             {
-                return BadRequest("Request body is empty or CamperIds list cannot be empty.");
+                var result = await _registrationService.CreateRegistrationAsync(registration);
+
+                return CreatedAtAction(nameof(GetRegistrationById), new { id = result.registrationId }, result);
             }
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var reponse = await _registrationService.CreateRegistrationAsync(registration);
-
-            return CreatedAtAction(nameof(GetRegistrationById),
-                new { id = reponse.registrationId }, reponse);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ.", detail = ex.Message });
+            }
         }
 
         [HttpPost("{id}/payment-link")]
@@ -116,14 +129,35 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto registration)
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var updatedRegistration = await _registrationService.UpdateRegistrationAsync(id, registration);
-            if (updatedRegistration == null)
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+            try
             {
-                return NotFound(new { message = $"Registration with ID {id} not found" });
+                var updatedRegistration = await _registrationService.UpdateRegistrationAsync(id, registration);
+
+                if (updatedRegistration == null)
+                {
+                    return NotFound(new { message = $"Registration with ID {id} not found" });
+                }
+
+                return Ok(updatedRegistration);
             }
-            return Ok(updatedRegistration);
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi cập nhật đơn đăng ký.", detail = ex.Message });
+            }
         }
 
         [HttpPut("{id}/approve")]

@@ -14,7 +14,7 @@ namespace SummerCampManagementSystem.API.Controllers
     {
         private readonly IAccommodationService _accommodationService;
         private readonly IActivityScheduleService _activityScheduleService;
-        private readonly ICamperGroupService _camperGroupService;
+        private readonly IGroupService _groupService;
         private readonly ICampService _campService;
         private readonly IStaffService _staffService;
         private readonly IUserContextService _userContextService;
@@ -22,14 +22,14 @@ namespace SummerCampManagementSystem.API.Controllers
         public StaffController(
             IAccommodationService accommodationService,
             IActivityScheduleService activityScheduleService,
-            ICamperGroupService camperGroupService,
+            IGroupService groupService,
             IUserContextService userContextService,
             IStaffService staffService,
             ICampService campService)
         {
             _accommodationService = accommodationService;
             _activityScheduleService = activityScheduleService;
-            _camperGroupService = camperGroupService;
+            _groupService = groupService;
             _userContextService = userContextService;
             _campService = campService;
             _staffService = staffService;
@@ -66,8 +66,8 @@ namespace SummerCampManagementSystem.API.Controllers
             try
             {
                 var staffId = _userContextService.GetCurrentUserId();
-                var camperGroups = await _camperGroupService.GetGroupBySupervisorIdAsync(staffId.Value, campId);
-                return Ok(camperGroups);
+                var Groups = await _groupService.GetGroupBySupervisorIdAsync(staffId.Value, campId);
+                return Ok(Groups);
             }
             catch (KeyNotFoundException knfEx)
             {

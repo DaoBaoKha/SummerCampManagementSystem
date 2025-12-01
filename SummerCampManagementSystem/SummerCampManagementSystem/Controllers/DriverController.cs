@@ -50,7 +50,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost("upload-photo")]
+        [HttpPut("upload-photo")]
         [Authorize(Roles = "Driver")]
         public async Task<IActionResult> UploadDriverLicensePhoto([FromForm] DriverLicensePhotoUploadDto model)
         {

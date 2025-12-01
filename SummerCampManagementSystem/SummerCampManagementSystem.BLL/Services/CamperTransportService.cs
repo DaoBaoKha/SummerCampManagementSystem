@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -21,11 +22,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<CamperTransportResponseDto>> GetCampersByScheduleIdAsync(int transportScheduleId)
         {
-            var camperTransports = await _unitOfWork.CamperTransports.GetQueryable()
-                .Include(ct => ct.camper)
-                .Include(ct => ct.stopLocation)
-                .Where(ct => ct.transportScheduleId == transportScheduleId)
-                .ToListAsync();
+            var camperTransports = await GetCamperTransportsWithIncludes()
+                .Where(c => c.transportScheduleId == transportScheduleId).ToListAsync();
 
             return _mapper.Map<IEnumerable<CamperTransportResponseDto>>(camperTransports);
         }
@@ -115,8 +113,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     // only take status = confirmed
                     if ((rc.status == RegistrationCamperStatus.Confirmed.ToString() ||
-                         rc.status == RegistrationCamperStatus.Registered.ToString()) &&
-                        !existingCamperIds.Contains(rc.camperId))
+                         rc.status == RegistrationCamperStatus.Confirmed.ToString()) &&
+                         rc.requestTransport == true && !existingCamperIds.Contains(rc.camperId))
                     {
                         // check duplicate
                         if (!existingCamperIds.Contains(rc.camperId))
@@ -144,5 +142,123 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return true;
         }
+
+        public async Task<bool> CamperCheckInAsync(CamperTransportAttendanceDto request)
+        {
+            // check value
+            if (request.CamperTransportIds == null || !request.CamperTransportIds.Any())
+                throw new ArgumentException("Danh sách CamperTransport không được để trống.");
+
+            var entities = await _unitOfWork.CamperTransports.GetQueryable()
+                .Include(ct => ct.transportSchedule)
+                .Where(ct => request.CamperTransportIds.Contains(ct.camperTransportId))
+                .ToListAsync();
+
+            if (entities.Count != request.CamperTransportIds.Count)
+                throw new KeyNotFoundException("Một số CamperTransportId(s) không tìm thấy dữ liệu.");
+
+            var now = TimezoneHelper.GetVietnamNow();
+
+            foreach (var entity in entities)
+            {
+                // camper status check
+                if (entity.status != CamperTransportStatus.Assigned.ToString())
+                    throw new InvalidOperationException($"Lỗi tại Camper ID {entity.camperId}: Không thể Check-in khi trạng thái là '{entity.status}'.");
+
+                entity.status = CamperTransportStatus.Onboard.ToString();
+                entity.checkInTime = now;
+                entity.isAbsent = false;
+
+                if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+                await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            }
+
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<bool> CamperCheckOutAsync(CamperTransportAttendanceDto request)
+        {
+            // check value
+            if (request.CamperTransportIds == null || !request.CamperTransportIds.Any())
+                throw new ArgumentException("Danh sách CamperTransport không được để trống.");
+
+            var entities = await _unitOfWork.CamperTransports.GetQueryable()
+                .Where(ct => request.CamperTransportIds.Contains(ct.camperTransportId))
+                .ToListAsync();
+
+            if (entities.Count != request.CamperTransportIds.Count)
+                throw new KeyNotFoundException("Một số CamperTransportId(s) không tìm thấy dữ liệu.");
+
+            var now = TimezoneHelper.GetVietnamNow();
+
+            // check if camper checked-in
+            foreach (var entity in entities)
+            {
+                if (entity.status != CamperTransportStatus.Onboard.ToString())
+                    throw new InvalidOperationException($"Lỗi tại Camper ID {entity.camperId}: Không thể Check-out khi chưa lên xe (Status: {entity.status}).");
+
+                entity.status = CamperTransportStatus.Completed.ToString();
+                entity.checkOutTime = now;
+
+                if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+                await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            }
+
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<bool> CamperMarkAbsentAsync(CamperTransportAttendanceDto request)
+        {
+            // check value
+            if (request.CamperTransportIds == null || !request.CamperTransportIds.Any())
+                throw new ArgumentException("Danh sách CamperTransport không được để trống.");
+
+            var entities = await _unitOfWork.CamperTransports.GetQueryable()
+                .Include(ct => ct.transportSchedule)
+                .Where(ct => request.CamperTransportIds.Contains(ct.camperTransportId))
+                .ToListAsync();
+
+            if (entities.Count != request.CamperTransportIds.Count)
+                throw new KeyNotFoundException("Một số CamperTransportId(s) không tìm thấy dữ liệu.");
+
+            foreach (var entity in entities)
+            {
+                entity.status = CamperTransportStatus.Absent.ToString();
+                entity.isAbsent = true;
+                entity.checkInTime = null;
+                entity.checkOutTime = null;
+
+                if (!string.IsNullOrEmpty(request.Note)) entity.note = request.Note;
+
+                await _unitOfWork.CamperTransports.UpdateAsync(entity);
+            }
+
+            await _unitOfWork.CommitAsync();
+            return true;
+        }
+
+        public async Task<IEnumerable<CamperTransportResponseDto>> GetAllCamperTransportAsync()
+        {
+            var camperTransports = await GetCamperTransportsWithIncludes().ToListAsync();
+
+            return _mapper.Map<IEnumerable<CamperTransportResponseDto>>(camperTransports);
+
+        }
+
+        #region Private Methods
+
+        private IQueryable<CamperTransport> GetCamperTransportsWithIncludes()
+        {
+            //load related entities
+            return _unitOfWork.CamperTransports.GetQueryable()
+                .Include(c => c.camper)
+                .Include(c => c.stopLocation);
+        }
+
+        #endregion
     }
 }

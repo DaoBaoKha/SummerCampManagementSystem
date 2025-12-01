@@ -137,6 +137,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });

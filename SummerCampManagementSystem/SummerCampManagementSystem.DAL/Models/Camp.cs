@@ -85,10 +85,7 @@ public partial class Camp
     public virtual ICollection<CampStaffAssignment> CampStaffAssignments { get; set; } = new List<CampStaffAssignment>();
 
     [InverseProperty("camp")]
-    public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
-
-    [InverseProperty("camp")]
-    public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
 
     [InverseProperty("camp")]
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
