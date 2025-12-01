@@ -6,5 +6,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         Task<UserAccount?> GetUserByEmail(string email);
         Task<UserAccount?> GetByGoogleIdAsync(string googleId);
+        Task<bool> ExistsByEmailAsync(string email);
     }
 }

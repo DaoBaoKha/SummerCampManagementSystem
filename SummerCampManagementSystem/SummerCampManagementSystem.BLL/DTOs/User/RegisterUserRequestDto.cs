@@ -29,4 +29,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.User
         public UserRole role { get; set; }
 
     }
+
+    public class GoogleRegisterRequestDto
+    {
+        [Required]
+        public string IdToken { get; set; } = null!;
+        public string PhoneNumber { get; set; } = null!;
+        public DateOnly? Dob { get; set; }
+    }
 }

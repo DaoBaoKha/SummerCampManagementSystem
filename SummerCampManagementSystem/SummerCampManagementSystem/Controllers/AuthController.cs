@@ -150,5 +150,16 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(new { message = errorMessage });
             return Ok(authResponse);
         }
+
+        [HttpPost("google-register")]
+        public async Task<IActionResult> GoogleRegister(GoogleRegisterRequestDto model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var (authResponse, errorMessage) = await _userService.GoogleRegisterAsync(model);
+            if (errorMessage != null)
+                return BadRequest(new { message = errorMessage });
+            return Ok(authResponse);
+        }
     }
 }

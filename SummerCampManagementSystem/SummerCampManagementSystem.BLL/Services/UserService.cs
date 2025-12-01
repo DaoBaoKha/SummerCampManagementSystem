@@ -11,6 +11,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using Supabase.Gotrue;
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -109,7 +110,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 var existingUserByGoogleId = await _unitOfWork.Users.GetByGoogleIdAsync(payload.Subject);
                 if (existingUserByGoogleId != null)
                 {
-                    //existingUserByGoogleId.fullName = payload.Name;
                     existingUserByGoogleId.firstName = payload.GivenName;
                     existingUserByGoogleId.lastName = payload.FamilyName;
                     if (string.IsNullOrEmpty(existingUserByGoogleId.avatar))
@@ -117,7 +117,6 @@ namespace SummerCampManagementSystem.BLL.Services
                         existingUserByGoogleId.avatar = payload.Picture;
                     }
                     existingUserByGoogleId.isEmailConsent = payload.EmailVerified;
-                    //existingUserByGoogleId.UpdatedAt = DateTime.UtcNow;
 
                     await _unitOfWork.Users.UpdateAsync(existingUserByGoogleId);
                     await _unitOfWork.CommitAsync();
@@ -139,10 +138,8 @@ namespace SummerCampManagementSystem.BLL.Services
                         existingUserByEmail.avatar = payload.Picture;
                     }
                     existingUserByEmail.isEmailConsent = payload.EmailVerified;
-                    //existingUserByEmail.FullName = payload.Name;
                     existingUserByEmail.firstName = payload.GivenName;
                     existingUserByEmail.lastName = payload.FamilyName;
-                    //existingUserByEmail.UpdatedAt = DateTime.UtcNow;
 
                     await _unitOfWork.Users.UpdateAsync(existingUserByEmail);
                     await _unitOfWork.CommitAsync();
@@ -163,6 +160,66 @@ namespace SummerCampManagementSystem.BLL.Services
             catch (Exception ex)
             {
                 return (null, $"Google login failed: {ex.Message}");
+            }
+        }
+
+        public async Task<(AuthResponseDto? authResponse, string? errorMessage)> GoogleRegisterAsync(GoogleRegisterRequestDto model)
+        {
+            try
+            {
+                var googleClientId = _config["Authentication:Google:ClientId"];
+                if (string.IsNullOrEmpty(googleClientId))
+                {
+                    return (null, "Google Client ID is not configured.");
+                }
+
+                var payload = await GoogleJsonWebSignature.ValidateAsync(model.IdToken, new GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new[] { googleClientId }
+                });
+
+                if (payload == null)
+                {
+                    return (null, "Invalid Google token.");
+                }
+
+                if (await _unitOfWork.Users.ExistsByEmailAsync(payload.Email))
+                {
+                    return (null, "Email already exists. Please use regular login.");
+                }
+
+                var user = new UserAccount
+                {
+                    firstName = payload.GivenName,
+                    lastName = payload.FamilyName,
+                    email = payload.Email,
+                    phoneNumber = model.PhoneNumber,
+                    password = null,
+                    avatar = payload.Picture,
+                    dob = model.Dob,
+                    role = UserRole.User.ToString(),
+                    isActive = true,
+                    createAt = DateTime.UtcNow,
+                    googleId = payload.Subject,
+                    isEmailConsent = payload.EmailVerified
+                };
+               
+
+                await _unitOfWork.Users.CreateAsync(user);
+                await _unitOfWork.CommitAsync();
+
+                var authResponse = await CreateAuthResponseAsync(user);
+                authResponse.Message = $"Google registration successful!";
+
+                return (authResponse, null);
+            }
+            catch (InvalidJwtException)
+            {
+                return (null, "Invalid Google token format.");
+            }
+            catch (Exception ex)
+            {
+                return (null, $"Google registration failed: {ex.Message}");
             }
         }
 
