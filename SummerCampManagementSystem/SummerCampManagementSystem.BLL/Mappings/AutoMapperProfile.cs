@@ -179,6 +179,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Id,
                            opt => opt.MapFrom(src => src.locationId));
 
+            CreateMap<Location, LocationDetailDto>()
+                .ForMember(dest => dest.Id,
+                           opt => opt.MapFrom(src => src.locationId));
+
             CreateMap<LocationCreateDto, Location>()
             .ForMember(dest => dest.campLocationId, opt => opt.MapFrom(src => src.ParentLocationId))
             .ForMember(dest => dest.locationType, opt => opt.MapFrom(src => src.LocationType.ToString()))
