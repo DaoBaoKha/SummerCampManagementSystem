@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -460,7 +461,51 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return _mapper.Map<ActivityScheduleResponseDto>(schedule);
+        }
 
+
+        public async Task<ActivityScheduleResponseDto> UpdateLiveStreamStatus(int activityScheduleId, bool status)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
+            ?? throw new NotFoundException("ActivitySchedule not found");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(schedule.activityId)
+              ?? throw new NotFoundException("Activity not found");
+
+            var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
+                ?? throw new NotFoundException("Camp not found");
+
+            if (schedule.isLivestream == status)
+                throw new BusinessRuleException($"Live stream status is {status} now");
+
+            if (schedule.startTime <= DateTime.UtcNow)
+                throw new BusinessRuleException("STATUS CANNOT BE UPDATED BECAUSE SCHEDULE IS IN PROGRESS OR HAS EXPIRED");
+                       
+            if (status)
+            {
+                var livestream = new Livestream
+                {
+                    title = $"{activity.name} - {camp.name}",
+                    hostId = schedule.staffId
+                };
+
+                await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                await _unitOfWork.CommitAsync();
+                schedule.isLivestream = status;
+                schedule.livestreamId = livestream.livestreamId;
+            }
+            else
+            {
+                schedule.isLivestream = status;
+                schedule.livestreamId = null;
+            }
+
+            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            await _unitOfWork.CommitAsync();
+
+            var updateSchedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId);
+
+            return _mapper.Map<ActivityScheduleResponseDto>(updateSchedule);
         }
     }
 }

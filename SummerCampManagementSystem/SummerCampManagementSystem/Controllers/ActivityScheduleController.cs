@@ -253,5 +253,12 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = ex.Message });
            }
         }
+
+        [HttpPut("{activityScheduleId}/liveStreamStatus")] 
+        public async Task<IActionResult> ChangeLiveStreamStatus(int activityScheduleId, bool isLiveStream)
+        {
+            var updated = await _service.UpdateLiveStreamStatus(activityScheduleId, isLiveStream);
+            return Ok(updated);
+        }
     }
 }
