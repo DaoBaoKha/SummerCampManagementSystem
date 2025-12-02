@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.Camper;
+﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.DAL.Models;
 using System;
 using System.Collections.Generic;
@@ -23,5 +24,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<CamperAttendanceDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId);
         Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId);
         Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId);
+        Task<string> UpdateCamperAvatarAsync(int camperId, IFormFile file);
     }
 }
