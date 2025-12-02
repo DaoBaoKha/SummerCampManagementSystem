@@ -72,8 +72,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Camper mappings
             CreateMap<Camper, CamperSummaryDto>();
             CreateMap<Camper, CamperNameDto>();
-            CreateMap<CamperCreateDto, Camper>();
-
+            CreateMap<CamperCreateDto, Camper>()
+                    .ForMember(dest => dest.HealthRecord, opt => opt.Ignore());
+            
             CreateMap<CamperUpdateDto, Camper>()
                  .ForMember(x => x.HealthRecord, opt => opt.Ignore())
                  .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));

@@ -1,5 +1,7 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Helpers;
@@ -17,14 +19,16 @@ namespace SummerCampManagementSystem.BLL.Services
     public class CamperService : ICamperService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly IUploadSupabaseService _uploadSupabaseService;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _config;
+        private readonly IUploadSupabaseService _uploadSupabaseService;
 
 
-        public CamperService(IUnitOfWork unitOfWork, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
+        public CamperService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config, IUploadSupabaseService uploadSupabaseService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _config = config;
             _uploadSupabaseService = uploadSupabaseService;
         }
 
@@ -39,19 +43,17 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.Dob >= new DateOnly(2019, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2019.");
 
+            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"]
+                             ?? "https://via.placeholder.com/150";
+
             using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             var camper = _mapper.Map<Camper>(dto);
+            camper.avatar = defaultAvatar;
             await _unitOfWork.Campers.CreateAsync(camper);
             await _unitOfWork.CommitAsync(); // cần commit 1 lần để lấy camperId
 
-            if (dto.avatar != null)
-            {
-                // Upload to camper-photos bucket only (for profile/management)
-                var url = await _uploadSupabaseService.UploadCamperPhotoAsync(camper.camperId, dto.avatar);
-                camper.avatar = url;
-                // Note: Copy to attendance-sessions happens when registration period ends
-            }
+          
 
             if (dto.HealthRecord != null)
             {
@@ -59,8 +61,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 healthRecord.camperId = camper.camperId;
                 healthRecord.createAt = DateTime.UtcNow;
 
-                await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
                 camper.HealthRecord = healthRecord;
+                await _unitOfWork.HealthRecords.CreateAsync(healthRecord);
             }
 
             var parentCamper = new ParentCamper
@@ -273,16 +275,7 @@ namespace SummerCampManagementSystem.BLL.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             _mapper.Map(dto, existingCamper);
-            await _unitOfWork.Campers.UpdateAsync(existingCamper);
-
-            // Avatar
-            if (dto.avatar != null)
-            {
-                // Upload to camper-photos bucket only (for profile/management)
-                var url = await _uploadSupabaseService.UploadCamperPhotoAsync(existingCamper.camperId, dto.avatar);
-                existingCamper.avatar = url;
-                // Note: Copy to attendance-sessions happens when registration period ends
-            }
+            await _unitOfWork.Campers.UpdateAsync(existingCamper);          
 
             // HealthRecord
             if (dto.HealthRecord != null)
@@ -309,6 +302,26 @@ namespace SummerCampManagementSystem.BLL.Services
             await transaction.CommitAsync();
 
             return true;
+        }
+
+        public async Task<string> UpdateCamperAvatarAsync(int camperId, IFormFile file)
+        {
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new KeyNotFoundException($"User with ID {camperId} not found.");
+
+            var avatarUrl = await _uploadSupabaseService.UploadCamperPhotoAsync(camperId, file);
+
+            if (string.IsNullOrEmpty(avatarUrl))
+            {
+                throw new Exception("Upload thất bại. Không thể lấy được URL ảnh.");
+            }
+
+            camper.avatar = avatarUrl;
+
+            await _unitOfWork.Campers.UpdateAsync(camper);
+            await _unitOfWork.CommitAsync();
+
+            return avatarUrl;
         }
     }
 }

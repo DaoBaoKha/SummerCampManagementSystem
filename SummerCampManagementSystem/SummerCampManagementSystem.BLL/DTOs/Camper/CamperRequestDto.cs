@@ -22,9 +22,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         [Required]
         public DateOnly Dob { get; set; }
 
-        public IFormFile? avatar { get; set; }
-
-
         public HealthRecordCreateDto? HealthRecord { get; set; }
 
     }
@@ -39,7 +36,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
 
         public DateOnly? Dob { get; set; }
 
-        public IFormFile? avatar { get; set; }
         public HealthRecordCreateDto? HealthRecord { get; set; }
 
     }
