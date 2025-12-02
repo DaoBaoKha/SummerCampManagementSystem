@@ -267,7 +267,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<bool> UpdateCamperAsync(int id, CamperUpdateDto dto)
         {
             var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
-                
+
             if (existingCamper == null) return false;
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -278,8 +278,10 @@ namespace SummerCampManagementSystem.BLL.Services
             // Avatar
             if (dto.avatar != null)
             {
+                // Upload to camper-photos bucket only (for profile/management)
                 var url = await _uploadSupabaseService.UploadCamperPhotoAsync(existingCamper.camperId, dto.avatar);
                 existingCamper.avatar = url;
+                // Note: Copy to attendance-sessions happens when registration period ends
             }
 
             // HealthRecord

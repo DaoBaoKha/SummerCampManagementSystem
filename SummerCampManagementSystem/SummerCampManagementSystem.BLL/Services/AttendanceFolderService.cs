@@ -167,7 +167,7 @@ namespace SummerCampManagementSystem.BLL.Services
                      .GetQueryable()
                      .Where(c => c.CamperGroups.Any(cg => groupIds.Contains(cg.groupId)))
                      .Where(c => !string.IsNullOrEmpty(c.avatar))
-                     .Include(c => c.CamperGroups) 
+                     .Include(c => c.CamperGroups)
                      .ToListAsync();
 
                 _logger.LogInformation("Found {Count} campers with photos in Camp {CampId}", campersInGroups.Count, campId);
@@ -188,7 +188,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         var camperGroupLink = camper.CamperGroups?.FirstOrDefault();
 
-                        if (camperGroupLink != null) 
+                        if (camperGroupLink != null)
                         {
                             // Copy to camper_group folder
                             var targetFolder = $"camp_{campId}/camper_group_{camperGroupLink.groupId}";

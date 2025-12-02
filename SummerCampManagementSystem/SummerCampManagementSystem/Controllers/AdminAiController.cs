@@ -2,6 +2,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.AI;
@@ -282,6 +283,21 @@ namespace SummerCampManagementSystem.API.Controllers
             }
 
             int campId = activity.campId.Value;
+            request.CampId = campId;
+
+            // Get groupId from GroupActivity (for core activities)
+            var groupActivity = await _unitOfWork.GroupActivities
+                .GetQueryable()
+                .Where(ga => ga.activityScheduleId == request.ActivityScheduleId)
+                .FirstOrDefaultAsync();
+
+            if (groupActivity != null && groupActivity.groupId.HasValue)
+            {
+                request.GroupId = groupActivity.groupId.Value;
+                _logger.LogInformation("Found GroupId {GroupId} for ActivitySchedule {ActivityScheduleId}",
+                    request.GroupId, request.ActivityScheduleId);
+            }
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             // Check if face database is already loaded (FAST - just HTTP call, no download)
@@ -375,5 +391,6 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(result);
         }
+
     }
 }

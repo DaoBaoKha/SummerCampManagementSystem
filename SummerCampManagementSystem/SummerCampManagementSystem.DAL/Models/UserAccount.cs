@@ -48,6 +48,8 @@ public partial class UserAccount
 
     public string googleId { get; set; }
 
+
+
     [InverseProperty("supervisor")]
     public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();
 
