@@ -1,17 +1,21 @@
 ﻿using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.HttpOverrides;
 using Net.payOS;
+using SummerCampManagementSystem.API.Middlewares;
 using SummerCampManagementSystem.BLL.Helpers;
+using SummerCampManagementSystem.BLL.HostedServices;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.BLL.Jobs;
 using SummerCampManagementSystem.BLL.Mappings;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -20,7 +24,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using SummerCampManagementSystem.DAL.Repositories;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -60,10 +63,10 @@ builder.Services.AddSingleton(sp => new PayOS(
     builder.Configuration["PayOS:ChecksumKey"] ?? ""
 ));
 
-// Supabase
+// Supabase - Use ServiceRoleKey for admin operations (storage uploads, etc.)
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
-var supabaseKey = builder.Configuration["Supabase:Key"] ?? "";
-var supabase = new Supabase.Client(supabaseUrl, supabaseKey);
+var supabaseServiceRoleKey = builder.Configuration["Supabase:ServiceRoleKey"] ?? "";
+var supabase = new Supabase.Client(supabaseUrl, supabaseServiceRoleKey);
 await supabase.InitializeAsync();
 builder.Services.AddSingleton(supabase);
 
@@ -90,7 +93,6 @@ builder.Services.Configure<EmailSetting>(opts =>
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
-builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
@@ -108,6 +110,8 @@ builder.Services.AddScoped<ICampStaffAssignmentRepository, CampStaffAssignmentRe
 builder.Services.AddScoped<ICampStaffAssignmentService, CampStaffAssignmentService>();
 builder.Services.AddScoped<ICamperTransportRepository, CamperTransportRepository>();
 builder.Services.AddScoped<ICamperTransportService, CamperTransportService>();
+builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
+builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
@@ -147,6 +151,8 @@ builder.Services.AddScoped<IRouteStopRepository, RouteStopRepository>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<ILocationRepository, LocationRepository>();
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
+builder.Services.AddScoped<IGroupService, GroupService>();
+builder.Services.AddScoped<IGroupRepository, GroupRepository>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<ITransportScheduleRepository, TransportScheduleRepository>();
@@ -165,7 +171,21 @@ builder.Services.AddScoped<ILiveStreamRepository, LiveStreamRepository>();
 builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+// Register Hangfire jobs
+builder.Services.AddScoped<AttendanceFolderCreationJob>();
+builder.Services.AddScoped<PreloadCampFaceDbJob>();
+builder.Services.AddScoped<CleanupCampFaceDbJob>();
+
+// Register Python AI service
+builder.Services.AddScoped<IPythonAiService, PythonAiService>();
+
+// Register hosted services
+builder.Services.AddHostedService<CampBackgroundInitializer>();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
@@ -208,6 +228,9 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
     // Add custom DateTime converter for Vietnam timezone
     options.JsonSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
+
+    // add custom timeOnly converter for Vietnam timezone
+    options.JsonSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
 });
 
 // JWT Authentication
@@ -223,7 +246,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "")) 
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
         };
 
         options.Events = new JwtBearerEvents
@@ -257,6 +280,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 await context.Response.WriteAsync(JsonSerializer.Serialize(responseBody));
             }
         };
+    })
+    .AddGoogle(opts =>
+    {
+        opts.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+        opts.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
     });
 
 // Swagger Configuration
@@ -324,42 +352,14 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
-// Global Error Handler
-app.UseExceptionHandler(errorApp =>
-{
-    errorApp.Run(async context =>
-    {
-        context.Response.ContentType = "application/json";
-        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-        var ex = exceptionFeature?.Error;
 
-        int statusCode = ex switch
-        {
-            KeyNotFoundException => StatusCodes.Status404NotFound,
-            ArgumentException => StatusCodes.Status400BadRequest,
-            InvalidOperationException => StatusCodes.Status409Conflict,
-            _ => StatusCodes.Status500InternalServerError
-        };
-
-        context.Response.StatusCode = statusCode;
-        await context.Response.WriteAsJsonAsync(new
-        {
-            status = statusCode,
-            error = statusCode switch
-            {
-                404 => "Not Found",
-                400 => "Bad Request",
-                409 => "Conflict",
-                _ => "Internal Server Error"
-            },
-            path = context.Request.Path
-        });
-    });
-});
 
 app.UseHangfireDashboard("/hangfire");
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseMiddleware<ExceptionMiddleware>();
+
 app.MapControllers();
 app.Run();

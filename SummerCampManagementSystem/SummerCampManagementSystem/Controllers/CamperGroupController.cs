@@ -1,8 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
-using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -12,146 +9,78 @@ namespace SummerCampManagementSystem.API.Controllers
     public class CamperGroupController : ControllerBase
     {
         private readonly ICamperGroupService _camperGroupService;
-        private readonly IUserContextService _userContextService;
 
-        public CamperGroupController(ICamperGroupService camperGroupService, IUserContextService userContextService)
+        public CamperGroupController(ICamperGroupService camperGroupService)
         {
             _camperGroupService = camperGroupService;
-            _userContextService = userContextService;
         }
 
+ 
         [HttpGet]
-        public async Task<IActionResult> GetAllCamperGroups()
-        {
-            var camperGroups = await _camperGroupService.GetAllCamperGroupsAsync();
-            return Ok(camperGroups);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetCamperGroupById(int id)
-        {
-            try 
-            {
-                var camperGroup = await _camperGroupService.GetCamperGroupByIdAsync(id);
-                return Ok(camperGroup);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
-
-        [HttpGet("activityScheduleId/{id}")]
-        public async Task<IActionResult> GetCamperGroupsByActivityScheduleId(int id)
+        public async Task<IActionResult> GetCamperGroups([FromQuery] CamperGroupSearchDto searchDto)
         {
             try
             {
-                var camperGroups = await _camperGroupService.GetGroupsByActivityScheduleId(id);
-                return Ok(camperGroups);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
+                var result = await _camperGroupService.GetCamperGroupsAsync(searchDto);
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-
+                return StatusCode(500, new { message = "Lỗi hệ thống", detail = ex.Message });
             }
         }
 
-        [HttpGet("camp/{campId}")]
-        public async Task<IActionResult> GetGroupsByCampId(int campId)
-        {
-            try
-            {
-                var groups = await _camperGroupService.GetGroupsByCampIdAsync(campId);
-                return Ok(groups);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
-            }
-        }
-
+        /// <summary>
+        /// Manual Add Camper Into Group
+        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto camperGroup)
+        public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto requestDto)
         {
             if (!ModelState.IsValid)
             {
-                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
-                                   ?? "Dữ liệu yêu cầu không hợp lệ.";
-                return BadRequest(new { message = errorMessage });
+                return BadRequest(ModelState);
             }
 
             try
             {
-                var newCamperGroup = await _camperGroupService.CreateCamperGroupAsync(camperGroup);
-
-                return CreatedAtAction(nameof(GetCamperGroupById),
-                    new { id = newCamperGroup.CamperGroupId }, newCamperGroup);
+                var result = await _camperGroupService.CreateCamperGroupAsync(requestDto);
+                return CreatedAtAction(nameof(GetCamperGroups), new { camperGroupId = result.camperGroupId }, result);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException ex) 
             {
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi tạo phân nhóm", detail = ex.Message });
             }
-
         }
+
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCamperGroup(int id, [FromBody] CamperGroupRequestDto camperGroup)
-        {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var updatedCamperGroup = await _camperGroupService.UpdateCamperGroupAsync(id, camperGroup);
-            if (updatedCamperGroup == null)
-                return NotFound(new { message = $"CamperGroup with ID {id} not found" });
-
-            return Ok(updatedCamperGroup);
-        }
-
-        [HttpPut("{camperGroupId}/assign-staff/{staffId}")]
-        public async Task<IActionResult> AssignStaffToGroup(int camperGroupId, int staffId)
+        public async Task<IActionResult> UpdateCamperGroup(int id, [FromBody] CamperGroupRequestDto requestDto)
         {
             if (!ModelState.IsValid)
             {
-                var errorMessage = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).FirstOrDefault()
-                                   ?? "Dữ liệu yêu cầu không hợp lệ.";
-                return BadRequest(new { message = errorMessage });
+                return BadRequest(ModelState);
             }
 
             try
             {
-                var updatedCamperGroup = await _camperGroupService.AssignStaffToGroup(camperGroupId, staffId);
-                return Ok(updatedCamperGroup);
+                var result = await _camperGroupService.UpdateCamperGroupAsync(id, requestDto);
+                return Ok(result);
             }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi cập nhật phân nhóm", detail = ex.Message });
             }
         }
 
@@ -161,19 +90,18 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             try
             {
-                await _camperGroupService.DeleteCamperGroupAsync(id);
+                var isDeleted = await _camperGroupService.DeleteCamperGroupAsync(id);
+                if (!isDeleted)
+                {
+                    return NotFound(new { message = "Không tìm thấy thông tin phân nhóm để xóa." });
+                }
+
                 return NoContent(); 
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message }); 
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+                return StatusCode(500, new { message = "Lỗi khi xóa phân nhóm", detail = ex.Message });
             }
         }
-
-
     }
 }

@@ -41,7 +41,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// </summary>
         /// <param name="file"></param>
         /// <returns></returns>
-        [HttpPost("my-avatar")]
+        [HttpPut("my-avatar")]
         public async Task<IActionResult> UploadMyAvatar(IFormFile file)
         {
             var userId = _userContextService.GetCurrentUserId();
@@ -83,7 +83,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
 
 
-        [HttpPost("admin/staff/{userId}/avatar")]
+        [HttpPut("admin/staff/{userId}/avatar")]
         [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> UploadStaffAvatarByAdmin(int userId, IFormFile file)
         {
@@ -98,7 +98,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost("admin/driver/{userId}/avatar")]
+        [HttpPut("admin/driver/{userId}/avatar")]
         [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> UploadDriverAvatarByAdmin(int userId, IFormFile file)
         {

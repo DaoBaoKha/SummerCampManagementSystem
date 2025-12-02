@@ -15,7 +15,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperActivity
     public class CamperActivityCreateDto
     {
         public int CamperId { get; set; }
-        public int ActivityId { get; set; }
+        public int ActivityScheduleId { get; set; }
     }
 
     public class CamperActivityUpdateDto : CamperActivityRequest

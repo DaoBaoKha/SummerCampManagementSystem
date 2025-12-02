@@ -1,10 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.RouteStop;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/routestop")]
     [ApiController]
     public class RouteStopController : ControllerBase
     {
@@ -15,85 +16,64 @@ namespace SummerCampManagementSystem.API.Controllers
             _routeStopService = routeStopService;
         }
 
-        [HttpGet("{routeId}")]
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var routeStops = await _routeStopService.GetAllRouteStopsAsync();
+            return Ok(routeStops);
+        }
+
+        [HttpGet("{routeStopId}")]
+        public async Task<IActionResult> GetRouteStopsById(int routeId)
+        {
+            var routeStops = await _routeStopService.GetRouteStopByIdAsync(routeId);
+
+            return Ok(routeStops);
+        }
+
+        [HttpGet("route/{routeId}")]
         public async Task<IActionResult> GetRouteStopsByRouteId(int routeId)
         {
-            try
-            {
-                var routeStops = await _routeStopService.GetRouteStopsByRouteIdAsync(routeId);
+            var routeStops = await _routeStopService.GetRouteStopsByRouteIdAsync(routeId);
 
-                if (routeStops == null || !routeStops.Any())
-                {
-                    return NotFound(new { message = $"No route stops found for route ID {routeId}." });
-                }
+            if (routeStops == null || !routeStops.Any())
+            {
+                throw new NotFoundException(
+                    $"No route stops found for route ID {routeId}."
+                );
+            }
 
-                return Ok(routeStops);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = $"An internal error occurred: {ex.Message}" });
-            }
+            return Ok(routeStops);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateRouteStop([FromBody] RouteStopRequestDto routeStopRequestDto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                var newRouteStop = await _routeStopService.AddRouteStopAsync(routeStopRequestDto);
-                return CreatedAtAction(nameof(GetRouteStopsByRouteId), new { routeId = newRouteStop.RouteId }, newRouteStop);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+                throw new BadRequestException("Invalid input data.");
+
+            var newRouteStop = await _routeStopService.AddRouteStopAsync(routeStopRequestDto);
+
+            return CreatedAtAction(nameof(GetRouteStopsById),
+                new { newRouteStop.routeStopId }, newRouteStop
+            );
         }
 
         [HttpPut("{routeStopId}")]
         public async Task<IActionResult> UpdateRouteStop(int routeStopId, [FromBody] RouteStopRequestDto routeStopRequestDto)
         {
             if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-            try
-            {
-                var updatedRouteStop = await _routeStopService.UpdateRouteStopAsync(routeStopId, routeStopRequestDto);
-                return Ok(updatedRouteStop);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+                throw new BadRequestException("Invalid input data.");
+
+            var updatedRouteStop = await _routeStopService.UpdateRouteStopAsync(routeStopId, routeStopRequestDto);
+            return Ok(updatedRouteStop);
         }
 
         [HttpDelete("{routeStopId}")]
         public async Task<IActionResult> DeleteRouteStop(int routeStopId)
         {
-            try
-            {
-                var result = await _routeStopService.DeleteRouteStopAsync(routeStopId);
-                if (result)
-                {
-                    return NoContent();
-                }
-                else
-                {
-                    return NotFound(new { message = $"Route stop with ID {routeStopId} not found." });
-                }
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            await _routeStopService.DeleteRouteStopAsync(routeStopId);
+            return NoContent();
         }
     }
 }

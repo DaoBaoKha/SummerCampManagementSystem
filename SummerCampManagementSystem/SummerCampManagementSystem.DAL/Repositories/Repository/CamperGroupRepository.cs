@@ -8,55 +8,48 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
     {
         public CamperGroupRepository(CampEaseDatabaseContext context) : base(context)
         {
-            _context = context;
         }
 
-        public async Task<IEnumerable<CamperGroup>> GetAllCamperGroups()
+        /// <summary>
+        /// Get all camper IDs for a specific group
+        /// </summary>
+        public async Task<IEnumerable<int>> GetCamperIdsByGroupIdAsync(int groupId)
         {
-            return await _context.CamperGroups
-                .Include(g => g.supervisor)
-                .Include(g => g.Campers)
+            return await _context.Set<CamperGroup>()
+                .Where(cg => cg.groupId == groupId)
+                .Select(cg => cg.camperId)
                 .ToListAsync();
         }
 
-        public async Task<CamperGroup?> GetCamperGroupById(int id)
+        /// <summary>
+        /// Get all group IDs that a specific camper belongs to
+        /// </summary>
+        public async Task<IEnumerable<int>> GetGroupIdsByCamperIdAsync(int camperId)
         {
-            return await _context.CamperGroups
-                .Include(g => g.supervisor)
-                .FirstOrDefaultAsync(g => g.camperGroupId == id);
-        }
-        public async Task<bool> isSupervisor(int staffId, int campId)
-        {
-            return await _context.CamperGroups
-                .AnyAsync(a =>
-                    a.supervisorId == staffId &&
-                    a.campId == campId);
-        }
-
-        public async Task<IEnumerable<CamperGroup>> GetByCampIdAsync(int campId)
-        {
-            return await _context.CamperGroups
-                .Include(g => g.supervisor)
-                .Include(g => g.Campers)
-                .Where(g => g.campId == campId)
+            return await _context.Set<CamperGroup>()
+                .Where(cg => cg.camperId == camperId)
+                .Select(cg => cg.groupId)
                 .ToListAsync();
         }
 
-        public async Task<CamperGroup?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
+        /// <summary>
+        /// Check if a camper is in a specific group
+        /// </summary>
+        public async Task<bool> IsCamperInGroupAsync(int camperId, int groupId)
         {
-            return await _context.CamperGroups
-                .Include(g => g.supervisor)
-                .Include(g => g.camp)
-                .FirstOrDefaultAsync(g => g.supervisorId == supervisorId && g.campId == campId);
+            return await _context.Set<CamperGroup>()
+                .AnyAsync(cg => cg.camperId == camperId && cg.groupId == groupId);
         }
 
-        public async Task<IEnumerable<CamperGroup>> GetGroupsByActivityScheduleIdAsync(int activityScheduleId)
+        /// <summary>
+        /// Get all campers with details for a specific group
+        /// </summary>
+        public async Task<IEnumerable<Camper>> GetCampersByGroupIdAsync(int groupId)
         {
-            return await _context.GroupActivities
-                .Include(ga => ga.camperGroup.supervisor)
-                .Include(ga => ga.camperGroup)
-                .Where(g => g.activityScheduleId == activityScheduleId)
-                .Select(ga => ga.camperGroup)
+            return await _context.Set<CamperGroup>()
+                .Where(cg => cg.groupId == groupId)
+                .Include(cg => cg.camper)
+                .Select(cg => cg.camper)
                 .ToListAsync();
         }
     }

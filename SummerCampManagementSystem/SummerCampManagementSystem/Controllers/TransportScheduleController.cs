@@ -1,5 +1,4 @@
-﻿using Google.Api;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -9,7 +8,6 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/transportschedules")]
     [ApiController]
-    [Authorize(Roles = "Admin, Manager")] 
     public class TransportScheduleController : ControllerBase
     {
         private readonly ITransportScheduleService _scheduleService;
@@ -20,6 +18,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> CreateSchedule([FromBody] TransportScheduleRequestDto model)
         {
             if (!ModelState.IsValid)
@@ -27,43 +26,26 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _scheduleService.CreateScheduleAsync(model);
-                return CreatedAtAction(nameof(GetScheduleById), new { id = response.TransportScheduleId }, response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message }); 
-            }
-            catch (InvalidOperationException ex)
-            {
-                // conflict error
-                return BadRequest(new { message = ex.Message }); 
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi tạo lịch trình.", detail = ex.Message });
-            }
+            var response = await _scheduleService.CreateScheduleAsync(model);
+
+            return CreatedAtAction(nameof(GetScheduleById), new { id = response.TransportScheduleId }, response);
         }
 
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetScheduleById(int id)
         {
-            try
-            {
-                var response = await _scheduleService.GetScheduleByIdAsync(id);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi lấy lịch trình.", detail = ex.Message });
-            }
+            var response = await _scheduleService.GetScheduleByIdAsync(id);
+            return Ok(response);
+        }
+
+        [HttpGet("driver-schedule")]
+        [Authorize(Roles = "Driver")]
+        public async Task<IActionResult> GetDriverScheduleAsync()
+        {
+            var response = await _scheduleService.GetDriverSchedulesAsync();
+            return Ok(response);
         }
 
 
@@ -73,10 +55,11 @@ namespace SummerCampManagementSystem.API.Controllers
         /// <param name="searchDto"></param>
         /// <returns></returns>
         [HttpGet]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)
         {
             // check if any search criteria is provided
-            if(searchDto.RouteId.HasValue || searchDto.DriverId.HasValue || searchDto.VehicleId.HasValue ||
+            if (searchDto.RouteId.HasValue || searchDto.DriverId.HasValue || searchDto.VehicleId.HasValue ||
                searchDto.Date.HasValue || searchDto.StartDate.HasValue || searchDto.EndDate.HasValue ||
                !string.IsNullOrEmpty(searchDto.Status))
             {
@@ -88,11 +71,11 @@ namespace SummerCampManagementSystem.API.Controllers
                 var allSchedules = await _scheduleService.GetAllSchedulesAsync();
                 return Ok(allSchedules);
             }
-
         }
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> UpdateSchedule(int id, [FromBody] TransportScheduleRequestDto model)
         {
             if (!ModelState.IsValid)
@@ -100,24 +83,9 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _scheduleService.UpdateScheduleAsync(id, model);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // conflict error or status validation error
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi cập nhật lịch trình.", detail = ex.Message });
-            }
+            // Middleware sẽ bắt NotFoundException (404), BusinessRuleException (400), và Exception (500)
+            var response = await _scheduleService.UpdateScheduleAsync(id, model);
+            return Ok(response);
         }
 
         /// <summary>
@@ -138,24 +106,8 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(new { message = $"Không thể chuyển thủ công sang trạng thái '{model.Status}'. Trạng thái này được xác định tự động." });
             }
 
-            try
-            {
-                var response = await _scheduleService.UpdateScheduleStatusAsync(id, model.Status, model.CancelReasons);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // status flow validation error
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi cập nhật trạng thái lịch trình.", detail = ex.Message });
-            }
+            var response = await _scheduleService.UpdateScheduleStatusAsync(id, model.Status, model.CancelReasons);
+            return Ok(response);
         }
 
 
@@ -166,26 +118,10 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize(Roles = "Admin, Manager, Driver")]
         public async Task<IActionResult> StartTrip(int id)
         {
-            try
-            {
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+            var currentTime = TimeOnly.FromDateTime(DateTime.Now);
 
-                var response = await _scheduleService.UpdateActualTimeAsync(id, currentTime, null);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // status update error 
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi ghi nhận giờ bắt đầu chuyến đi.", detail = ex.Message });
-            }
+            var response = await _scheduleService.UpdateActualTimeAsync(id, currentTime, null);
+            return Ok(response);
         }
 
         /// <summary>
@@ -195,49 +131,17 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize(Roles = "Admin, Manager, Driver")]
         public async Task<IActionResult> EndTrip(int id)
         {
-            try
-            {
-                var currentTime = TimeOnly.FromDateTime(DateTime.Now);
+            var currentTime = TimeOnly.FromDateTime(DateTime.Now);
 
-                var response = await _scheduleService.UpdateActualTimeAsync(id, null, currentTime);
-                return Ok(response);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // status update error 
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi ghi nhận giờ kết thúc chuyến đi.", detail = ex.Message });
-            }
+            var response = await _scheduleService.UpdateActualTimeAsync(id, null, currentTime);
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSchedule(int id)
         {
-            try
-            {
-                await _scheduleService.DeleteScheduleAsync(id);
-                return NoContent(); 
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // status update error
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi xóa lịch trình.", detail = ex.Message });
-            }
+            await _scheduleService.DeleteScheduleAsync(id);
+            return NoContent();
         }
     }
 }

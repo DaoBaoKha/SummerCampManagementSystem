@@ -18,6 +18,26 @@ namespace SummerCampManagementSystem.API.Controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Get Available Driver
+        /// </summary>
+        /// <param name="date">Check Schedule Date (2025-12-31)</param>
+        /// <param name="startTime">Start Time (08:00:00)</param>
+        /// <param name="endTime">End Time (12:00:00)</param>
+        [HttpGet("available")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<ActionResult<IEnumerable<DriverResponseDto>>> GetAvailableDrivers( [FromQuery] DateOnly? date, [FromQuery] TimeOnly? startTime, [FromQuery] TimeOnly? endTime)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var drivers = await _driverService.GetAvailableDriversAsync(date, startTime, endTime);
+
+            return Ok(drivers);
+        }
+
         [HttpPost("register")]
         public async Task<IActionResult> RegisterDriver([FromBody] DriverRegisterDto model)
         {
@@ -50,7 +70,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost("upload-photo")]
+        [HttpPut("upload-photo")]
         [Authorize(Roles = "Driver")]
         public async Task<IActionResult> UploadDriverLicensePhoto([FromForm] DriverLicensePhotoUploadDto model)
         {

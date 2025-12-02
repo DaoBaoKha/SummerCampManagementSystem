@@ -14,14 +14,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.Vehicle
 
         public int? vehicleType { get; set; }
 
-        public string vehicleName { get; set; }
+        public string? vehicleName { get; set; }
 
-        public string vehicleNumber { get; set; }
+        public string? vehicleNumber { get; set; }
 
         public int? capacity { get; set; }
 
         [StringLength(50)]
-        public string status { get; set; }
+        public string? status { get; set; }
     }
 
     public class VehicleNameDto

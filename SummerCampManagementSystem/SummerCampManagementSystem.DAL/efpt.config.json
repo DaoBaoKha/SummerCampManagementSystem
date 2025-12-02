@@ -135,6 +135,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[Group]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[GroupActivity]",
          "ObjectType": 0
       },

@@ -9,39 +9,23 @@ using Microsoft.EntityFrameworkCore;
 namespace SummerCampManagementSystem.DAL.Models;
 
 [Table("CamperGroup", Schema = "dbo")]
-[Index("campId", Name = "IX_CamperGroup_campId")]
-[Index("supervisorId", Name = "IX_CamperGroup_supervisorId")]
 public partial class CamperGroup
 {
     [Key]
     public int camperGroupId { get; set; }
 
-    [StringLength(255)]
-    public string groupName { get; set; }
+    public int camperId { get; set; }
 
-    public string description { get; set; }
+    public int groupId { get; set; }
 
-    public int? maxSize { get; set; }
+    [StringLength(50)]
+    public string status { get; set; }
 
-    public int? supervisorId { get; set; }
-
-    public int? campId { get; set; }
-
-    public int? minAge { get; set; }
-
-    public int? maxAge { get; set; }
-
-    [InverseProperty("group")]
-    public virtual ICollection<Camper> Campers { get; set; } = new List<Camper>();
-
-    [InverseProperty("camperGroup")]
-    public virtual ICollection<GroupActivity> GroupActivities { get; set; } = new List<GroupActivity>();
-
-    [ForeignKey("campId")]
+    [ForeignKey("camperId")]
     [InverseProperty("CamperGroups")]
-    public virtual Camp camp { get; set; }
+    public virtual Camper camper { get; set; }
 
-    [ForeignKey("supervisorId")]
+    [ForeignKey("groupId")]
     [InverseProperty("CamperGroups")]
-    public virtual UserAccount supervisor { get; set; }
+    public virtual Group group { get; set; }
 }
