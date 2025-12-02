@@ -16,6 +16,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedule()
         {
             return await _context.ActivitySchedules
+                .Include(s => s.activity)
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.livestream)
@@ -27,6 +28,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(s => s.location)
+                .Include(s => s.activity)
                 .Include(s => s.staff)
                 .Include(s => s.livestream)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
