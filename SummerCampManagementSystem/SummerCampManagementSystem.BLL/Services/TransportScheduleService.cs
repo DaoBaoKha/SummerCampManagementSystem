@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -24,6 +25,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
         {
+            // basic validation
+            checkTimeBounds(requestDto.StartTime, requestDto.EndTime);
+            checkTransportType(requestDto.TransportType);
+            checkScheduleDate(requestDto.Date);
 
             requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
             requestDto.EndTime = requestDto.EndTime.ToUtcForStorageTime();
@@ -54,7 +59,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var schedule = await GetSchedulesWithIncludes()
                                  .FirstOrDefaultAsync(s => s.transportScheduleId == id)
-                                 ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+                                 ?? throw new NotFoundException($"Transport Schedule ID {id} not found.");
 
             return _mapper.Map<TransportScheduleResponseDto>(schedule);
         }
@@ -144,7 +149,11 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<TransportScheduleResponseDto> UpdateScheduleAsync(int id, TransportScheduleRequestDto requestDto)
         {
             var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+                ?? throw new NotFoundException($"Không tìm thấy lịch trình vận chuyển với ID {id}.");
+
+            checkTimeBounds(requestDto.StartTime, requestDto.EndTime);
+            checkTransportType(requestDto.TransportType);
+            checkScheduleDate(requestDto.Date);
 
             // validation fk
             if (existingSchedule.routeId != requestDto.RouteId || existingSchedule.driverId != requestDto.DriverId || existingSchedule.vehicleId != requestDto.VehicleId)
@@ -153,9 +162,10 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // only update when status before InProgress or Completed
-            if (existingSchedule.status == TransportScheduleStatus.InProgress.ToString() || existingSchedule.status == TransportScheduleStatus.Completed.ToString())
+            if (existingSchedule.status == TransportScheduleStatus.InProgress.ToString() || existingSchedule.status == TransportScheduleStatus.Completed.ToString()
+                || existingSchedule.status == TransportScheduleStatus.NotYet.ToString() || existingSchedule.status == TransportScheduleStatus.Canceled.ToString())
             {
-                throw new InvalidOperationException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình chưa được thực hiện hoặc đã hoàn thành.");
+                throw new BusinessRuleException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình đang ở trạng thái Draft hoặc Rejected.");
             }
 
             requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
@@ -192,7 +202,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<TransportScheduleResponseDto> UpdateScheduleStatusAsync(int id, TransportScheduleStatus desiredStatus, string? cancelReason = null)
         {
             var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+                ?? throw new NotFoundException($"Transport Schedule ID {id} not found.");
 
             // camp check manually
             switch (desiredStatus)
@@ -219,16 +229,16 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 case TransportScheduleStatus.Draft:
                     // Draft only set when create new or change from Rejected using updateScheduleAsync
-                    throw new InvalidOperationException($"Không thể chuyển trực tiếp sang trạng thái '{desiredStatus}'. Trạng thái này không được chuyển thủ công.");
+                    throw new BusinessRuleException($"Không thể chuyển trực tiếp sang trạng thái '{desiredStatus}'. Trạng thái này không được chuyển thủ công.");
 
                 case TransportScheduleStatus.InProgress:
 
                 case TransportScheduleStatus.Completed:
                     // InProgress and Completed auto update from UpdateActualTimeAsync
-                    throw new InvalidOperationException($"Không thể chuyển thủ công sang trạng thái '{desiredStatus}'. Trạng thái này được xác định tự động.");
+                    throw new BusinessRuleException($"Không thể chuyển thủ công sang trạng thái '{desiredStatus}'. Trạng thái này được xác định tự động.");
 
                 default:
-                    throw new InvalidOperationException($"Trạng thái '{desiredStatus}' không hợp lệ cho việc chuyển đổi thủ công.");
+                    throw new BusinessRuleException($"Trạng thái '{desiredStatus}' không hợp lệ cho việc chuyển đổi thủ công.");
             }
 
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
@@ -240,7 +250,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<TransportScheduleResponseDto> UpdateActualTimeAsync(int id, TimeOnly? actualStartTime, TimeOnly? actualEndTime)
         {
             var existingSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+                ?? throw new NotFoundException($"Transport Schedule ID {id} not found.");
 
             TimeOnly? utcStartTime = actualStartTime.ToUtcForStorageTime();
             TimeOnly? utcEndTime = actualEndTime.ToUtcForStorageTime();
@@ -279,13 +289,13 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<bool> DeleteScheduleAsync(int id)
         {
             var scheduleToDelete = await _unitOfWork.TransportSchedules.GetByIdAsync(id)
-                ?? throw new KeyNotFoundException($"Transport Schedule ID {id} not found.");
+                ?? throw new NotFoundException($"Transport Schedule ID {id} not found.");
 
             // only allow delete when status = Draft or Rejected
             if (scheduleToDelete.status != TransportScheduleStatus.Draft.ToString() &&
                 scheduleToDelete.status != TransportScheduleStatus.Rejected.ToString())
             {
-                throw new InvalidOperationException($"Không thể xóa lịch trình khi trạng thái là {scheduleToDelete.status}. Chỉ có thể xóa lịch trình ở trạng thái Draft hoặc Rejected.");
+                throw new BusinessRuleException($"Không thể xóa lịch trình khi trạng thái là {scheduleToDelete.status}. Chỉ có thể xóa lịch trình ở trạng thái Draft hoặc Rejected.");
             }
 
             scheduleToDelete.status = TransportScheduleStatus.Canceled.ToString();
@@ -305,6 +315,36 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(s => s.driver).ThenInclude(d => d.user);
         }
 
+        private void checkTimeBounds(TimeOnly startTime, TimeOnly endTime)
+        {
+            // check if start time is before end time
+            if (startTime >= endTime)
+            {
+                throw new BusinessRuleException("Thời gian bắt đầu phải sớm hơn thời gian kết thúc.");
+            }
+        }
+
+        private void checkScheduleDate(DateOnly scheduleDate)
+        {
+            // check if the schedule date is in the past
+            if (scheduleDate < DateOnly.FromDateTime(DateTime.UtcNow.Date))
+            {
+                throw new BusinessRuleException("Không thể tạo hoặc cập nhật lịch trình cho ngày đã qua.");
+            }
+        }
+
+        private void checkTransportType(string? transportType) 
+        {
+            // get all enums
+            var validTypes = Enum.GetNames(typeof(TransportScheduleType));
+
+            if (string.IsNullOrWhiteSpace(transportType) || !validTypes.Contains(transportType))
+            {
+                var allowedTypes = string.Join(" hoặc ", validTypes);
+                throw new BusinessRuleException($"Loại chuyến đi (TransportType) phải được xác định rõ là '{TransportScheduleType.PickUp}' hoặc '{TransportScheduleType.DropOff}'.");
+            }
+        }
+
         private void CheckAndSetStatusTransition(TransportSchedule existingSchedule, TransportScheduleStatus newStatus, params TransportScheduleStatus[] allowedCurrentStatuses)
         {
             var currentStatus = existingSchedule.status;
@@ -313,7 +353,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (allowedCurrentStatuses.Length > 0 && !allowedCurrentStatuses.Any(s => s.ToString() == currentStatus))
             {
                 var allowedStatusNames = string.Join(", ", allowedCurrentStatuses.Select(s => $"'{s}'"));
-                throw new InvalidOperationException($"Không thể chuyển trạng thái từ '{currentStatus}' sang '{newStatus}'. Chỉ cho phép chuyển đổi khi trạng thái hiện tại là: {allowedStatusNames}.");
+                throw new BusinessRuleException($"Không thể chuyển trạng thái từ '{currentStatus}' sang '{newStatus}'. Chỉ cho phép chuyển đổi khi trạng thái hiện tại là: {allowedStatusNames}.");
             }
 
             existingSchedule.status = newStatus.ToString();
@@ -343,7 +383,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (driverConflict != null)
             {
-                throw new InvalidOperationException($"Tài xế ID {driverId} đã có lịch trình chồng chéo (ID: {driverConflict.transportScheduleId}) từ {driverConflict.startTime} đến {driverConflict.endTime} vào ngày {date}.");
+                throw new BusinessRuleException($"Tài xế ID {driverId} đã có lịch trình chồng chéo (ID: {driverConflict.transportScheduleId}) từ {driverConflict.startTime} đến {driverConflict.endTime} vào ngày {date}.");
             }
 
             // check vehicle conflict
@@ -354,21 +394,37 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (vehicleConflict != null)
             {
-                throw new InvalidOperationException($"Xe ID {vehicleId} đã được sử dụng trong lịch trình chồng chéo (ID: {vehicleConflict.transportScheduleId}) từ {vehicleConflict.startTime} đến {vehicleConflict.endTime} vào ngày {date}.");
+                throw new BusinessRuleException($"Xe ID {vehicleId} đã được sử dụng trong lịch trình chồng chéo (ID: {vehicleConflict.transportScheduleId}) từ {vehicleConflict.startTime} đến {vehicleConflict.endTime} vào ngày {date}.");
             }
         }
 
         private async Task CheckForeignKeyExistence(TransportScheduleRequestDto requestDto)
         {
-            var route = await _unitOfWork.Routes.GetByIdAsync(requestDto.RouteId)
-                ?? throw new KeyNotFoundException($"Route ID {requestDto.RouteId} not found.");
+            // check route existence and status
+            var route = await _unitOfWork.Routes.GetByIdAsync(requestDto.RouteId);
+            if (route == null) throw new NotFoundException($"Không tìm thấy Route ID {requestDto.RouteId}.");
 
-            var driver = await _unitOfWork.Drivers.GetByIdAsync(requestDto.DriverId)
-                ?? throw new KeyNotFoundException($"Driver ID {requestDto.DriverId} not found.");
+            // check if route active
+            if (route.isActive == false) throw new BusinessRuleException($"Route ID {requestDto.RouteId} hiện không hoạt động."); 
 
-            var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(requestDto.VehicleId)
-                ?? throw new KeyNotFoundException($"Vehicle ID {requestDto.VehicleId} not found.");
+            // check driver existence and status 
+            var driver = await _unitOfWork.Drivers.GetByIdAsync(requestDto.DriverId);
 
+            if (driver == null) throw new NotFoundException($"Không tìm thấy Driver ID {requestDto.DriverId}.");
+
+            // only approved driver can be add
+            if (driver.status != DriverStatus.Approved.ToString())
+                throw new BusinessRuleException($"Tài xế ID {requestDto.DriverId} không ở trạng thái Approved (trạng thái hiện tại: {driver.status}).");
+
+            // check vehicle existence and status
+            var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(requestDto.VehicleId);
+
+            if (vehicle == null)
+                throw new NotFoundException($"Không tìm thấy Vehicle ID {requestDto.VehicleId}.");
+            
+            // check if vehicle active
+            if (vehicle.status != VehicleStatus.Active.ToString())
+                throw new BusinessRuleException($"Xe ID {requestDto.VehicleId} không sẵn sàng (trạng thái hiện tại: {vehicle.status}).");
         }
 
         private void ApplyActualTimeAndDetermineStatus(TransportSchedule existingSchedule, TimeOnly? actualStartTime, TimeOnly? actualEndTime)
@@ -379,13 +435,13 @@ namespace SummerCampManagementSystem.BLL.Services
             if (currentStatus != TransportScheduleStatus.NotYet.ToString() &&
                 currentStatus != TransportScheduleStatus.InProgress.ToString())
             {
-                throw new InvalidOperationException($"Không thể cập nhật thời gian thực tế khi trạng thái là {currentStatus}. Chỉ cho phép cập nhật khi trạng thái là '{TransportScheduleStatus.NotYet}' hoặc '{TransportScheduleStatus.InProgress}'.");
+                throw new BusinessRuleException($"Không thể cập nhật thời gian thực tế khi trạng thái là {currentStatus}. Chỉ cho phép cập nhật khi trạng thái là '{TransportScheduleStatus.NotYet}' hoặc '{TransportScheduleStatus.InProgress}'.");
             }
 
             // if no ActualStartTime & status < InProgress & ActualEndTime has value -> unallowed
             if (!existingSchedule.actualStartTime.HasValue && actualEndTime.HasValue)
             {
-                throw new InvalidOperationException($"Không thể ghi nhận giờ kết thúc thực tế. Lịch trình chưa có giờ bắt đầu thực tế ({TransportScheduleStatus.InProgress} chưa được kích hoạt).");
+                throw new BusinessRuleException($"Không thể ghi nhận giờ kết thúc thực tế. Lịch trình chưa có giờ bắt đầu thực tế ({TransportScheduleStatus.InProgress} chưa được kích hoạt).");
             }
 
             // update ActualEndTime if has new value

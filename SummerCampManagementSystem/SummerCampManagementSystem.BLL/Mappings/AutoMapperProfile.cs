@@ -371,9 +371,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
 
             // Transport Schehedule mappings
-            CreateMap<TransportScheduleRequestDto, TransportSchedule>()
-                .ForMember(dest => dest.actualStartTime, opt => opt.MapFrom(src => src.ActualStartTime))
-                .ForMember(dest => dest.actualEndTime, opt => opt.MapFrom(src => src.ActualEndTime));
+            CreateMap<TransportScheduleRequestDto, TransportSchedule>();
 
             CreateMap<TransportSchedule, TransportScheduleResponseDto>()
                 .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.route != null ? src.route : null))
