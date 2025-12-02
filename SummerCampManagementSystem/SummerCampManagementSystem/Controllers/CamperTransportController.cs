@@ -21,38 +21,16 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize(Roles = "Driver, Staff, Manager, Admin")]
         public async Task<IActionResult> GetCampersByScheduleId(int transportScheduleId)
         {
-            try
-            {
-                var campers = await _camperTransportService.GetCampersByScheduleIdAsync(transportScheduleId);
-                return Ok(campers);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            var campers = await _camperTransportService.GetCampersByScheduleIdAsync(transportScheduleId);
+            return Ok(campers);
         }
 
         [HttpGet]
         [Authorize(Roles = "Driver, Staff, Manager, Admin")]
         public async Task<IActionResult> GetAllCamperTransports()
         {
-            try
-            {
-                var campers = await _camperTransportService.GetAllCamperTransportAsync();
-                return Ok(campers);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            var campers = await _camperTransportService.GetAllCamperTransportAsync();
+            return Ok(campers);
         }
 
         /// <summary>
@@ -62,30 +40,15 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize(Roles = "Admin, Manager")] 
         public async Task<IActionResult> GenerateCamperList(int transportScheduleId)
         {
-            try
-            {
-                var result = await _camperTransportService.GenerateCamperListForScheduleAsync(transportScheduleId);
+            var result = await _camperTransportService.GenerateCamperListForScheduleAsync(transportScheduleId);
 
-                if (result)
-                {
-                    return Ok(new { message = "Đã tạo danh sách đưa đón thành công." });
-                }
-                else
-                {
-                    return Ok(new { message = "Không tìm thấy đơn đăng ký mới nào đủ điều kiện (Đã thanh toán) để thêm vào danh sách." });
-                }
-            }
-            catch (KeyNotFoundException ex)
+            if (result)
             {
-                return NotFound(new { message = ex.Message });
+                return Ok(new { message = "Đã tạo danh sách đưa đón thành công." });
             }
-            catch (InvalidOperationException ex)
+            else
             {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
+                return Ok(new { message = "Không tìm thấy đơn đăng ký mới nào đủ điều kiện (Đã thanh toán) để thêm vào danh sách." });
             }
         }
 
@@ -101,19 +64,8 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var updatedCamperTransport = await _camperTransportService.UpdateStatusAsync(id, updateDto);
-                return Ok(updatedCamperTransport);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            var updatedCamperTransport = await _camperTransportService.UpdateStatusAsync(id, updateDto);
+            return Ok(updatedCamperTransport);
         }
 
         /// <summary>
@@ -125,24 +77,8 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                await _camperTransportService.CamperCheckInAsync(request);
-                return Ok(new { message = "Check-in thành công (Đã lên xe)." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // flow error (havent assigned)
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            await _camperTransportService.CamperCheckInAsync(request);
+            return Ok(new { message = "Check-in thành công (Đã lên xe)." });
         }
 
         /// <summary>
@@ -154,24 +90,9 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                await _camperTransportService.CamperCheckOutAsync(request);
-                return Ok(new { message = "Check-out thành công (Đã xuống xe)." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                // flow error (havent checkIn)
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            // Middleware handles exceptions (NotFound, BusinessRule, 500)
+            await _camperTransportService.CamperCheckOutAsync(request);
+            return Ok(new { message = "Check-out thành công (Đã xuống xe)." });
         }
 
         /// <summary>
@@ -183,19 +104,8 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            try
-            {
-                await _camperTransportService.CamperMarkAbsentAsync(request);
-                return Ok(new { message = "Đã đánh dấu vắng mặt." });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống.", detail = ex.Message });
-            }
+            await _camperTransportService.CamperMarkAbsentAsync(request);
+            return Ok(new { message = "Đã đánh dấu vắng mặt." });
         }
     }
 }
