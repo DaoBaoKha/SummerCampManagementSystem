@@ -49,9 +49,12 @@ namespace SummerCampManagementSystem.BLL.Services
                 activities = schedules.Select(a => new
                 {
                     a.activityScheduleId,
-                    a.activity.name,
+                    activityName = a.activity.name,
+                    a.activity.activityType,
                     a.startTime,
                     a.endTime,
+                    a.status,
+                    a.isLivestream,
                     location = a.location.name
                 }).ToList()
             };

@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -405,7 +407,6 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
         }
 
-
         public async Task CreateAttendanceLogsForClosedCampsAsync()
         {
             // 1. Lấy tất cả camp đang RegistrationClosed
@@ -459,6 +460,24 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // Lưu tất cả log 1 lần
             await _unitOfWork.CommitAsync();
+        }
+
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAttendedActivitiesByCamperId (int camperId)
+        {
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new NotFoundException("Camper not found");
+
+            var attendedActivities = await _unitOfWork.AttendanceLogs.GetAttendedActivitiesByCamperId(camperId);
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(attendedActivities);
+        }
+
+        public async Task<IEnumerable<CamperSummaryDto>> GetAttendedCampersByActivityScheduleId(int activityScheduleId)
+        {
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
+                ?? throw new NotFoundException("ActivitySchedule not found");
+
+            var camperAttended = await _unitOfWork.AttendanceLogs.GetAttendedCampersByActivityScheduleId(activityScheduleId);
+            return _mapper.Map<IEnumerable<CamperSummaryDto>>(camperAttended);
         }
     }
 }
