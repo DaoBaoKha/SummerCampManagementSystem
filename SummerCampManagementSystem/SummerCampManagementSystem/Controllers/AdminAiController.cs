@@ -346,11 +346,15 @@ namespace SummerCampManagementSystem.API.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             int? staffId = userIdClaim != null && int.TryParse(userIdClaim, out var id) ? id : (int?)null;
 
-            // Save attendance logs for recognized campers
+            // Update pre-existing attendance logs for recognized campers
+            var updatedCount = 0;
+            var notFoundCount = 0;
+            var notFoundCampers = new List<int>();
+
             if (result.RecognizedCampers != null && result.RecognizedCampers.Count > 0)
             {
                 _logger.LogInformation(
-                    "Saving {Count} attendance logs for ActivitySchedule {ActivityScheduleId}",
+                    "Updating {Count} attendance logs for ActivitySchedule {ActivityScheduleId}",
                     result.RecognizedCampers.Count,
                     request.ActivityScheduleId);
 
@@ -362,31 +366,65 @@ namespace SummerCampManagementSystem.API.Controllers
                         continue;
                     }
 
-                    var attendanceLog = new AttendanceLog
-                    {
-                        camperId = recognizedCamper.CamperId,
-                        staffId = staffId,
-                        activityScheduleId = request.ActivityScheduleId,
-                        participantStatus = "Present",
-                        timestamp = DateTime.UtcNow,
-                        checkInMethod = "FaceRecognition",
-                        eventType = "CheckIn",
-                        note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}"
-                    };
+                    // Find pre-existing AttendanceLog with status='Pending'
+                    var existingLog = await _unitOfWork.AttendanceLogs
+                        .GetQueryable()
+                        .Where(al => al.camperId == recognizedCamper.CamperId
+                                  && al.activityScheduleId == request.ActivityScheduleId
+                                  )
+                        .FirstOrDefaultAsync();
 
-                    await _unitOfWork.AttendanceLogs.CreateAsync(attendanceLog);
+                    if (existingLog != null)
+                    {
+                        // UPDATE existing log
+                        existingLog.participantStatus = "Present";
+                        existingLog.timestamp = DateTime.UtcNow;
+                        existingLog.checkInMethod = "FaceRecognition";
+                        existingLog.eventType = "CheckIn";
+                        existingLog.staffId = staffId;
+                        existingLog.note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}";
+
+                        await _unitOfWork.AttendanceLogs.UpdateAsync(existingLog);
+                        updatedCount++;
+
+                        _logger.LogInformation("✅ Updated AttendanceLog for Camper {CamperId} (Confidence: {Confidence:P2})",
+                            recognizedCamper.CamperId, recognizedCamper.Confidence);
+                    }
+                    else
+                    {
+                        // ERROR: No pre-existing log found
+                        notFoundCount++;
+                        notFoundCampers.Add(recognizedCamper.CamperId);
+                        _logger.LogWarning("❌ No pre-existing AttendanceLog found for Camper {CamperId} in ActivitySchedule {ActivityScheduleId}",
+                            recognizedCamper.CamperId, request.ActivityScheduleId);
+                    }
                 }
 
-                // Update activity schedule status
-                activitySchedule.status = "AttendanceChecked";
-                await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
+                if (updatedCount > 0)
+                {
+                    // Update activity schedule status
+                    activitySchedule.status = "AttendanceChecked";
+                    await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
 
-                await _unitOfWork.CommitAsync();
-                _logger.LogInformation("Successfully saved {Count} attendance logs", result.RecognizedCampers.Count);
+                    await _unitOfWork.CommitAsync();
+                    _logger.LogInformation("✅ Successfully updated {UpdatedCount} attendance logs (NotFound: {NotFoundCount})",
+                        updatedCount, notFoundCount);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️  No attendance logs were updated. {NotFoundCount} campers had no pre-existing logs.",
+                        notFoundCount);
+                }
+
+                // Add error information to response if some campers had no pre-existing logs
+                if (notFoundCount > 0)
+                {
+                    result.Message += $"\n⚠️ Warning: {notFoundCount} recognized camper(s) had no pre-existing attendance log (CamperIDs: {string.Join(", ", notFoundCampers)}). They may not be registered for this activity.";
+                }
             }
             else
             {
-                _logger.LogInformation("No campers recognized, no attendance logs created");
+                _logger.LogInformation("ℹ️  No campers recognized, no attendance logs updated");
             }
 
             return Ok(result);
