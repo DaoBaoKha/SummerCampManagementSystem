@@ -101,7 +101,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
 
-            CreateMap<Group, GroupNameDto>();
+            CreateMap<Group, GroupNameDto>()
+                    .ForMember(dest => dest.CurrentSize, opt => opt.MapFrom(src => src.CamperGroups.Count())); // count from CamperGroup
 
             // CamperTransport mapping
             CreateMap<CamperTransportRequestDto, CamperTransport>();

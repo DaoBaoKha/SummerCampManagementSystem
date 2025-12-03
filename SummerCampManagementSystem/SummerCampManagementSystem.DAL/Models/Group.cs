@@ -21,6 +21,8 @@ public partial class Group
 
     public string description { get; set; }
 
+    public int? currentSize { get; set; }
+
     public int? maxSize { get; set; }
 
     public int? supervisorId { get; set; }

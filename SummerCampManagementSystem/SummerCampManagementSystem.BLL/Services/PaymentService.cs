@@ -80,7 +80,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 var registration = await _unitOfWork.Registrations.GetQueryable()
                     .Include(r => r.RegistrationCampers)
                     .ThenInclude(rc => rc.camper)
+                    .Include(r => r.camp) // get campId for assign group logic
                     .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
+
+                // load Groups & CamperGroups to assign group
+                var groups = await _unitOfWork.Groups.GetQueryable()
+                    .Where(g => g.campId == registration.campId)
+                    .Include(g => g.CamperGroups)
+                    .ToListAsync();
 
                 // respond to the webhook based on the verification result
                 // successful payment
@@ -132,10 +139,29 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
 
                     // auto assign group
+                    List<int> unassignedCamperIds = new List<int>();
+
+                    // return camperId(s) with no group
                     if (registration.campId.HasValue && confirmedCamperIds.Any())
                     {
-                        await AssignCampersToGroupsAsync(registration.campId.Value, confirmedCamperIds);
+                        unassignedCamperIds = await AssignCampersToGroupsAsync(registration.campId.Value, confirmedCamperIds, registration.RegistrationCampers, groups);
                     }
+
+                    // update status based on group assign result
+                    if (unassignedCamperIds.Any())
+                    {
+                        // update status of each camper to PendingAssignGroup
+                        foreach (var camperLink in registration.RegistrationCampers)
+                        {
+                            if (unassignedCamperIds.Contains(camperLink.camperId))
+                            {
+                                camperLink.status = RegistrationCamperStatus.PendingAssignGroup.ToString();
+                                await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                            }
+                            // if has group -> status still Confirmed
+                        }
+                    }
+                    // if no unassignedCamperIds -> all status = Confirmed
 
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
                     await _unitOfWork.Registrations.UpdateAsync(registration);
@@ -218,6 +244,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 return $"{BaseDeepLink}/failure?{queryParams}&reason=ApiError&details={errorReason}"; 
             }
         }
+
         /// <summary>
         /// send confirm url callback to payos server
         /// </summary>
@@ -294,40 +321,44 @@ namespace SummerCampManagementSystem.BLL.Services
 
         #region Private Methods
 
-        private async Task AssignCampersToGroupsAsync(int campId, List<int> camperIds)
+        /// <param name="campId">The ID of the camp.</param>
+        /// <param name="camperIds">List of camper IDs to assign.</param>
+        /// <param name="registrationCampers">List of RegistrationCampers for update.</param>
+        /// <param name="availableGroups">List of available Group with CamperGroups included.</param>
+        /// <returns>List of camper IDs with no group</returns>
+        private async Task<List<int>> AssignCampersToGroupsAsync(int campId, List<int> camperIds, IEnumerable<RegistrationCamper> registrationCampers, List<Group> availableGroups)
         {
-            // get group list of campId with camper in that group
-            // check maxSize
-            var availableGroups = await _unitOfWork.Groups.GetQueryable()
-                .Where(g => g.campId == campId)
-                .Include(g => g.CamperGroups)
-                .ToListAsync();
 
-            if (!availableGroups.Any()) return;
+            if (!availableGroups.Any()) return camperIds; // no group -> no assign
 
-            // get list camper need to be assgined
+            // get camper dateOfBirth
             var campers = await _unitOfWork.Campers.GetQueryable()
                 .Where(c => camperIds.Contains(c.camperId))
                 .ToListAsync();
 
             var newCamperGroups = new List<CamperGroup>();
-            var today = DateOnly.FromDateTime(DateTime.Now); 
+            var groupsToUpdate = new List<Group>(); // get list groups to update currentSize
+            var unassignedCamperIds = new List<int>();
+            var today = DateOnly.FromDateTime(DateTime.Now);
 
             foreach (var camper in campers)
             {
-                // if camper dob == null -> cant assign
-                if (camper.dob == null) continue;
+                // if (registrationCampers.FirstOrDefault(rc => rc.camperId == camper.camperId)?.status != RegistrationCamperStatus.Confirmed.ToString()) continue;
 
-                // find exactly dob by DateOnly
+                if (camper.dob == null)
+                {
+                    unassignedCamperIds.Add(camper.camperId);
+                    continue; // no dob -> no assign
+                }
+
+                // calculate age
                 int age = today.Year - camper.dob.Value.Year;
                 if (today < camper.dob.Value.AddYears(age))
                 {
                     age--;
                 }
 
-                // find suitable group
-                // get age between minAge maxAge
-                // available group -> maxSize == 0 is unlimited or count < maxSize
+                // find suitable group based on Age and Capacity (maxSize)
                 var suitableGroup = availableGroups
                     .FirstOrDefault(g =>
                         age >= g.minAge &&
@@ -341,18 +372,31 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         camperId = camper.camperId,
                         groupId = suitableGroup.groupId,
-                        status = CamperGroupStatus.Active.ToString() 
+                        status = CamperGroupStatus.Active.ToString()
                     };
 
                     newCamperGroups.Add(mapping);
 
                     /*
-                    logic "First Come First Served"
-                    if group a maxSize = 10 and current has 9
-                    camper a make payment successfully -> add into db -> add to group a memory list (list ảo)
-                    camper b make payment successfully -> group a already 10/10 -> skip
-                     */
+                      logic "First Come First Served"
+                      if group a maxSize = 10 and current has 9
+                      camper a make payment successfully -> add into db -> add to group a memory list (list ảo)
+                      camper b make payment successfully -> group a already 10/10 -> skip
+                   */
                     suitableGroup.CamperGroups.Add(mapping);
+
+                    // update currentSize
+                    suitableGroup.currentSize = (suitableGroup.currentSize ?? 0) + 1;
+
+                    // Đánh dấu nhóm này cần được cập nhật
+                    if (!groupsToUpdate.Contains(suitableGroup))
+                    {
+                        groupsToUpdate.Add(suitableGroup);
+                    }
+                }
+                else
+                {
+                    unassignedCamperIds.Add(camper.camperId); // no suitable group
                 }
             }
 
@@ -360,6 +404,14 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 await _unitOfWork.CamperGroups.AddRangeAsync(newCamperGroups);
             }
+
+            // update group currentSize
+            foreach (var group in groupsToUpdate)
+            {
+                await _unitOfWork.Groups.UpdateAsync(group);
+            }
+
+            return unassignedCamperIds; // return list camperIds with no group
         }
 
         #endregion
