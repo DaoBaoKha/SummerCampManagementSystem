@@ -43,13 +43,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.Dob >= new DateOnly(2019, 12, 1))
                 throw new ArgumentException("Date of birth must be before 01/12/2019.");
 
-            string defaultAvatar = _config["AppSettings:DefaultAvatarUrl"]
-                             ?? "https://via.placeholder.com/150";
-
             using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             var camper = _mapper.Map<Camper>(dto);
-            camper.avatar = defaultAvatar;
             await _unitOfWork.Campers.CreateAsync(camper);
             await _unitOfWork.CommitAsync(); // cần commit 1 lần để lấy camperId
 
