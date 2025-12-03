@@ -7,6 +7,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<VehicleResponseDto>> GetAllVehicles();
         Task<VehicleResponseDto?> GetVehicleById(int id);
+        Task<IEnumerable<VehicleResponseDto>> GetAvailableVehicles();
         Task<VehicleResponseDto> CreateVehicleAsync(VehicleRequestDto vehicle);
         Task<bool> UpdateVehicleAsync(int id, VehicleRequestDto vehicle);
         Task<bool> DeleteVehicleAsync(int id);
