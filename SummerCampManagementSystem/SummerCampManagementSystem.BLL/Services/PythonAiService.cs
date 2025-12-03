@@ -211,15 +211,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 content.Add(streamContent, "photo", request.Photo.FileName);
 
                 // Use group-specific endpoint if groupId is available (core activities)
-                // Otherwise use legacy endpoint (optional activities)
+                // Otherwise use activity-specific endpoint (optional activities)
                 HttpResponseMessage response;
                 if (request.GroupId.HasValue)
                 {
+                    // Core activity - group-specific recognition
                     response = await _httpClient.PostAsync($"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}", content);
                 }
                 else
                 {
-                    response = await _httpClient.PostAsync($"/api/recognition/recognize/{request.ActivityScheduleId}", content);
+                    // Optional activity - activity-specific recognition
+                    response = await _httpClient.PostAsync($"/api/recognition/recognize-activity/{request.CampId}/{request.ActivityScheduleId}", content);
                 }
                 var responseContent = await response.Content.ReadAsStringAsync();
 
