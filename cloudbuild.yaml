@@ -67,7 +67,7 @@ steps:
 
       # --- SUPABASE ---
       '--set-secrets', 'Supabase__Url=supabase-url:latest',
-      '--set-secrets', 'Supabase__Key=supabase-service-role-key:latest',
+      '--set-secrets', 'Supabase__Key=supabase-key:latest',
 
       # --- DEFAULT AVATAR (AppSetting Section) ---
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
@@ -111,7 +111,7 @@ steps:
       '--set-secrets', 'GeminiApi__ApiBaseUrl=gemini-base-url:latest',
       '--set-secrets', 'GeminiApi__ModelName=gemini-model-name:latest',
       '--set-secrets', 'Supabase__Url=supabase-url:latest',
-      '--set-secrets', 'Supabase__Key=supabase-service-role-key:latest',
+      '--set-secrets', 'Supabase__Key=supabase-key:latest',
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
       '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
     ]
