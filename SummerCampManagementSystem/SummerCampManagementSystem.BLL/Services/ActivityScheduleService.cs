@@ -453,7 +453,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)
         {
-            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
+            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
             ?? throw new KeyNotFoundException("ActivitySchedule not found");
 
             schedule.status = status.ToString();
