@@ -318,13 +318,15 @@ builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
+    .UseIgnoredAssemblyVersionTypeResolver() // Add this to handle version mismatches
     .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
     {
         CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
         SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
         QueuePollInterval = TimeSpan.Zero,
         UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true
+        DisableGlobalLocks = true,
+        PrepareSchemaIfNecessary = true // Ensure schema is created/updated
     }));
 
 // Add Hangfire server
