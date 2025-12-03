@@ -117,6 +117,48 @@ steps:
     ]
     id: 'Deploy Worker Service'
 
+    # DEPLOY ATTENDANCE LOG CREATOR SERVICE 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: [
+      'run', 'deploy', 'attendance-log-creator', 
+      '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:latest',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed',
+      
+      '--max-instances', '1', 
+      '--min-instances', '0',
+      '--allow-unauthenticated', 
+
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
+      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
+      '--set-secrets', 'Jwt__Key=jwt-secret:latest',
+      '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
+      '--set-secrets', 'Jwt__Audience=jwt-audience:latest',
+      '--set-secrets', 'EmailSetting__SmtpServer=email-smtpserver:latest',
+      '--set-secrets', 'EmailSetting__Port=email-port:latest',
+      '--set-secrets', 'EmailSetting__SenderName=email-sendername:latest',
+      '--set-secrets', 'EmailSetting__SenderEmail=email-senderemail:latest',
+      '--set-secrets', 'EmailSetting__Password=email-pass:latest',
+      '--set-secrets', 'PayOS__ClientId=payos-client-id:latest',
+      '--set-secrets', 'PayOS__ApiKey=payos-api-key:latest',
+      '--set-secrets', 'PayOS__ChecksumKey=payos-checksum-key:latest',
+      '--set-secrets', 'PayOS__ReturnUrl=payos-return-url:latest',
+      '--set-secrets', 'PayOS__CancelUrl=payos-cancel-url:latest',
+      '--set-secrets', 'PayOS__MobileReturnUrl=payos-mobile-return-url:latest',
+      '--set-secrets', 'PayOS__MobileCancelUrl=payos-mobile-cancel-url:latest',
+      '--set-secrets', 'ApiBaseUrl=api-base-url:latest',
+      '--set-secrets', 'GeminiApi__ApiKey=gemini-api-key:latest',
+      '--set-secrets', 'GeminiApi__ApiBaseUrl=gemini-base-url:latest',
+      '--set-secrets', 'GeminiApi__ModelName=gemini-model-name:latest',
+      '--set-secrets', 'Supabase__Url=supabase-url:latest',
+      '--set-secrets', 'Supabase__Key=supabase-key:latest',
+      '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
+      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
+    ]
+    id: 'Deploy Attendance Log Creator Service'
+
 images:
   - 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA'
   - 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:latest'

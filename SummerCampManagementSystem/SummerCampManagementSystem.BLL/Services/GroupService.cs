@@ -60,9 +60,9 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Groups.CreateAsync(group);
             await _unitOfWork.CommitAsync();
 
-            var coreSchedules = _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(Group.CampId);
+            var coreSchedules = await _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(Group.CampId);
 
-            foreach (var core in  coreSchedules.Result)
+            foreach (var core in coreSchedules)
             {
                 var groupActivity = new GroupActivity
                 {
