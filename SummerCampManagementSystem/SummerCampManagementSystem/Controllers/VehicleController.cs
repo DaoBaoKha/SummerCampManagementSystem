@@ -22,6 +22,14 @@ namespace SummerCampManagementSystem.API.Controllers
             var vehicles = await _vehicleService.GetAllVehicles();
             return Ok(vehicles);
         }
+
+        [HttpGet("available")]
+        public async Task<IActionResult> GetAvailableVehicles()
+        {
+            var availableVehicles = await _vehicleService.GetAvailableVehicles();
+            return Ok(availableVehicles);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetVehicleById(int id)
         {
