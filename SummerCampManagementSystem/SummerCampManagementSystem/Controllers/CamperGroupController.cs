@@ -15,23 +15,28 @@ namespace SummerCampManagementSystem.API.Controllers
             _camperGroupService = camperGroupService;
         }
 
- 
+        /// <summary>
+        /// Get list of Camper Group based on search criteria
+        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetCamperGroups([FromQuery] CamperGroupSearchDto searchDto)
         {
-            try
-            {
-                var result = await _camperGroupService.GetCamperGroupsAsync(searchDto);
-                return Ok(result);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống", detail = ex.Message });
-            }
+            var result = await _camperGroupService.GetCamperGroupsAsync(searchDto);
+            return Ok(result);
         }
 
         /// <summary>
-        /// Manual Add Camper Into Group
+        /// Get list of campers waiting for manual group assignment
+        /// </summary>
+        [HttpGet("pending-assign")]
+        public async Task<IActionResult> GetPendingAssignCamperGroups([FromQuery] int? campId)
+        {
+            var result = await _camperGroupService.GetPendingAssignCampersAsync(campId);
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Manual Add Camper Into Group. Used for pending assign group state
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> CreateCamperGroup([FromBody] CamperGroupRequestDto requestDto)
@@ -41,26 +46,14 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var result = await _camperGroupService.CreateCamperGroupAsync(requestDto);
-                return CreatedAtAction(nameof(GetCamperGroups), new { camperGroupId = result.camperGroupId }, result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex) 
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi khi tạo phân nhóm", detail = ex.Message });
-            }
+            var result = await _camperGroupService.CreateCamperGroupAsync(requestDto);
+
+            return CreatedAtAction(nameof(GetCamperGroups), new { camperGroupId = result.camperGroupId }, result);
         }
 
-
+        /// <summary>
+        /// Manual Update Group
+        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCamperGroup(int id, [FromBody] CamperGroupRequestDto requestDto)
         {
@@ -69,39 +62,25 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var result = await _camperGroupService.UpdateCamperGroupAsync(id, requestDto);
-                return Ok(result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi khi cập nhật phân nhóm", detail = ex.Message });
-            }
+            var result = await _camperGroupService.UpdateCamperGroupAsync(id, requestDto);
+            return Ok(result);
         }
 
-
+        /// <summary>
+        /// Soft Delete Group
+        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCamperGroup(int id)
         {
-            try
-            {
-                var isDeleted = await _camperGroupService.DeleteCamperGroupAsync(id);
-                if (!isDeleted)
-                {
-                    return NotFound(new { message = "Không tìm thấy thông tin phân nhóm để xóa." });
-                }
+            var isDeleted = await _camperGroupService.DeleteCamperGroupAsync(id);
 
-                return NoContent(); 
-            }
-            catch (Exception ex)
+            // extra in case service not return exception
+            if (!isDeleted)
             {
-                return StatusCode(500, new { message = "Lỗi khi xóa phân nhóm", detail = ex.Message });
+                return NotFound(new { message = "Không tìm thấy thông tin phân nhóm để xóa." });
             }
+
+            return NoContent();
         }
     }
 }
