@@ -22,6 +22,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<ActivitySchedule?> GetOptionalByCoreAsync(int coreActivityId);
         Task<bool> IsCamperofCamp(int campId, int camperId);
         Task<IEnumerable<ActivitySchedule>> GetSchedulesByGroupStaffAsync(int campId, int staffId);
+        Task<IEnumerable<ActivitySchedule>> GetOptionalSchedulesByCamperAsync(int camperId);
         IQueryable<ActivitySchedule> GetQueryableWithBaseIncludes();
     }
 }

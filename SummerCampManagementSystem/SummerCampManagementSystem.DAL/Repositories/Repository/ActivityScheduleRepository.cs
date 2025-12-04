@@ -184,7 +184,24 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
-                .Where(s => s.activity.campId == campId)
+                .Where(s => s.activity.campId == campId && s.coreActivityId == null)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetOptionalSchedulesByCamperAsync(int camperId)
+        {
+            var optionalIds = await _context.CamperActivities
+                .Where(ca => ca.camperId == camperId)
+                .Select(ca => ca.activityScheduleId)
+                .ToListAsync();
+
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
+                .Where(s => optionalIds.Contains(s.activityScheduleId))
                 .ToListAsync();
         }
 

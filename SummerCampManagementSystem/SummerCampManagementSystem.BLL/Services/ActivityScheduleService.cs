@@ -409,31 +409,49 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!isCamperInCamp) 
                 throw new InvalidOperationException("Camper is not enrolled in the camp.");
 
-            var baseQuery = _unitOfWork.ActivitySchedules
-                // use new IQueryable method from repo
-                .GetQueryableWithBaseIncludes()
-                .Where(s => s.activity.campId == campId);
+            var coreSchedules = await _unitOfWork.ActivitySchedules
+                .GetAllWithActivityAndAttendanceAsync(campId, camperId);    
 
-            // use .ProjectTo
-            var schedules = await baseQuery
-                .ProjectTo<ActivityScheduleByCamperResponseDto>(
-                    // use _mapper for ConfigurationProvider
-                    _mapper.ConfigurationProvider,
-                    // inject camperId
-                    new Dictionary<string, object> { { "camperId", camperId } }
-                )
-                .ToListAsync();
+            var optionalSchedules = await _unitOfWork.ActivitySchedules.GetOptionalSchedulesByCamperAsync(camperId);
 
-            // final filter logic
-            var joinedOptionalCoreIds = schedules
-                .Where(s => s.CoreActivityId != null)
-                .Select(s => s.ActivityScheduleId)
+            var all = coreSchedules
+                      .Union(optionalSchedules)
+                      .ToList();
+
+            // Optional override Core
+            var overriddenCoreIds = optionalSchedules
+                .Where(s => s.coreActivityId != null)
+                .Select(s => s.coreActivityId)
                 .ToHashSet();
 
+
+            //var baseQuery = _unitOfWork.ActivitySchedules
+            //    // use new IQueryable method from repo
+            //    .GetQueryableWithBaseIncludes()
+            //    .Where(s => s.activity.campId == campId);
+
+            //// use .ProjectTo
+            //var schedules = await baseQuery
+            //    .ProjectTo<ActivityScheduleByCamperResponseDto>(
+            //        // use _mapper for ConfigurationProvider
+            //        _mapper.ConfigurationProvider,
+            //        // inject camperId
+            //        new Dictionary<string, object> { { "camperId", camperId } }
+            //    )
+            //    .ToListAsync();
+
+            // final filter logic
+            //var joinedOptionalCoreIds = schedules
+            //    .Where(s => s.coreActivityId != null)
+            //    .Select(s => s.activityScheduleId)
+            //    .ToHashSet();
+            var filteredSchedules = all
+               .Where(s => !overriddenCoreIds.Contains(s.activityScheduleId));
+
             // return filter result
-            return schedules
-                .Where(s => !joinedOptionalCoreIds.Contains(s.ActivityScheduleId))
-                .ToList();
+            return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
+
+
         }
 
 
