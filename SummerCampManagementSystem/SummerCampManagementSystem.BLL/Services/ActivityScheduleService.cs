@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.Exceptions;
@@ -395,21 +397,33 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!isCamperInCamp) 
                 throw new InvalidOperationException("Camper is not enrolled in the camp.");
 
-            var schedules = await _unitOfWork.ActivitySchedules
-                .GetAllWithActivityAndAttendanceAsync(campId, camperId);
+            var baseQuery = _unitOfWork.ActivitySchedules
+                // use new IQueryable method from repo
+                .GetQueryableWithBaseIncludes()
+                .Where(s => s.activity.campId == campId);
 
+            // use .ProjectTo
+            var schedules = await baseQuery
+                .ProjectTo<ActivityScheduleByCamperResponseDto>(
+                    // use _mapper for ConfigurationProvider
+                    _mapper.ConfigurationProvider,
+                    // inject camperId
+                    new Dictionary<string, object> { { "camperId", camperId } }
+                )
+                .ToListAsync();
+
+            // final filter logic
             var joinedOptionalCoreIds = schedules
-                .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
-                .Select(s => s.activityScheduleId)        // lấy giá trị int
+                .Where(s => s.CoreActivityId != null)
+                .Select(s => s.ActivityScheduleId)
                 .ToHashSet();
 
-
-            var filteredSchedules = schedules
-                .Where(s => !joinedOptionalCoreIds.Contains(s.activityScheduleId))
+            // return filter result
+            return schedules
+                .Where(s => !joinedOptionalCoreIds.Contains(s.ActivityScheduleId))
                 .ToList();
-
-            return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
         }
+
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetOptionalSchedulesByCampAsync(int campId)
         {
