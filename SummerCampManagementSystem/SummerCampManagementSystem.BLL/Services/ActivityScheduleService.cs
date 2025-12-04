@@ -381,6 +381,18 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
 
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetSchedulesByGroupStaffAsync(campId, staffId);
+
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+        }
+
         public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
