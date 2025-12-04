@@ -58,6 +58,28 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff, Manager")]
+        [HttpGet("camps/{campId}/group-staff-activities")]
+        public async Task<IActionResult> GetSchedulesByGroupStaffAsync(int campId)
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId();
+                var result = await _activityScheduleService.GetSchedulesByGroupStaffAsync(campId, staffId.Value);
+                return Ok(result);
+            }
+
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
 
         [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/group")]

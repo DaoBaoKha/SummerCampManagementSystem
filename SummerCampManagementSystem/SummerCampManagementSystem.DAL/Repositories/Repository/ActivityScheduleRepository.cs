@@ -162,6 +162,20 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(a => a.activity)
+                .Include(a => a.staff)
+                .Include(s => s.livestream)
+                .Include(a => a.GroupActivities)
+                    .ThenInclude(ga => ga.group)
+                .Where(a => a.activity.campId == campId
+                             && a.GroupActivities.Any(ga => ga.group.supervisorId == staffId))
+                 .ToListAsync();
+        }
+
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
         {
             return await _context.ActivitySchedules
