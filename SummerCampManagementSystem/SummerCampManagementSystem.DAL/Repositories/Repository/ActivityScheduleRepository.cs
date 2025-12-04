@@ -23,6 +23,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public IQueryable<ActivitySchedule> GetQueryableWithBaseIncludes()
+        {
+            return _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                .AsNoTracking(); // Tối ưu hóa bộ nhớ cho các truy vấn chỉ đọc
+        }
+
 
         public async Task<ActivitySchedule?> GetScheduleById(int id)
         {

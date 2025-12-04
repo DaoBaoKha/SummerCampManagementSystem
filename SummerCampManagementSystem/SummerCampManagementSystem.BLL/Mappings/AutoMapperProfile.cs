@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.AccommodationType;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
@@ -34,6 +35,7 @@ using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto;
 
@@ -259,11 +261,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
-            
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.CoreActivityId, opt => opt.MapFrom(src => src.coreActivityId)); // add coreActivityId
+
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
-                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>();
-            
+                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.AttendanceLogs, opt => opt.MapFrom(src => src.AttendanceLogs)); // add attendanceLog
+
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
@@ -356,6 +360,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<AttendanceLogRequestDto, AttendanceLog>()
                 .ForMember(dest => dest.checkInMethod, opt => opt.MapFrom(_ => "Manual"));
 
+            CreateMap<AttendanceLog, AttendanceLogNewResponseDto>();
+
             // Album mappings
             CreateMap<AlbumRequestDto, Album>()
                 .ForMember(dest => dest.campId, opt => opt.MapFrom(src => src.CampId));
@@ -380,6 +386,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<TransportScheduleRequestDto, TransportSchedule>();
 
             CreateMap<TransportSchedule, TransportScheduleResponseDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp != null ? src.camp : null))
+
                 .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.route != null ? src.route : null))
 
                 .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src => src.driver != null ? src.driver : null))
