@@ -59,7 +59,7 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)
         {
             // check if any search criteria is provided
-            if (searchDto.RouteId.HasValue || searchDto.DriverId.HasValue || searchDto.VehicleId.HasValue ||
+            if (searchDto.CampId.HasValue || searchDto.RouteId.HasValue || searchDto.DriverId.HasValue || searchDto.VehicleId.HasValue ||
                searchDto.Date.HasValue || searchDto.StartDate.HasValue || searchDto.EndDate.HasValue ||
                !string.IsNullOrEmpty(searchDto.Status))
             {

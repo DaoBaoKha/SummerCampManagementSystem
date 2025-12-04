@@ -81,10 +81,17 @@ namespace SummerCampManagementSystem.BLL.HostedServices
                         if (registrationEndDate > now)
                         {
                             var folderJobId = AttendanceFolderCreationJob.ScheduleForCamp(camp.campId, registrationEndDate);
-                            _logger.LogInformation(
-                                "Scheduled AttendanceFolderCreationJob for Camp {CampId} at {RegistrationEndDate}. JobId: {JobId}",
-                                camp.campId, registrationEndDate, folderJobId);
-                            attendanceFolderJobsScheduled++;
+                            if (folderJobId != null)
+                            {
+                                _logger.LogInformation(
+                                    "Scheduled AttendanceFolderCreationJob for Camp {CampId} at {RegistrationEndDate}. JobId: {JobId}",
+                                    camp.campId, registrationEndDate, folderJobId);
+                                attendanceFolderJobsScheduled++;
+                            }
+                            else
+                            {
+                                _logger.LogDebug("AttendanceFolderCreationJob already exists for Camp {CampId}, skipping", camp.campId);
+                            }
                         }
 
                         // 2. Schedule preload job (if camp hasn't started yet)
@@ -92,10 +99,17 @@ namespace SummerCampManagementSystem.BLL.HostedServices
                         if (preloadTime > now)
                         {
                             var preloadJobId = PreloadCampFaceDbJob.ScheduleForCamp(camp.campId, startDate, _preloadBufferMinutes);
-                            _logger.LogInformation(
-                                "Scheduled PreloadCampFaceDbJob for Camp {CampId} at {PreloadTime}. JobId: {JobId}",
-                                camp.campId, preloadTime, preloadJobId);
-                            preloadJobsScheduled++;
+                            if (preloadJobId != null)
+                            {
+                                _logger.LogInformation(
+                                    "Scheduled PreloadCampFaceDbJob for Camp {CampId} at {PreloadTime}. JobId: {JobId}",
+                                    camp.campId, preloadTime, preloadJobId);
+                                preloadJobsScheduled++;
+                            }
+                            else
+                            {
+                                _logger.LogDebug("PreloadCampFaceDbJob already exists for Camp {CampId}, skipping", camp.campId);
+                            }
                         }
                         else if (startDate > now && endDate > now)
                         {
@@ -111,10 +125,17 @@ namespace SummerCampManagementSystem.BLL.HostedServices
                         if (endDate > now)
                         {
                             var cleanupJobId = CleanupCampFaceDbJob.ScheduleForCamp(camp.campId, endDate);
-                            _logger.LogInformation(
-                                "Scheduled CleanupCampFaceDbJob for Camp {CampId} at {CleanupTime}. JobId: {JobId}",
-                                camp.campId, endDate.Date.AddDays(1), cleanupJobId);
-                            cleanupJobsScheduled++;
+                            if (cleanupJobId != null)
+                            {
+                                _logger.LogInformation(
+                                    "Scheduled CleanupCampFaceDbJob for Camp {CampId} at {CleanupTime}. JobId: {JobId}",
+                                    camp.campId, endDate.Date.AddDays(1), cleanupJobId);
+                                cleanupJobsScheduled++;
+                            }
+                            else
+                            {
+                                _logger.LogDebug("CleanupCampFaceDbJob already exists for Camp {CampId}, skipping", camp.campId);
+                            }
                         }
                         else
                         {

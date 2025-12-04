@@ -358,6 +358,21 @@ namespace SummerCampManagementSystem.API.Controllers
                     result.RecognizedCampers.Count,
                     request.ActivityScheduleId);
 
+                // ✅ OPTIMIZATION: Batch query - fetch ALL attendance logs in ONE database call
+                var camperIds = result.RecognizedCampers
+                    .Where(rc => rc.CamperId > 0)
+                    .Select(rc => rc.CamperId)
+                    .ToList();
+
+                var existingLogs = await _unitOfWork.AttendanceLogs
+                    .GetQueryable()
+                    .Where(al => camperIds.Contains(al.camperId)
+                              && al.activityScheduleId == request.ActivityScheduleId)
+                    .ToDictionaryAsync(al => al.camperId);
+
+                var currentTime = DateTime.UtcNow;
+
+                // ✅ OPTIMIZATION: Prepare batch updates in memory
                 foreach (var recognizedCamper in result.RecognizedCampers)
                 {
                     if (recognizedCamper.CamperId <= 0)
@@ -366,19 +381,12 @@ namespace SummerCampManagementSystem.API.Controllers
                         continue;
                     }
 
-                    // Find pre-existing AttendanceLog with status='Pending'
-                    var existingLog = await _unitOfWork.AttendanceLogs
-                        .GetQueryable()
-                        .Where(al => al.camperId == recognizedCamper.CamperId
-                                  && al.activityScheduleId == request.ActivityScheduleId
-                                  )
-                        .FirstOrDefaultAsync();
-
-                    if (existingLog != null)
+                    // O(1) dictionary lookup instead of database query
+                    if (existingLogs.TryGetValue(recognizedCamper.CamperId, out var existingLog))
                     {
-                        // UPDATE existing log
+                        // UPDATE existing log in memory
                         existingLog.participantStatus = "Present";
-                        existingLog.timestamp = DateTime.UtcNow;
+                        existingLog.timestamp = currentTime;
                         existingLog.checkInMethod = "FaceRecognition";
                         existingLog.eventType = "CheckIn";
                         existingLog.staffId = staffId;
@@ -386,9 +394,6 @@ namespace SummerCampManagementSystem.API.Controllers
 
                         await _unitOfWork.AttendanceLogs.UpdateAsync(existingLog);
                         updatedCount++;
-
-                        _logger.LogInformation("✅ Updated AttendanceLog for Camper {CamperId} (Confidence: {Confidence:P2})",
-                            recognizedCamper.CamperId, recognizedCamper.Confidence);
                     }
                     else
                     {
@@ -406,8 +411,9 @@ namespace SummerCampManagementSystem.API.Controllers
                     activitySchedule.status = "AttendanceChecked";
                     await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
 
+                    // ✅ OPTIMIZATION: Single transaction commit for all updates
                     await _unitOfWork.CommitAsync();
-                    _logger.LogInformation("✅ Successfully updated {UpdatedCount} attendance logs (NotFound: {NotFoundCount})",
+                    _logger.LogInformation("✅ Batch updated {UpdatedCount} attendance logs in single transaction (NotFound: {NotFoundCount})",
                         updatedCount, notFoundCount);
                 }
                 else

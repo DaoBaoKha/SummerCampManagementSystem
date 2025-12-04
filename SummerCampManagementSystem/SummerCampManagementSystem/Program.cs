@@ -354,12 +354,26 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
-
-
-app.UseHangfireDashboard("/hangfire");
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Configure Hangfire Dashboard with authorization
+var dashboardEnabled = app.Configuration.GetValue<bool>("Hangfire:DashboardEnabled", true);
+if (dashboardEnabled)
+{
+    var dashboardOptions = new DashboardOptions
+    {
+        Authorization = new[]
+        {
+            new HangfireAuthorizationFilter(
+                app.Services.GetRequiredService<ILogger<HangfireAuthorizationFilter>>(),
+                app.Configuration
+            )
+        },
+        DashboardTitle = "CampEase Background Jobs"
+    };
+    app.UseHangfireDashboard("/hangfire", dashboardOptions);
+}
 
 app.UseMiddleware<ExceptionMiddleware>();
 

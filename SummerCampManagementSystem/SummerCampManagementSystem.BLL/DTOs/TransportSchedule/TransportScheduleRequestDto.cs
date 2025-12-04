@@ -7,6 +7,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
 {
     public class TransportScheduleRequestDto
     {
+        [Required(ErrorMessage = "Camp ID is required.")]
+        public int CampId { get; set; }
+
         [Required(ErrorMessage = "Route ID is required.")]
         public int RouteId { get; set; }
 
@@ -32,6 +35,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
 
     public class TransportScheduleSearchDto
     {
+        public int? CampId { get; set; }
         public int? VehicleId { get; set; }
         public int? DriverId { get; set; }
         public int? RouteId { get; set; }
