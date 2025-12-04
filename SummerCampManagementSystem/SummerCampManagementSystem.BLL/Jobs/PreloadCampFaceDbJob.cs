@@ -67,9 +67,15 @@ namespace SummerCampManagementSystem.BLL.Jobs
         /// <param name="campId">The camp ID</param>
         /// <param name="startDate">The camp start date/time</param>
         /// <param name="bufferMinutes">Minutes before start time to trigger preload (default: 10)</param>
-        /// <returns>The Hangfire job ID</returns>
-        public static string ScheduleForCamp(int campId, DateTime startDate, int bufferMinutes = 10)
+        /// <returns>The Hangfire job ID or null if job already exists</returns>
+        public static string? ScheduleForCamp(int campId, DateTime startDate, int bufferMinutes = 10)
         {
+            // Check if job already exists for this camp
+            if (IsJobScheduledForCamp(campId))
+            {
+                return null; // Job already exists
+            }
+
             var preloadTime = startDate.AddMinutes(-bufferMinutes);
 
             // If preload time is in the past, schedule immediately
@@ -83,6 +89,16 @@ namespace SummerCampManagementSystem.BLL.Jobs
                 preloadTime);
 
             return jobId;
+        }
+
+        private static bool IsJobScheduledForCamp(int campId)
+        {
+            var monitoringApi = JobStorage.Current.GetMonitoringApi();
+            var scheduledJobs = monitoringApi.ScheduledJobs(0, int.MaxValue);
+
+            return scheduledJobs.Any(j =>
+                j.Value?.Job?.Type == typeof(PreloadCampFaceDbJob) &&
+                j.Value?.Job?.Args?.Any(a => a?.ToString() == campId.ToString()) == true);
         }
 
         /// <summary>
