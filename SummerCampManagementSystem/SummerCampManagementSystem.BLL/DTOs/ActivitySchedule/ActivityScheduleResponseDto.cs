@@ -14,8 +14,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
     public class ActivityScheduleResponseDto
     {
         public int ActivityScheduleId { get; set; }
+        public int? CoreActivityId { get; set; } // ADD FOR FILTER LOGIC
         public ActivitySummaryDto Activity { get; set; }
-        public SupervisorDto Staff { get; set; }
+        public SupervisorDto Staff { get; set; }    
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public string Status { get; set; }
