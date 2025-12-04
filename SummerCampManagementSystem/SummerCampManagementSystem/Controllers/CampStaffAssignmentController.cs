@@ -68,7 +68,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(assignments); 
         }
 
-
+        [Authorize(Roles = "Admin, Manager, Staff")]
         [HttpGet("staff/{staffId}")]
         public async Task<IActionResult> GetAssignmentsByStaff(int staffId)
         {

@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -53,6 +54,12 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Vehicles.UpdateAsync(existingVehicle);
             await _unitOfWork.CommitAsync();
             return true;
+        }
+
+        public async Task<IEnumerable<VehicleResponseDto>> GetAvailableVehicles()
+        {
+            var availableVehicles = await _unitOfWork.Vehicles.GetAvailableVehicles();
+            return _mapper.Map<IEnumerable<VehicleResponseDto>>(availableVehicles);
         }
     }
 }

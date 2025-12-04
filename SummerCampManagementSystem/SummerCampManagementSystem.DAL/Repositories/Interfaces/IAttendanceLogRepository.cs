@@ -11,7 +11,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         Task<bool> IsCoreScheduleOfCamper(int activityScheduleId, int camperGroupId);
         Task<bool> IsOptionalScheduleOfCamper(int activityScheduleId, int camperId);
-        Task<List<AttendanceLog>> GetAttendanceLogsByScheduleId(int activityScheduleId);
+        Task<IEnumerable<AttendanceLog>> GetAttendanceLogsByScheduleId(int activityScheduleId);
+        Task<IEnumerable<ActivitySchedule>> GetAttendedActivitiesByCamperId(int camperId);
+        Task<IEnumerable<Camper>> GetAttendedCampersByActivityScheduleId(int activityScheduleId);
 
     }
 }

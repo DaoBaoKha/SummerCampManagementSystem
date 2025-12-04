@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
+using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -11,5 +12,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<CamperGroupResponseDto> UpdateCamperGroupAsync(int id, CamperGroupRequestDto requestDto);
 
         Task<bool> DeleteCamperGroupAsync(int id);
+
+        Task<IEnumerable<RegistrationCamperResponseDto>> GetPendingAssignCampersAsync(int? campId);
+
     }
 }

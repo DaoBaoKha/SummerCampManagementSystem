@@ -108,6 +108,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
         [HttpGet("coreActivities/{coreActivityId}/campers")]
         public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
         {

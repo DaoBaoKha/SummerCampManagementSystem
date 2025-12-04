@@ -134,7 +134,20 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
+        }
 
+        [HttpGet("campers/{camperId}/attended-activities")]
+        public async Task<IActionResult> GetAttendedActivitiesByCamperId (int camperId)
+        {
+            var attendedActivities = await _attendanceLogService.GetAttendedActivitiesByCamperId(camperId);
+            return Ok(attendedActivities);
+        }
+
+        [HttpGet("activitySchedules/{activityScheduleId}/attended-campers")]
+        public async Task<IActionResult> GetAttendedCampersByActivityScheduleId (int activityScheduleId)
+        {
+            var attendedCampers = await _attendanceLogService.GetAttendedCampersByActivityScheduleId(activityScheduleId);
+            return Ok(attendedCampers);
         }
     }
 }
