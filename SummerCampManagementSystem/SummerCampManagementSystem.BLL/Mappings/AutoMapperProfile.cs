@@ -380,6 +380,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<TransportScheduleRequestDto, TransportSchedule>();
 
             CreateMap<TransportSchedule, TransportScheduleResponseDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp != null ? src.camp : null))
+
                 .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.route != null ? src.route : null))
 
                 .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src => src.driver != null ? src.driver : null))
