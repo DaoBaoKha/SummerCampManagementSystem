@@ -259,11 +259,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
-            
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.CoreActivityId, opt => opt.MapFrom(src => src.coreActivityId)); // add coreActivityId
+
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
-                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>();
-            
+                .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>()
+                .ForMember(dest => dest.AttendanceLogs, opt => opt.MapFrom(src => src.AttendanceLogs)); // add attendanceLog
+
             CreateMap<ActivityScheduleCreateDto, ActivitySchedule>()
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
