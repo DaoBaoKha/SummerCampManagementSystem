@@ -5,6 +5,10 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
+using System.Diagnostics;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -15,8 +19,15 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<PythonAiService> _logger;
+        private readonly IConfiguration _configuration;
         private readonly string _baseUrl;
         private readonly int _timeoutSeconds;
+
+        // JWT Configuration for Python API authentication
+        private readonly string _jwtSecretKey;
+        private readonly string _jwtIssuer;
+        private readonly string _jwtAudience;
+        private readonly int _jwtExpirationMinutes;
 
         public PythonAiService(
             IHttpClientFactory httpClientFactory,
@@ -25,12 +36,74 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             _httpClient = httpClientFactory.CreateClient();
             _logger = logger;
+            _configuration = configuration;
 
             _baseUrl = configuration["AIServiceSettings:BaseUrl"] ?? "http://localhost:5000";
             _timeoutSeconds = int.TryParse(configuration["AIServiceSettings:Timeout"], out var timeout) ? timeout : 30;
 
+            // Load JWT settings for Python API authentication
+            _jwtSecretKey = configuration["PythonJWT:SecretKey"]
+                ?? throw new InvalidOperationException("PythonJWT:SecretKey is not configured in appsettings.json");
+            _jwtIssuer = configuration["PythonJWT:Issuer"] ?? "SummerCampBackend";
+            _jwtAudience = configuration["PythonJWT:Audience"] ?? "face-recognition-api";
+            _jwtExpirationMinutes = int.TryParse(configuration["PythonJWT:ExpirationMinutes"], out var expiration) ? expiration : 60;
+
             _httpClient.BaseAddress = new Uri(_baseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
+
+            _logger.LogInformation("PythonAiService initialized with JWT authentication (Issuer: {Issuer}, Audience: {Audience})",
+                _jwtIssuer, _jwtAudience);
+        }
+
+        /// <summary>
+        /// Generate JWT token for authenticating with Python API
+        /// </summary>
+        private string GenerateJwtToken()
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecretKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            // Only add custom claims - standard claims (iss, aud, iat, nbf, exp) are handled by JwtSecurityToken constructor
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, "dotnet-backend"),
+                new Claim("service", "SummerCampManagementSystem")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _jwtIssuer,
+                audience: _jwtAudience,
+                claims: claims,
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddMinutes(_jwtExpirationMinutes),
+                signingCredentials: credentials
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+            // Log token details for debugging
+            _logger.LogInformation("Generated JWT token for Python API");
+            _logger.LogInformation("  Secret Key Length: {Length}", _jwtSecretKey.Length);
+            _logger.LogInformation("  Secret Key (FULL): {SecretKey}", _jwtSecretKey);
+            _logger.LogInformation("  Issuer: {Issuer}", _jwtIssuer);
+            _logger.LogInformation("  Audience: {Audience}", _jwtAudience);
+            _logger.LogInformation("  Token (first 100 chars): {TokenPrefix}...", tokenString.Substring(0, Math.Min(100, tokenString.Length)));
+            _logger.LogInformation("  Expires in: {Minutes} minutes", _jwtExpirationMinutes);
+
+            return tokenString;
+        }
+
+        /// <summary>
+        /// Create HTTP request with JWT authentication header
+        /// </summary>
+        private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url)
+        {
+            var request = new HttpRequestMessage(method, url);
+            var jwtToken = GenerateJwtToken();
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+
+            _logger.LogDebug("Created authenticated request to {Url} with JWT token", url);
+            return request;
         }
 
         /// <summary>
@@ -88,9 +161,10 @@ namespace SummerCampManagementSystem.BLL.Services
         /// </summary>
         public async Task<FaceDbResponse> LoadCampFaceDbAsync(int campId, bool forceReload = false)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
-                _logger.LogInformation("Loading face database for Camp {CampId} (ForceReload: {ForceReload})", campId, forceReload);
+                _logger.LogInformation("[TIMING] Loading face database for Camp {CampId} (ForceReload: {ForceReload})", campId, forceReload);
 
                 var requestBody = new
                 {
@@ -101,7 +175,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 var jsonContent = JsonSerializer.Serialize(requestBody);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                var response = await _httpClient.PostAsync($"/api/face-db/load/{campId}", httpContent);
+                // Use authenticated request with JWT token
+                var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/face-db/load/{campId}");
+                request.Content = httpContent;
+
+                var response = await _httpClient.SendAsync(request);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -113,7 +191,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     if (result != null)
                     {
-                        _logger.LogInformation("Successfully loaded {FaceCount} faces for Camp {CampId}", result.FaceCount, campId);
+                        stopwatch.Stop();
+                        _logger.LogInformation("[TIMING] Successfully loaded {FaceCount} faces for Camp {CampId} in {ElapsedMs}ms ({ElapsedSeconds}s)",
+                            result.FaceCount, campId, stopwatch.ElapsedMilliseconds, stopwatch.Elapsed.TotalSeconds);
                         return result;
                     }
                 }
@@ -151,7 +231,9 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogInformation("Unloading face database for Camp {CampId}", campId);
 
-                var response = await _httpClient.DeleteAsync($"/api/face-db/unload/{campId}");
+                // Use authenticated request with JWT token
+                var request = CreateAuthenticatedRequest(HttpMethod.Delete, $"/api/face-db/unload/{campId}");
+                var response = await _httpClient.SendAsync(request);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -197,9 +279,10 @@ namespace SummerCampManagementSystem.BLL.Services
         /// </summary>
         public async Task<RecognitionResponse> RecognizeAsync(RecognizeFaceRequest request)
         {
+            var stopwatch = Stopwatch.StartNew();
             try
             {
-                _logger.LogInformation("Recognizing faces for ActivitySchedule {ActivityScheduleId}, CampId: {CampId}, GroupId: {GroupId}",
+                _logger.LogInformation("[TIMING] Recognizing faces for ActivitySchedule {ActivityScheduleId}, CampId: {CampId}, GroupId: {GroupId}",
                     request.ActivityScheduleId, request.CampId, request.GroupId);
 
                 using var content = new MultipartFormDataContent();
@@ -215,13 +298,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 HttpResponseMessage response;
                 if (request.GroupId.HasValue)
                 {
-                    // Core activity - group-specific recognition
-                    response = await _httpClient.PostAsync($"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}", content);
+                    // Core activity - group-specific recognition with JWT authentication
+                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}");
+                    httpRequest.Content = content;
+                    response = await _httpClient.SendAsync(httpRequest);
                 }
                 else
                 {
-                    // Optional activity - activity-specific recognition
-                    response = await _httpClient.PostAsync($"/api/recognition/recognize-activity/{request.CampId}/{request.ActivityScheduleId}", content);
+                    // Optional activity - activity-specific recognition with JWT authentication
+                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-activity/{request.CampId}/{request.ActivityScheduleId}");
+                    httpRequest.Content = content;
+                    response = await _httpClient.SendAsync(httpRequest);
                 }
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -234,8 +321,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     if (result != null)
                     {
-                        _logger.LogInformation("Successfully recognized {MatchedFaces}/{TotalFaces} faces for ActivitySchedule {ActivityScheduleId}",
-                            result.MatchedFaces, result.TotalFacesDetected, request.ActivityScheduleId);
+                        stopwatch.Stop();
+                        _logger.LogInformation("[TIMING] Successfully recognized {MatchedFaces}/{TotalFaces} faces for ActivitySchedule {ActivityScheduleId} in {ElapsedMs}ms ({ElapsedSeconds}s)",
+                            result.MatchedFaces, result.TotalFacesDetected, request.ActivityScheduleId, stopwatch.ElapsedMilliseconds, stopwatch.Elapsed.TotalSeconds);
                         return result;
                     }
                 }
@@ -273,7 +361,9 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogInformation("Getting loaded camps statistics from Python AI service");
 
-                var response = await _httpClient.GetAsync("/api/face-db/stats");
+                // Use authenticated request with JWT token
+                var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/face-db/stats");
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
