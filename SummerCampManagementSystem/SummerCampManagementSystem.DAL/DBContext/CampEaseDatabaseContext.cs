@@ -614,6 +614,8 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.transportScheduleId).HasName("PK__TransportSchedule");
 
+            entity.HasOne(d => d.camp).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Camp");
+
             entity.HasOne(d => d.driver).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Driver");
 
             entity.HasOne(d => d.route).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Route");

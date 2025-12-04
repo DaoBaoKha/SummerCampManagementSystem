@@ -101,6 +101,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 searchDto = new TransportScheduleSearchDto();
             }
 
+            if (searchDto.CampId.HasValue && searchDto.CampId.Value > 0)
+            {
+                query = query.Where(t => t.campId == searchDto.CampId.Value);
+            }
+
             if (searchDto.VehicleId.HasValue && searchDto.VehicleId.Value > 0)
             {
                 query = query.Where(t => t.vehicleId == searchDto.VehicleId.Value);
@@ -156,16 +161,17 @@ namespace SummerCampManagementSystem.BLL.Services
             checkScheduleDate(requestDto.Date);
 
             // validation fk
-            if (existingSchedule.routeId != requestDto.RouteId || existingSchedule.driverId != requestDto.DriverId || existingSchedule.vehicleId != requestDto.VehicleId)
+            if (existingSchedule.routeId != requestDto.RouteId || existingSchedule.driverId != requestDto.DriverId 
+                || existingSchedule.vehicleId != requestDto.VehicleId || existingSchedule.campId != requestDto.CampId)
             {
                 await CheckForeignKeyExistence(requestDto);
             }
 
-            // only update when status before InProgress or Completed
+            // only update when status before InProgress
             if (existingSchedule.status == TransportScheduleStatus.InProgress.ToString() || existingSchedule.status == TransportScheduleStatus.Completed.ToString()
-                || existingSchedule.status == TransportScheduleStatus.NotYet.ToString() || existingSchedule.status == TransportScheduleStatus.Canceled.ToString())
+                || existingSchedule.status == TransportScheduleStatus.Canceled.ToString())
             {
-                throw new BusinessRuleException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình đang ở trạng thái Draft hoặc Rejected.");
+                throw new BusinessRuleException($"Không thể chỉnh sửa dữ liệu lịch trình khi trạng thái là {existingSchedule.status}. Chỉ có thể chỉnh sửa khi lịch trình đang ở trạng thái Draft, NotYet và Rejected.");
             }
 
             requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
@@ -310,6 +316,7 @@ namespace SummerCampManagementSystem.BLL.Services
         private IQueryable<TransportSchedule> GetSchedulesWithIncludes()
         {
             return _unitOfWork.TransportSchedules.GetQueryable()
+                .Include(s => s.camp)
                 .Include(s => s.route)
                 .Include(s => s.vehicle)
                 .Include(s => s.driver).ThenInclude(d => d.user);
@@ -400,12 +407,50 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private async Task CheckForeignKeyExistence(TransportScheduleRequestDto requestDto)
         {
+            // validate camp
+            var camp = await _unitOfWork.Camps.GetByIdAsync(requestDto.CampId);
+            if (camp == null)
+                throw new NotFoundException($"Không tìm thấy Camp ID {requestDto.CampId}.");
+
+            // check camp date
+            if (!camp.startDate.HasValue || !camp.endDate.HasValue)
+            {
+                throw new BusinessRuleException($"Camp ID {requestDto.CampId} chưa được thiết lập ngày bắt đầu hoặc ngày kết thúc, không thể tạo lịch trình.");
+            }
+
+            // use .value to get DateTime value
+            var campStartDate = DateOnly.FromDateTime(camp.startDate.Value);
+            var campEndDate = DateOnly.FromDateTime(camp.endDate.Value);
+
+            if (requestDto.TransportType == TransportScheduleType.PickUp.ToString())
+            {
+                // pickUp must be before startDate
+                if (requestDto.Date > campStartDate)
+                {
+                    throw new BusinessRuleException($"Lịch trình 'PickUp' (Đón đi) phải diễn ra trước hoặc vào ngày bắt đầu trại ({campStartDate}). Ngày bạn chọn: {requestDto.Date}");
+                }
+            }
+            else if (requestDto.TransportType == TransportScheduleType.DropOff.ToString())
+            {
+                // dropOff must be after endDate
+                if (requestDto.Date < campEndDate)
+                {
+                    throw new BusinessRuleException($"Lịch trình 'DropOff' (Đưa về) phải diễn ra sau hoặc vào ngày kết thúc trại ({campEndDate}). Ngày bạn chọn: {requestDto.Date}");
+                }
+            }
+
             // check route existence and status
             var route = await _unitOfWork.Routes.GetByIdAsync(requestDto.RouteId);
             if (route == null) throw new NotFoundException($"Không tìm thấy Route ID {requestDto.RouteId}.");
 
             // check if route active
-            if (route.isActive == false) throw new BusinessRuleException($"Route ID {requestDto.RouteId} hiện không hoạt động."); 
+            if (route.isActive == false) throw new BusinessRuleException($"Route ID {requestDto.RouteId} hiện không hoạt động.");
+
+            // check route and camp consistency
+            if (route.campId != requestDto.CampId)
+            {
+                throw new BusinessRuleException($"Tuyến đường (Route) được chọn không thuộc về Trại (Camp) này. Route ID {requestDto.RouteId} thuộc Camp {route.campId}, nhưng bạn đang gán cho Camp {requestDto.CampId}.");
+            }
 
             // check driver existence and status 
             var driver = await _unitOfWork.Drivers.GetByIdAsync(requestDto.DriverId);
