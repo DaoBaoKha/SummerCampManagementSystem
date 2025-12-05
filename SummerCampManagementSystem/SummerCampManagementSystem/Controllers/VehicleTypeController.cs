@@ -52,7 +52,7 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
            }
             var createdType = await _vehicleTypeService.CreateVehicleTypeAsync(type);
-            return CreatedAtAction(nameof(Get), new { id = createdType.vehicleTypeId }, createdType);
+            return CreatedAtAction(nameof(Get), new { id = createdType.VehicleTypeId }, createdType);
         }
 
         // PUT api/<VehicleTypeController>/5

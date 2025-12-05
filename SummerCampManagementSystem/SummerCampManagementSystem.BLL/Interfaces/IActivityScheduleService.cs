@@ -27,5 +27,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<ActivityScheduleResponseDto> UpdateLiveStreamStatus(int activityScheduleId, bool status);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByGroupStaffAsync(int campId, int staffId);
         Task<bool> DeleteActivityScheduleAsync(int activityScheduleId);
+        Task ChangeActivityScheduleStatusAuto();
     }
 }

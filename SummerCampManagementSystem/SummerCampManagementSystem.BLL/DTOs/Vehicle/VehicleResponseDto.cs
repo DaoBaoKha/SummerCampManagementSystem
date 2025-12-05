@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -12,7 +13,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Vehicle
     {
         public int vehicleId { get; set; }
 
-        public int? vehicleType { get; set; }
+        public VehicleTypeSimpleDto vehicleType { get; set; }
 
         public string? vehicleName { get; set; }
 

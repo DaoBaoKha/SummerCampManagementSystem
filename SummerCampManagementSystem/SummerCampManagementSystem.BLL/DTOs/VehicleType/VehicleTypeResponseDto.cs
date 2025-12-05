@@ -9,12 +9,18 @@ namespace SummerCampManagementSystem.BLL.DTOs.VehicleType
 {
     public class VehicleTypeResponseDto
     {
-        public int vehicleTypeId { get; set; }
+        public int VehicleTypeId { get; set; }
 
-        public string name { get; set; }
+        public string Name { get; set; }
 
-        public string description { get; set; }
+        public string Description { get; set; }
 
-        public bool? isActive { get; set; }
+        public bool? IsActive { get; set; }
+    }
+
+    public class VehicleTypeSimpleDto
+    {
+        public int VehicleTypeId { get; set; }
+        public string Name { get; set; }
     }
 }
