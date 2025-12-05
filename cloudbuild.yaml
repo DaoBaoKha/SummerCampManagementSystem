@@ -26,7 +26,9 @@ steps:
       '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:latest',
       '--region', 'asia-southeast1',
       '--platform', 'managed',
-      '--allow-unauthenticated',
+      '--allow-unauthenticated',  
+
+      '--timeout', '600s',
 
       # --- AUTHENTICATION ---
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
@@ -121,6 +123,8 @@ steps:
       '--min-instances', '0',
       '--allow-unauthenticated',
 
+      '--timeout', '600s',
+
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
       '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
@@ -162,6 +166,8 @@ steps:
       '--max-instances', '1', 
       '--min-instances', '0',
       '--allow-unauthenticated', 
+
+      '--timeout', '600s',
 
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
