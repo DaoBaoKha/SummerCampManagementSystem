@@ -162,10 +162,7 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
             var updated = await _camperService.UpdateCamperAsync(id, dto);
-            if (!updated)
-                return NotFound(new { message = $"Camper with id {id} not found." });
-
-            return NoContent();
+            return Ok(updated);
         }
 
         [HttpDelete("{id}")]

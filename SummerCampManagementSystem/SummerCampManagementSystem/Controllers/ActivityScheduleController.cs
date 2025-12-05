@@ -243,22 +243,29 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpPut("{activityScheduleId}/status")]
         public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)
         {
-           try
-           {
+            try
+            {
                 var updatedActivity = await _service.ChangeStatusActivitySchedule(activityScheduleId, status);
                 return Ok(updatedActivity);
-           }
-           catch (KeyNotFoundException ex)
-           {
+            }
+            catch (KeyNotFoundException ex)
+            {
                 return NotFound(new { message = ex.Message });
-           }
+            }
         }
 
-        [HttpPut("{activityScheduleId}/liveStreamStatus")] 
+        [HttpPut("{activityScheduleId}/liveStreamStatus")]
         public async Task<IActionResult> ChangeLiveStreamStatus(int activityScheduleId, bool isLiveStream)
         {
             var updated = await _service.UpdateLiveStreamStatus(activityScheduleId, isLiveStream);
             return Ok(updated);
+        }
+
+        [HttpDelete("{activityScheduleId}")]
+        public async Task<IActionResult> DeleteActivitySchedule(int activityScheduleId)
+        {
+            var result = await _service.DeleteActivityScheduleAsync(activityScheduleId);
+            return result ? NoContent() : NotFound();
         }
     }
 }

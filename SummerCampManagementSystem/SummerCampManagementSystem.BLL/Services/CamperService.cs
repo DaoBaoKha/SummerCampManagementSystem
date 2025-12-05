@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
@@ -264,12 +265,11 @@ namespace SummerCampManagementSystem.BLL.Services
             return result;
         }
 
-        public async Task<bool> UpdateCamperAsync(int id, CamperUpdateDto dto)
+        public async Task<CamperResponseDto?> UpdateCamperAsync(int id, CamperUpdateDto dto)
         {
-            var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id);
-
-            if (existingCamper == null) return false;
-
+            var existingCamper = await _unitOfWork.Campers.GetByIdAsync(id)
+                ?? throw new NotFoundException("Camper not found");
+                       
             using var transaction = await _unitOfWork.BeginTransactionAsync();
 
             _mapper.Map(dto, existingCamper);
@@ -299,7 +299,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
 
-            return true;
+            return _mapper.Map<CamperResponseDto>(existingCamper);
         }
 
         public async Task<string> UpdateCamperAvatarAsync(int camperId, IFormFile file)
