@@ -4,5 +4,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface ITransportScheduleRepository : IGenericRepository<TransportSchedule>   
     {
+        IQueryable<TransportSchedule> GetSchedulesWithIncludes();
+        Task<IEnumerable<TransportSchedule>> GetSchedulesByCamperIdAsync(int camperId);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -45,6 +46,28 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetDriverScheduleAsync()
         {
             var response = await _scheduleService.GetDriverSchedulesAsync();
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// get list camper in one transport schedule
+        /// </summary>
+        [HttpGet("{id}/campers")]
+        [Authorize(Roles = "Admin, Manager, Driver")] 
+        public async Task<ActionResult<IEnumerable<CamperInScheduleResponseDto>>> GetCampersInSchedule(int id)
+        {
+            var response = await _scheduleService.GetCampersInScheduleAsync(id);
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// get camper transport schedule
+        /// </summary>
+        [HttpGet("camper/{camperId}")]
+        [Authorize(Roles = "Admin, Manager, Parent")] 
+        public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperId(int camperId)
+        {
+            var response = await _scheduleService.GetSchedulesByCamperIdAsync(camperId);
             return Ok(response);
         }
 

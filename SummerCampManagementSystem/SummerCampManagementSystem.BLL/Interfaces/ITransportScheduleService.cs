@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
+﻿using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
+using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
@@ -14,5 +15,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto); 
         Task<TransportScheduleResponseDto> UpdateActualTimeAsync(int id, TimeOnly? actualStartTime, TimeOnly? actualEndTime);
         Task<TransportScheduleResponseDto> UpdateScheduleStatusAsync(int id, TransportScheduleStatus desiredStatus, string? cancelReason = null);
+        Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperIdAsync(int camperId);
+        Task<IEnumerable<CamperInScheduleResponseDto>> GetCampersInScheduleAsync(int scheduleId);
     }
 }
