@@ -90,6 +90,18 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.Password = builder.Configuration["EmailSetting:Password"] ?? "";
 });
 
+// Override Python AI Service URL based on environment
+if (builder.Environment.IsProduction())
+{
+    // Production: Use Render deployment
+    builder.Configuration["AIServiceSettings:BaseUrl"] = "https://face-recognition-api-e6h6.onrender.com";
+}
+else
+{
+    // Development: Use localhost (can be overridden in appsettings.Development.json)
+    builder.Configuration["AIServiceSettings:BaseUrl"] ??= "http://localhost:5000";
+}
+
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();

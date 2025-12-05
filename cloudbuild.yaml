@@ -27,6 +27,9 @@ steps:
       '--region', 'asia-southeast1',
       '--platform', 'managed',
       '--allow-unauthenticated',
+      
+      # --- ENVIRONMENT ---
+      '--set-env-vars', 'ASPNETCORE_ENVIRONMENT=Production',
 
       # --- AUTHENTICATION ---
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
@@ -87,6 +90,9 @@ steps:
       '--max-instances', '1',
       '--min-instances', '0',
       '--allow-unauthenticated',
+      
+      # --- ENVIRONMENT ---
+      '--set-env-vars', 'ASPNETCORE_ENVIRONMENT=Production',
 
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
