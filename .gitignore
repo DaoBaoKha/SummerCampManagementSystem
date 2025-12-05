@@ -420,8 +420,9 @@ FodyWeavers.xsd
 # === App settings (configuration secrets) ===
 # Ignore all environment-specific appsettings files to prevent exposing secrets
 **/appsettings.json
-**/appsettings.*.json
+**/appsettings.Development.json
 
-# But allow safe template/example configuration files
+# But allow production and template configuration files (secrets are in Google Secret Manager)
+!**/appsettings.Production.json
 !**/appsettings.example.json
 !**/appsettings.template.json
