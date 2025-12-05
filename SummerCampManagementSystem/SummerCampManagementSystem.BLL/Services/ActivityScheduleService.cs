@@ -402,11 +402,11 @@ namespace SummerCampManagementSystem.BLL.Services
             var isCamperInCamp = await _unitOfWork.ActivitySchedules
                 .IsCamperofCamp(campId, camperId);
 
-            if (!isCamperInCamp) 
+            if (!isCamperInCamp)
                 throw new InvalidOperationException("Camper is not enrolled in the camp.");
 
             var coreSchedules = await _unitOfWork.ActivitySchedules
-                .GetAllWithActivityAndAttendanceAsync(campId, camperId);    
+                .GetAllWithActivityAndAttendanceAsync(campId, camperId);
 
             var optionalSchedules = await _unitOfWork.ActivitySchedules.GetOptionalSchedulesByCamperAsync(camperId);
 
@@ -419,7 +419,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(s => s.coreActivityId != null)
                 .Select(s => s.coreActivityId)
                 .ToHashSet();
-                       
+
             var filteredSchedules = all
                .Where(s => !overriddenCoreIds.Contains(s.activityScheduleId));
 
@@ -500,7 +500,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (schedule.startTime <= DateTime.UtcNow)
                 throw new BusinessRuleException("STATUS CANNOT BE UPDATED BECAUSE SCHEDULE IS IN PROGRESS OR HAS EXPIRED");
-                       
+
             if (status)
             {
                 var livestream = new Livestream
@@ -538,6 +538,31 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.ActivitySchedules.RemoveAsync(schedule);
             await _unitOfWork.CommitAsync();
             return true;
+        }
+
+        public async Task ChangeActivityScheduleStatusAuto()
+        {
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllAsync();
+                        
+            foreach (var schedule in schedules)
+            {
+                if (schedule.status == ActivityScheduleStatus.NotYet.ToString() &&
+                    schedule.startTime.HasValue && schedule.startTime.Value <= DateTime.UtcNow)
+                {
+                    schedule.status = ActivityScheduleStatus.PendingAttendance.ToString();
+                    await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                }
+
+                if ((schedule.status == ActivityScheduleStatus.AttendanceChecked.ToString()
+                    || schedule.status == ActivityScheduleStatus.PendingAttendance.ToString())
+                    && schedule.endTime.HasValue && schedule.endTime.Value <= DateTime.UtcNow
+                    )
+                {
+                    schedule.status = ActivityScheduleStatus.Completed.ToString();
+                    await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                }
+            }
+            await _unitOfWork.CommitAsync();
         }
     }
 }

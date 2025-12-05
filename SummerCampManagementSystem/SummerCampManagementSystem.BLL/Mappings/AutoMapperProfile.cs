@@ -337,7 +337,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             //Vehicle mappings
             CreateMap<VehicleRequestDto, Vehicle>();
-            CreateMap<Vehicle, VehicleResponseDto>();
+            CreateMap<Vehicle, VehicleResponseDto>()
+                .ForMember(dest => dest.vehicleType, opt => opt.MapFrom(src => src.vehicleTypeNavigation));
             CreateMap<Vehicle, VehicleNameDto>()
                 .ForMember(dest => dest.vehicleId, opt => opt.MapFrom(src => src.vehicleId))
                 .ForMember(dest => dest.vehicleName, opt => opt.MapFrom(src => src.vehicleName));
@@ -346,7 +347,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<VehicleTypeRequestDto, VehicleType>()
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));
 
-
+            CreateMap<VehicleType, VehicleTypeSimpleDto>();
             CreateMap<VehicleType, VehicleTypeResponseDto>();
 
             // Location mappings

@@ -240,6 +240,20 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("change-status-auto")]
+        public async Task<IActionResult> ChangeActivityScheduleStatusAuto()
+        {
+            try
+            {
+                await _service.ChangeActivityScheduleStatusAuto();
+                return Ok(new {message = "Update Status Successfully !!!"});
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
         [HttpPut("{activityScheduleId}/status")]
         public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)
         {

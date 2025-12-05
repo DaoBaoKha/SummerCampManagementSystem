@@ -37,12 +37,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<VehicleResponseDto>> GetAllVehicles()
         {
-            var vehicles =  await _unitOfWork.Vehicles.GetAllAsync();
+            var vehicles =  await _unitOfWork.Vehicles.GetAllVehiclesWithType();
             return _mapper.Map<IEnumerable<VehicleResponseDto>>(vehicles);
         }
         public async Task<VehicleResponseDto?> GetVehicleById(int id)
         {
-            var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(id);
+            var vehicle = await _unitOfWork.Vehicles.GetVehicleWithTypeById(id);
             return vehicle == null ? null : _mapper.Map<VehicleResponseDto>(vehicle);
         }
 
