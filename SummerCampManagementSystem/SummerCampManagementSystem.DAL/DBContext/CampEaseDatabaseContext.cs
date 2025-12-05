@@ -482,9 +482,7 @@ public partial class CampEaseDatabaseContext : DbContext
 
             entity.HasOne(d => d.chatRoom).WithMany(p => p.Messages).HasConstraintName("FK__Message__chatRoo__5BAD9CC8");
 
-            entity.HasOne(d => d.receiver).WithMany(p => p.Messagereceivers).HasConstraintName("FK__Message__receive__5D95E53A");
-
-            entity.HasOne(d => d.sender).WithMany(p => p.Messagesenders).HasConstraintName("FK__Message__senderI__5CA1C101");
+            entity.HasOne(d => d.sender).WithMany(p => p.Messages).HasConstraintName("FK__Message__senderI__5CA1C101");
         });
 
         modelBuilder.Entity<Notification>(entity =>
