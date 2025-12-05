@@ -71,7 +71,40 @@ steps:
 
       # --- DEFAULT AVATAR (AppSetting Section) ---
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
-      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
+      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest',
+
+      # --- NEW SECRETS: ATTENDANCE JOB SETTINGS ---
+
+      '--set-secrets', 'AttendanceJobSettings__PreDownloadBufferMinutes=attendance-job-predownload-minutes:latest',
+      '--set-secrets', 'AttendanceJobSettings__MonitoringIntervalMinutes=attendance-job-monitoring-minutes:latest',
+      '--set-secrets', 'AttendanceJobSettings__MaxRetryAttempts=attendance-job-max-retry-attempts:latest',
+      '--set-secrets', 'AttendanceJobSettings__RetryDelaySeconds=attendance-job-retry-delay-seconds:latest',
+      '--set-secrets', 'AttendanceJobSettings__CleanupDelayMinutes=attendance-job-cleanup-delay-minutes:latest',
+
+      # --- NEW SECRETS: AI SERVICE SETTINGS ---
+
+      '--set-secrets', 'AIServiceSettings__BaseUrl=ai-service-base-url:latest',
+      '--set-secrets', 'AIServiceSettings__Timeout=ai-service-timeout:latest',
+      '--set-secrets', 'AIServiceSettings__ApiKey=ai-service-api-key:latest',
+      '--set-secrets', 'AIServiceSettings__HealthCheckEndpoint=ai-service-health-check-endpoint:latest',
+
+      # --- NEW SECRETS: FACE RECOGNITION SETTINGS ---
+
+      '--set-secrets', 'FaceRecognitionSettings__ModelName=face-recognition-model-name:latest',
+
+      # --- NEW SECRETS: PYTHON JWT ---
+
+      '--set-secrets', 'PythonJWT__SecretKey=python-jwt-secret-key:latest',
+      '--set-secrets', 'PythonJWT__Issuer=python-jwt-issuer:latest',
+      '--set-secrets', 'PythonJWT__Audience=python-jwt-audience:latest',
+      '--set-secrets', 'PythonJWT__ExpirationMinutes=python-jwt-expiration-minutes:latest',
+
+      # --- NEW SECRETS: HANGFIRE SETTINGS (Bao gồm mảng) ---
+
+      '--set-secrets', 'Hangfire__DashboardEnabled=hangfire-dashboard-enabled:latest',
+      '--set-secrets', 'Hangfire__RequireAuthentication=hangfire-require-auth:latest',
+      '--set-secrets', 'Hangfire__AllowedRoles__0=hangfire-allowed-role-0:latest',
+      '--set-secrets', 'Hangfire__AllowedRoles__1=hangfire-allowed-role-1:latest'
     ]
     id: 'Deploy Main API'
 
