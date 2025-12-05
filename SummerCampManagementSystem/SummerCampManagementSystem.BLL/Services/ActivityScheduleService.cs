@@ -67,10 +67,6 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
-            if (string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Optional activities cannot have a core schedule");
-
-
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
@@ -301,8 +297,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found.");
 
-            if (!string.Equals(activity.activityType, "Core", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only Core activities can be updated through this method.");
+            //if (!string.Equals(activity.activityType, "Core", StringComparison.OrdinalIgnoreCase))
+            //    throw new InvalidOperationException("Only Core activities can be updated through this method.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found.");
@@ -423,35 +419,12 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(s => s.coreActivityId != null)
                 .Select(s => s.coreActivityId)
                 .ToHashSet();
-
-
-            //var baseQuery = _unitOfWork.ActivitySchedules
-            //    // use new IQueryable method from repo
-            //    .GetQueryableWithBaseIncludes()
-            //    .Where(s => s.activity.campId == campId);
-
-            //// use .ProjectTo
-            //var schedules = await baseQuery
-            //    .ProjectTo<ActivityScheduleByCamperResponseDto>(
-            //        // use _mapper for ConfigurationProvider
-            //        _mapper.ConfigurationProvider,
-            //        // inject camperId
-            //        new Dictionary<string, object> { { "camperId", camperId } }
-            //    )
-            //    .ToListAsync();
-
-            // final filter logic
-            //var joinedOptionalCoreIds = schedules
-            //    .Where(s => s.coreActivityId != null)
-            //    .Select(s => s.activityScheduleId)
-            //    .ToHashSet();
+                       
             var filteredSchedules = all
                .Where(s => !overriddenCoreIds.Contains(s.activityScheduleId));
 
             // return filter result
             return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
-
-
         }
 
 
@@ -553,6 +526,18 @@ namespace SummerCampManagementSystem.BLL.Services
             var updateSchedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId);
 
             return _mapper.Map<ActivityScheduleResponseDto>(updateSchedule);
+        }
+
+        public async Task<bool> DeleteActivityScheduleAsync(int activityScheduleId)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+                ?? throw new NotFoundException("Activity schedule not found.");
+            var nowUtc = DateTime.UtcNow;
+            if (schedule.startTime <= nowUtc)
+                throw new BusinessRuleException("Cannot delete an activity schedule that is in progress or has already occurred.");
+            await _unitOfWork.ActivitySchedules.RemoveAsync(schedule);
+            await _unitOfWork.CommitAsync();
+            return true;
         }
     }
 }

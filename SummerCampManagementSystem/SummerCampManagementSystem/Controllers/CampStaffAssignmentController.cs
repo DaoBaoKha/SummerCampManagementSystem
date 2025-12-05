@@ -46,7 +46,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-
+        [Authorize(Roles = "Admin, Manager, Staff")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetAssignmentById(int id)
         {
@@ -60,7 +60,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(assignment);
         }
 
-
+        [Authorize(Roles = "Admin, Manager, Staff")]
         [HttpGet("camp/{campId}")]
         public async Task<IActionResult> GetAssignmentsByCamp(int campId)
         {
@@ -76,6 +76,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(assignments); 
         }
 
+        [Authorize(Roles = "Admin, Manager, Staff")]
         [HttpGet("availableStaff/{campId}")]
         public async Task<IActionResult> GetAvailableStaffByCampId(int campId)
         {
