@@ -32,6 +32,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ICampStaffAssignmentRepository CampStaffAssignments { get; }
         public IChatConversationRepository ChatConversations { get; }
         public IChatMessageRepository ChatMessages { get; }
+        public IChatRoomRepository ChatRooms { get; }
+        public IChatRoomUserRepository ChatRoomUsers { get; }
         public IPromotionRepository Promotions { get; }
         public IPromotionTypeRepository PromotionTypes { get; }
         public IGuardianRepository Guardians { get; }
@@ -51,6 +53,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IDriverRepository Drivers { get; }
         public ILiveStreamRepository LiveStreams { get; }
         public IFeedbackRepository Feedbacks { get; }
+        public IMessageRepository Messages { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
             IVehicleTypeRepository vehicleTypes, ICampRepository campRepository, ICampTypeRepository campTypes
@@ -66,6 +69,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
+            , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
             )
         {
             _context = context;
@@ -89,6 +93,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CamperTransports = camperTransport;
             ChatConversations = chatConversations;
             ChatMessages = chatMessages;
+            ChatRooms = chatRooms;
+            ChatRoomUsers = chatRoomUsers;
             Drivers = drivers;
             Feedbacks = feedbacks;
             Guardians = guardians;
@@ -113,6 +119,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             Vehicles = vehicles;
             VehicleTypes = vehicleTypes;
             Reports = reports;
+            Messages = messages;
         }
 
         public async Task<int> CommitAsync()

@@ -29,6 +29,8 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ICamperRepository Campers { get; }
         IChatConversationRepository ChatConversations { get; }
         IChatMessageRepository ChatMessages { get; }
+        IChatRoomRepository ChatRooms { get; }
+        IChatRoomUserRepository ChatRoomUsers { get; }
         ICampStaffAssignmentRepository CampStaffAssignments { get; }
         IPromotionRepository Promotions { get; }
         IPromotionTypeRepository PromotionTypes { get; }
@@ -50,6 +52,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ILiveStreamRepository LiveStreams { get; }
         IReportRepository Reports { get; }
         IFeedbackRepository Feedbacks { get; }
+        IMessageRepository Messages { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
         CampEaseDatabaseContext GetDbContext();
