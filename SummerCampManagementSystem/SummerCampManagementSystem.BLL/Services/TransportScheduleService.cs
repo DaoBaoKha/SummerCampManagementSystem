@@ -1,11 +1,13 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services
@@ -15,12 +17,14 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
+        private readonly ITransportScheduleRepository _repository;
 
-        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
+        public TransportScheduleService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, ITransportScheduleRepository repository)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContextService = userContextService;
+            _repository = repository;
         }
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
@@ -49,7 +53,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.TransportSchedules.CreateAsync(scheduleEntity);
             await _unitOfWork.CommitAsync();
 
-            var createdSchedule = await GetSchedulesWithIncludes()
+            var createdSchedule = await _repository.GetSchedulesWithIncludes()
                                          .FirstAsync(s => s.transportScheduleId == scheduleEntity.transportScheduleId);
 
             return _mapper.Map<TransportScheduleResponseDto>(createdSchedule);
@@ -57,7 +61,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<TransportScheduleResponseDto> GetScheduleByIdAsync(int id)
         {
-            var schedule = await GetSchedulesWithIncludes()
+            var schedule = await _repository.GetSchedulesWithIncludes()
                                  .FirstOrDefaultAsync(s => s.transportScheduleId == id)
                                  ?? throw new NotFoundException($"Transport Schedule ID {id} not found.");
 
@@ -66,8 +70,26 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<TransportScheduleResponseDto>> GetAllSchedulesAsync()
         {
-            var schedules = await GetSchedulesWithIncludes().ToListAsync();
+            var schedules = await _repository.GetSchedulesWithIncludes().ToListAsync();
             return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperIdAsync(int camperId)
+        {
+            var schedules = await _unitOfWork.TransportSchedules.GetSchedulesByCamperIdAsync(camperId);
+            return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<IEnumerable<CamperInScheduleResponseDto>> GetCampersInScheduleAsync(int scheduleId)
+        {
+            // check ìf schedule exist
+            var scheduleExists = await _unitOfWork.TransportSchedules.GetByIdAsync(scheduleId);
+            if (scheduleExists == null)
+                throw new NotFoundException($"Không tìm thấy Transport Schedule ID {scheduleId}");
+
+            var camperTransports = await _unitOfWork.CamperTransports.GetCamperTransportsByScheduleIdAsync(scheduleId);
+
+            return _mapper.Map<IEnumerable<CamperInScheduleResponseDto>>(camperTransports);
         }
 
         public async Task<IEnumerable<TransportScheduleResponseDto>> GetDriverSchedulesAsync()
@@ -84,7 +106,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 return Enumerable.Empty<TransportScheduleResponseDto>();
             }
 
-            var schedules = await GetSchedulesWithIncludes()
+            var schedules = await _repository.GetSchedulesWithIncludes()
                                 .Where(s => s.driverId == driverEntity.driverId)
                                 .ToListAsync();
 
@@ -93,7 +115,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto)
         {
-            IQueryable<TransportSchedule> query = GetSchedulesWithIncludes();
+            IQueryable<TransportSchedule> query = _repository.GetSchedulesWithIncludes();
 
             // make sure searchDto is not null
             if (searchDto == null)
@@ -199,7 +221,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
 
-            var updatedSchedule = await GetSchedulesWithIncludes()
+            var updatedSchedule = await _repository.GetSchedulesWithIncludes()
                                         .FirstAsync(s => s.transportScheduleId == id);
 
             return _mapper.Map<TransportScheduleResponseDto>(updatedSchedule);
@@ -250,7 +272,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
 
-            return _mapper.Map<TransportScheduleResponseDto>(await GetSchedulesWithIncludes().FirstAsync(s => s.transportScheduleId == id));
+            return _mapper.Map<TransportScheduleResponseDto>(await _repository.GetSchedulesWithIncludes().FirstAsync(s => s.transportScheduleId == id));
         }
 
         public async Task<TransportScheduleResponseDto> UpdateActualTimeAsync(int id, TimeOnly? actualStartTime, TimeOnly? actualEndTime)
@@ -286,7 +308,7 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.TransportSchedules.UpdateAsync(existingSchedule);
             await _unitOfWork.CommitAsync();
 
-            var updatedSchedule = await GetSchedulesWithIncludes().FirstAsync(s => s.transportScheduleId == id);
+            var updatedSchedule = await _repository.GetSchedulesWithIncludes().FirstAsync(s => s.transportScheduleId == id);
 
             return _mapper.Map<TransportScheduleResponseDto>(updatedSchedule);
         }
@@ -312,15 +334,6 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #region Private Methods
-
-        private IQueryable<TransportSchedule> GetSchedulesWithIncludes()
-        {
-            return _unitOfWork.TransportSchedules.GetQueryable()
-                .Include(s => s.camp)
-                .Include(s => s.route)
-                .Include(s => s.vehicle)
-                .Include(s => s.driver).ThenInclude(d => d.user);
-        }
 
         private void checkTimeBounds(TimeOnly startTime, TimeOnly endTime)
         {

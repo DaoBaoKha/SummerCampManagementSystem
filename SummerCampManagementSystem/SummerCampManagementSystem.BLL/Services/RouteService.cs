@@ -32,6 +32,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var newRoute = _mapper.Map<Route>(routeRequestDto); 
 
             newRoute.status = "Active";
+            newRoute.isActive = true;
 
             await _unitOfWork.Routes.CreateAsync(newRoute);
             await _unitOfWork.CommitAsync();

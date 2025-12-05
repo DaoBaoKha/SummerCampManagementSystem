@@ -4,6 +4,7 @@ using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services
@@ -12,11 +13,13 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IRouteStopRepository _routeStopRepository;
 
-        public RouteStopService(IUnitOfWork unitOfWork, IMapper mapper)
+        public RouteStopService(IUnitOfWork unitOfWork, IMapper mapper, IRouteStopRepository routeStopRepository)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _routeStopRepository = routeStopRepository;
         }
 
         #region Public Methods
@@ -94,13 +97,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RouteStopResponseDto>> GetAllRouteStopsAsync()
         {
-            var routeStops = await GetRouteStopsWithIncludes().ToListAsync();
+            var routeStops = await _routeStopRepository.GetRouteStopsWithIncludes().ToListAsync();
             return _mapper.Map<IEnumerable<RouteStopResponseDto>>(routeStops);
         }
 
         public async Task<RouteStopResponseDto> GetRouteStopByIdAsync(int routeStopId)
         {
-            var routeStop = await GetRouteStopsWithIncludes().FirstOrDefaultAsync(r => r.routeStopId == routeStopId)
+            var routeStop = await _routeStopRepository.GetRouteStopsWithIncludes().FirstOrDefaultAsync(r => r.routeStopId == routeStopId)
                 ?? throw new NotFoundException($"Không tìm thấy điểm dừng có ID {routeStopId}.");
 
             return _mapper.Map<RouteStopResponseDto>(routeStop);
@@ -112,7 +115,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (route == null)
                 throw new NotFoundException($"Không tìm thấy tuyến đường có ID {routeId}.");
 
-            var routeStops = await GetRouteStopsWithIncludes()
+            var routeStops = await _routeStopRepository.GetRouteStopsWithIncludes()
                 .Where(rs => rs.routeId == routeId && rs.status == "Active")
                 .OrderBy(rs => rs.stopOrder)
                 .ToListAsync();
@@ -153,14 +156,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new NotFoundException($"Location với ID {dto.locationId} không tồn tại."); 
 
         }
-
-
-        private IQueryable<RouteStop> GetRouteStopsWithIncludes()
-        {
-            return _unitOfWork.RouteStops.GetQueryable()
-                .Include(rs => rs.location)
-                .Include(rs => rs.route);
-        }
 
         #endregion
     }

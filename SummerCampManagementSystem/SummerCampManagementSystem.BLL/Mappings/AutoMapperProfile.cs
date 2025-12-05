@@ -114,6 +114,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.stopLocation))
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
 
+            CreateMap<CamperTransport, CamperInScheduleResponseDto>()
+                .ForMember(dest => dest.Location, opt => opt.MapFrom(src => src.stopLocation))
+                .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
+
             // CamperGroup mapping
             CreateMap<CamperGroup, CamperGroupResponseDto>()
                 .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper)) 
