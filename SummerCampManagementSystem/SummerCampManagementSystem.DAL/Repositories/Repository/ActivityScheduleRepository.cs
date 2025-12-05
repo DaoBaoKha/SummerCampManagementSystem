@@ -16,10 +16,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedule()
         {
             return await _context.ActivitySchedules
+                .Include(s => s.activity)
                 .Include(s => s.location)
                 .Include(s => s.staff)
                 .Include(s => s.livestream)
                 .ToListAsync();
+        }
+
+        public IQueryable<ActivitySchedule> GetQueryableWithBaseIncludes()
+        {
+            return _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                .AsNoTracking(); // Tối ưu hóa bộ nhớ cho các truy vấn chỉ đọc
         }
 
 
@@ -27,6 +38,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.ActivitySchedules
                 .Include(s => s.location)
+                .Include(s => s.activity)
                 .Include(s => s.staff)
                 .Include(s => s.livestream)
                 .FirstOrDefaultAsync(s => s.activityScheduleId == id);
@@ -120,12 +132,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<ActivitySchedule>> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
         {
             return await _context.ActivitySchedules
-                .Include(s => s.staff)
-                .Include(a => a.activity)
-                .Include(a => a.location)
-                .Include(s => s.livestream)
-                .Include(a => a.activity.camp)
                 .Where(a => a.staffId == staffId && a.activity.campId == campId)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.location)
+                .Include(s => s.livestream)
+                .Include(s => s.activity.camp)
                 .ToListAsync();
         }
 
@@ -150,6 +162,20 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(a => a.activity)
+                .Include(a => a.staff)
+                .Include(s => s.livestream)
+                .Include(a => a.GroupActivities)
+                    .ThenInclude(ga => ga.group)
+                .Where(a => a.activity.campId == campId
+                             && a.GroupActivities.Any(ga => ga.group.supervisorId == staffId))
+                 .ToListAsync();
+        }
+
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
         {
             return await _context.ActivitySchedules
@@ -158,7 +184,24 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
-                .Where(s => s.activity.campId == campId)
+                .Where(s => s.activity.campId == campId && s.coreActivityId == null)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetOptionalSchedulesByCamperAsync(int camperId)
+        {
+            var optionalIds = await _context.CamperActivities
+                .Where(ca => ca.camperId == camperId)
+                .Select(ca => ca.activityScheduleId)
+                .ToListAsync();
+
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
+                .Where(s => optionalIds.Contains(s.activityScheduleId))
                 .ToListAsync();
         }
 

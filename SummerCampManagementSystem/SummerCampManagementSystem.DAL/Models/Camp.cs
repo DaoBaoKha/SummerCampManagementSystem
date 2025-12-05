@@ -93,6 +93,9 @@ public partial class Camp
     [InverseProperty("camp")]
     public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
 
+    [InverseProperty("camp")]
+    public virtual ICollection<TransportSchedule> TransportSchedules { get; set; } = new List<TransportSchedule>();
+
     [ForeignKey("campTypeId")]
     [InverseProperty("Camps")]
     public virtual CampType campType { get; set; }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
+using SummerCampManagementSystem.BLL.DTOs.Photo;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
@@ -107,6 +108,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
         [HttpGet("coreActivities/{coreActivityId}/campers")]
         public async Task<IActionResult> GetCampersByCoreActivity(int coreActivityId)
         {
@@ -130,9 +132,9 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [Authorize(Roles = "User")]             
+        [Authorize(Roles = "User, Admin")]
         [HttpPost]
-        public async Task<IActionResult> Create([FromForm] CamperCreateDto dto)
+        public async Task<IActionResult> Create(CamperCreateDto dto)
         {
             if (!ModelState.IsValid)
             {
@@ -174,6 +176,21 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = $"Camper with id {id} not found." });
 
             return NoContent();
+        }
+
+        [HttpPut("{camperId}/avatar")]
+      //  [Authorize(Roles = "User")]
+        public async Task<IActionResult> UploadCamperAvatar(int camperId, IFormFile file)
+        {
+            try
+            {
+                var url = await _camperService.UpdateCamperAvatarAsync(camperId, file);
+                return Ok(new UploadPhotoDto { Url = url });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }

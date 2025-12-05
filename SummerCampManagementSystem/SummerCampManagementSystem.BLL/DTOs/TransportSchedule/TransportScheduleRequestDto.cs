@@ -7,6 +7,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
 {
     public class TransportScheduleRequestDto
     {
+        [Required(ErrorMessage = "Camp ID is required.")]
+        public int CampId { get; set; }
+
         [Required(ErrorMessage = "Route ID is required.")]
         public int RouteId { get; set; }
 
@@ -25,19 +28,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         [Required(ErrorMessage = "End Time is required.")]
         public TimeOnly EndTime { get; set; }
 
-        public TimeOnly? ActualStartTime { get; set; }
-
-        public TimeOnly? ActualEndTime { get; set; }
-
-        public string? CancelReasons { get; set; }
-
         [Required]
         //[RegularExpression("PickUp|DropOff", ErrorMessage = "TransportType must be 'PickUp' or 'DropOff'")]
-        public string? TransportType { get; set; }
+        public string TransportType { get; set; }
     }
 
     public class TransportScheduleSearchDto
     {
+        public int? CampId { get; set; }
         public int? VehicleId { get; set; }
         public int? DriverId { get; set; }
         public int? RouteId { get; set; }

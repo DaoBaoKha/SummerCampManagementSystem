@@ -1,6 +1,9 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -48,9 +51,12 @@ namespace SummerCampManagementSystem.BLL.Services
                 activities = schedules.Select(a => new
                 {
                     a.activityScheduleId,
-                    a.activity.name,
+                    activityName = a.activity.name,
+                    a.activity.activityType,
                     a.startTime,
                     a.endTime,
+                    a.status,
+                    a.isLivestream,
                     location = a.location.name
                 }).ToList()
             };
@@ -377,6 +383,18 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
 
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetSchedulesByGroupStaffAsync(campId, staffId);
+
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+        }
+
         public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
@@ -391,21 +409,51 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!isCamperInCamp) 
                 throw new InvalidOperationException("Camper is not enrolled in the camp.");
 
-            var schedules = await _unitOfWork.ActivitySchedules
-                .GetAllWithActivityAndAttendanceAsync(campId, camperId);
+            var coreSchedules = await _unitOfWork.ActivitySchedules
+                .GetAllWithActivityAndAttendanceAsync(campId, camperId);    
 
-            var joinedOptionalCoreIds = schedules
-                .Where(s => s.coreActivityId != null)       // lọc những cái có coreActivityId
-                .Select(s => s.activityScheduleId)        // lấy giá trị int
+            var optionalSchedules = await _unitOfWork.ActivitySchedules.GetOptionalSchedulesByCamperAsync(camperId);
+
+            var all = coreSchedules
+                      .Union(optionalSchedules)
+                      .ToList();
+
+            // Optional override Core
+            var overriddenCoreIds = optionalSchedules
+                .Where(s => s.coreActivityId != null)
+                .Select(s => s.coreActivityId)
                 .ToHashSet();
 
 
-            var filteredSchedules = schedules
-                .Where(s => !joinedOptionalCoreIds.Contains(s.activityScheduleId))
-                .ToList();
+            //var baseQuery = _unitOfWork.ActivitySchedules
+            //    // use new IQueryable method from repo
+            //    .GetQueryableWithBaseIncludes()
+            //    .Where(s => s.activity.campId == campId);
 
+            //// use .ProjectTo
+            //var schedules = await baseQuery
+            //    .ProjectTo<ActivityScheduleByCamperResponseDto>(
+            //        // use _mapper for ConfigurationProvider
+            //        _mapper.ConfigurationProvider,
+            //        // inject camperId
+            //        new Dictionary<string, object> { { "camperId", camperId } }
+            //    )
+            //    .ToListAsync();
+
+            // final filter logic
+            //var joinedOptionalCoreIds = schedules
+            //    .Where(s => s.coreActivityId != null)
+            //    .Select(s => s.activityScheduleId)
+            //    .ToHashSet();
+            var filteredSchedules = all
+               .Where(s => !overriddenCoreIds.Contains(s.activityScheduleId));
+
+            // return filter result
             return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
+
+
         }
+
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetOptionalSchedulesByCampAsync(int campId)
         {
@@ -452,7 +500,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)
         {
-            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
             ?? throw new KeyNotFoundException("ActivitySchedule not found");
 
             schedule.status = status.ToString();
@@ -460,7 +508,51 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             return _mapper.Map<ActivityScheduleResponseDto>(schedule);
+        }
 
+
+        public async Task<ActivityScheduleResponseDto> UpdateLiveStreamStatus(int activityScheduleId, bool status)
+        {
+            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
+            ?? throw new NotFoundException("ActivitySchedule not found");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(schedule.activityId)
+              ?? throw new NotFoundException("Activity not found");
+
+            var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
+                ?? throw new NotFoundException("Camp not found");
+
+            if (schedule.isLivestream == status)
+                throw new BusinessRuleException($"Live stream status is {status} now");
+
+            if (schedule.startTime <= DateTime.UtcNow)
+                throw new BusinessRuleException("STATUS CANNOT BE UPDATED BECAUSE SCHEDULE IS IN PROGRESS OR HAS EXPIRED");
+                       
+            if (status)
+            {
+                var livestream = new Livestream
+                {
+                    title = $"{activity.name} - {camp.name}",
+                    hostId = schedule.staffId
+                };
+
+                await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                await _unitOfWork.CommitAsync();
+                schedule.isLivestream = status;
+                schedule.livestreamId = livestream.livestreamId;
+            }
+            else
+            {
+                schedule.isLivestream = status;
+                schedule.livestreamId = null;
+            }
+
+            await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            await _unitOfWork.CommitAsync();
+
+            var updateSchedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId);
+
+            return _mapper.Map<ActivityScheduleResponseDto>(updateSchedule);
         }
     }
 }

@@ -26,7 +26,13 @@ steps:
       '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:latest',
       '--region', 'asia-southeast1',
       '--platform', 'managed',
-      '--allow-unauthenticated',
+      '--allow-unauthenticated',  
+
+      '--timeout', '600s',
+
+      # --- AUTHENTICATION ---
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
 
       # --- DATABASE ---
       '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
@@ -67,7 +73,40 @@ steps:
 
       # --- DEFAULT AVATAR (AppSetting Section) ---
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
-      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
+      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest',
+
+      # --- NEW SECRETS: ATTENDANCE JOB SETTINGS ---
+
+      '--set-secrets', 'AttendanceJobSettings__PreDownloadBufferMinutes=attendance-job-predownload-minutes:latest',
+      '--set-secrets', 'AttendanceJobSettings__MonitoringIntervalMinutes=attendance-job-monitoring-minutes:latest',
+      '--set-secrets', 'AttendanceJobSettings__MaxRetryAttempts=attendance-job-max-retry-attempts:latest',
+      '--set-secrets', 'AttendanceJobSettings__RetryDelaySeconds=attendance-job-retry-delay-seconds:latest',
+      '--set-secrets', 'AttendanceJobSettings__CleanupDelayMinutes=attendance-job-cleanup-delay-minutes:latest',
+
+      # --- NEW SECRETS: AI SERVICE SETTINGS ---
+
+      '--set-secrets', 'AIServiceSettings__BaseUrl=ai-service-base-url:latest',
+      '--set-secrets', 'AIServiceSettings__Timeout=ai-service-timeout:latest',
+      '--set-secrets', 'AIServiceSettings__ApiKey=ai-service-api-key:latest',
+      '--set-secrets', 'AIServiceSettings__HealthCheckEndpoint=ai-service-health-check-endpoint:latest',
+
+      # --- NEW SECRETS: FACE RECOGNITION SETTINGS ---
+
+      '--set-secrets', 'FaceRecognitionSettings__ModelName=face-recognition-model-name:latest',
+
+      # --- NEW SECRETS: PYTHON JWT ---
+
+      '--set-secrets', 'PythonJWT__SecretKey=python-jwt-secret-key:latest',
+      '--set-secrets', 'PythonJWT__Issuer=python-jwt-issuer:latest',
+      '--set-secrets', 'PythonJWT__Audience=python-jwt-audience:latest',
+      '--set-secrets', 'PythonJWT__ExpirationMinutes=python-jwt-expiration-minutes:latest',
+
+      # --- NEW SECRETS: HANGFIRE SETTINGS (Bao gồm mảng) ---
+
+      '--set-secrets', 'Hangfire__DashboardEnabled=hangfire-dashboard-enabled:latest',
+      '--set-secrets', 'Hangfire__RequireAuthentication=hangfire-require-auth:latest',
+      '--set-secrets', 'Hangfire__AllowedRoles__0=hangfire-allowed-role-0:latest',
+      '--set-secrets', 'Hangfire__AllowedRoles__1=hangfire-allowed-role-1:latest'
     ]
     id: 'Deploy Main API'
 
@@ -83,7 +122,14 @@ steps:
       '--max-instances', '1',
       '--min-instances', '0',
       '--allow-unauthenticated',
+      
+      # --- ENVIRONMENT ---
+      '--set-env-vars', 'ASPNETCORE_ENVIRONMENT=Production',
 
+      '--timeout', '600s',
+
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
       '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
       '--set-secrets', 'Jwt__Key=jwt-secret:latest',
       '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
@@ -110,6 +156,50 @@ steps:
       '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
     ]
     id: 'Deploy Worker Service'
+
+    # DEPLOY ATTENDANCE LOG CREATOR SERVICE 
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args: [
+      'run', 'deploy', 'attendance-log-creator', 
+      '--image', 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:latest',
+      '--region', 'asia-southeast1',
+      '--platform', 'managed',
+      
+      '--max-instances', '1', 
+      '--min-instances', '0',
+      '--allow-unauthenticated', 
+
+      '--timeout', '600s',
+
+      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
+      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
+      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
+      '--set-secrets', 'Jwt__Key=jwt-secret:latest',
+      '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
+      '--set-secrets', 'Jwt__Audience=jwt-audience:latest',
+      '--set-secrets', 'EmailSetting__SmtpServer=email-smtpserver:latest',
+      '--set-secrets', 'EmailSetting__Port=email-port:latest',
+      '--set-secrets', 'EmailSetting__SenderName=email-sendername:latest',
+      '--set-secrets', 'EmailSetting__SenderEmail=email-senderemail:latest',
+      '--set-secrets', 'EmailSetting__Password=email-pass:latest',
+      '--set-secrets', 'PayOS__ClientId=payos-client-id:latest',
+      '--set-secrets', 'PayOS__ApiKey=payos-api-key:latest',
+      '--set-secrets', 'PayOS__ChecksumKey=payos-checksum-key:latest',
+      '--set-secrets', 'PayOS__ReturnUrl=payos-return-url:latest',
+      '--set-secrets', 'PayOS__CancelUrl=payos-cancel-url:latest',
+      '--set-secrets', 'PayOS__MobileReturnUrl=payos-mobile-return-url:latest',
+      '--set-secrets', 'PayOS__MobileCancelUrl=payos-mobile-cancel-url:latest',
+      '--set-secrets', 'ApiBaseUrl=api-base-url:latest',
+      '--set-secrets', 'GeminiApi__ApiKey=gemini-api-key:latest',
+      '--set-secrets', 'GeminiApi__ApiBaseUrl=gemini-base-url:latest',
+      '--set-secrets', 'GeminiApi__ModelName=gemini-model-name:latest',
+      '--set-secrets', 'Supabase__Url=supabase-url:latest',
+      '--set-secrets', 'Supabase__Key=supabase-key:latest',
+      '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',
+      '--set-secrets', 'DefaultAvatarUrl=default-avatar-url:latest'
+    ]
+    id: 'Deploy Attendance Log Creator Service'
 
 images:
   - 'asia-southeast1-docker.pkg.dev/campease-473401/camp-ease-repo/summercampapi:$COMMIT_SHA'

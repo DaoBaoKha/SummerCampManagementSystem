@@ -31,7 +31,7 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(routeStops);
         }
 
-        [HttpGet("{routeId}")]
+        [HttpGet("route/{routeId}")]
         public async Task<IActionResult> GetRouteStopsByRouteId(int routeId)
         {
             var routeStops = await _routeStopService.GetRouteStopsByRouteIdAsync(routeId);

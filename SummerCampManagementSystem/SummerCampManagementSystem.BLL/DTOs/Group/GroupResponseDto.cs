@@ -5,6 +5,7 @@
         public int GroupId { get; set; }
         public string GroupName { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public int CurrentSize { get; set; }
         public int? MaxSize { get; set; }      
         public int? SupervisorId { get; set; } 
         public string SupervisorName { get; set; } = string.Empty;
@@ -29,5 +30,8 @@
         public int GroupId { get; set; }
 
         public string GroupName { get; set; }
+
+        public int CurrentSize { get; set; }
+
     }
 }

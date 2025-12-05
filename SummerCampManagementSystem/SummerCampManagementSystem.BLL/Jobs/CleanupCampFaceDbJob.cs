@@ -138,9 +138,15 @@ namespace SummerCampManagementSystem.BLL.Jobs
         /// </summary>
         /// <param name="campId">The camp ID</param>
         /// <param name="endDate">The camp end date/time</param>
-        /// <returns>The Hangfire job ID</returns>
-        public static string ScheduleForCamp(int campId, DateTime endDate)
+        /// <returns>The Hangfire job ID or null if job already exists</returns>
+        public static string? ScheduleForCamp(int campId, DateTime endDate)
         {
+            // Check if job already exists for this camp
+            if (IsJobScheduledForCamp(campId))
+            {
+                return null; // Job already exists
+            }
+
             // Schedule cleanup at midnight of the day after camp ends
             var cleanupTime = endDate.Date.AddDays(1);
 
@@ -155,6 +161,16 @@ namespace SummerCampManagementSystem.BLL.Jobs
                 cleanupTime);
 
             return jobId;
+        }
+
+        private static bool IsJobScheduledForCamp(int campId)
+        {
+            var monitoringApi = JobStorage.Current.GetMonitoringApi();
+            var scheduledJobs = monitoringApi.ScheduledJobs(0, int.MaxValue);
+
+            return scheduledJobs.Any(j =>
+                j.Value?.Job?.Type == typeof(CleanupCampFaceDbJob) &&
+                j.Value?.Job?.Args?.Any(a => a?.ToString() == campId.ToString()) == true);
         }
 
         /// <summary>

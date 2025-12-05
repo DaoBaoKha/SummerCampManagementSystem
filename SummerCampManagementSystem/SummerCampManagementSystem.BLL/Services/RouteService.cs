@@ -2,6 +2,8 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Route;
+using SummerCampManagementSystem.BLL.DTOs.RouteStop;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -30,6 +32,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var newRoute = _mapper.Map<Route>(routeRequestDto); 
 
             newRoute.status = "Active";
+            newRoute.isActive = true;
 
             await _unitOfWork.Routes.CreateAsync(newRoute);
             await _unitOfWork.CommitAsync();
@@ -71,11 +74,17 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RouteResponseDto>> GetRoutesByCampIdAsync(int campId)
         {
-            return await _unitOfWork.Routes.GetQueryable()
-                .Include(r => r.camp)
-                .Where(r => r.campId == campId)
-                .ProjectTo<RouteResponseDto>(_mapper.ConfigurationProvider)
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null)
+            {
+                throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+            }
+
+            var routes = await GetRoutesWithIncludes()
+                .Where(r => r.campId == campId) 
                 .ToListAsync();
+
+            return _mapper.Map<IEnumerable<RouteResponseDto>>(routes);
         }
 
 
@@ -96,6 +105,17 @@ namespace SummerCampManagementSystem.BLL.Services
             existingRoute.camp = camp; 
             return _mapper.Map<RouteResponseDto>(existingRoute); 
         }
+
+        #region Private Methods
+
+        private IQueryable<Route> GetRoutesWithIncludes()
+        {
+            return _unitOfWork.Routes.GetQueryable()
+                .Include(r => r.camp) 
+                .Include(r => r.RouteStops); 
+        }
+
+        #endregion
 
     }
 }

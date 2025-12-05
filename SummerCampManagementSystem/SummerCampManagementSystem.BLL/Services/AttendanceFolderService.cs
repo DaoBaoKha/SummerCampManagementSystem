@@ -86,12 +86,14 @@ namespace SummerCampManagementSystem.BLL.Services
                     _logger.LogInformation("Created camper group folder: {FolderPath}", camperGroupFolderPath);
                 }
 
-                // Step 3: Get all ActivitySchedules for optional activities with registered campers
-                // ActivitySchedule has isOptional flag and relates to Activity which has campId
-                var allOptionalSchedules = await _unitOfWork.ActivitySchedules
-                    .GetOptionalScheduleByCampIdAsync(campId);
+                // Step 3: Populate CamperActivity from RegistrationOptionalActivity (CRITICAL!)
+                // This MUST happen BEFORE creating folders so we know which activities have registered campers
+                _logger.LogInformation("Step 3: Populating CamperActivity from RegistrationOptionalActivity...");
+                await PopulateCamperActivitiesAsync(campId);
+                _logger.LogInformation("✅ CamperActivity populated for Camp {CampId}", campId);
 
-                // Load with CamperActivities navigation property
+                // Step 4: Get all ActivitySchedules for optional activities with registered campers
+                // NOW CamperActivities is populated, so we can check counts accurately
                 var optionalActivitySchedules = await _unitOfWork.ActivitySchedules
                     .GetQueryable()
                     .Where(asc => asc.isOptional && asc.activity.campId == campId)
@@ -99,7 +101,10 @@ namespace SummerCampManagementSystem.BLL.Services
                     .Include(asc => asc.CamperActivities)
                     .ToListAsync();
 
-                // Step 4: Create folders for optional activities that have registered campers
+                _logger.LogInformation("Found {Count} optional activities for Camp {CampId}",
+                    optionalActivitySchedules.Count, campId);
+
+                // Step 5: Create folders for optional activities that have registered campers
                 foreach (var activitySchedule in optionalActivitySchedules)
                 {
                     // Check if this optional activity has any registered campers
@@ -115,35 +120,229 @@ namespace SummerCampManagementSystem.BLL.Services
                             // Continue with other folders even if one fails
                             continue;
                         }
-                        _logger.LogInformation("Created camper activity folder: {FolderPath} (Registered: {Count})",
+                        _logger.LogInformation("✅ Created camper activity folder: {FolderPath} (Registered: {Count})",
                             camperActivityFolderPath, registeredCampersCount);
                     }
                     else
                     {
-                        _logger.LogInformation("Skipping ActivitySchedule {ScheduleId} - no registered campers",
+                        _logger.LogInformation("⏭️  Skipping ActivitySchedule {ScheduleId} - no registered campers",
                             activitySchedule.activityScheduleId);
                     }
                 }
 
-                // Step 5: Create campers folder structure
+                // Step 6: Pre-generate AttendanceLog records (CRITICAL!)
+                // This creates logs with status='Pending' for all registered campers
+                // Face recognition will later UPDATE these logs to 'Present'
+                _logger.LogInformation("Step 6: Pre-generating AttendanceLog records...");
+                await GenerateAttendanceLogsAsync(campId);
+                _logger.LogInformation("✅ AttendanceLog records pre-generated for Camp {CampId}", campId);
+
+                // Step 7: Create campers folder structure
                 var campersFolderPath = $"{campFolderPath}/campers";
                 if (!await CreateFolderInBucketAsync(campersFolderPath))
                 {
                     _logger.LogError("Failed to create campers folder for Camp {CampId}", campId);
                     return false;
                 }
-                _logger.LogInformation("Created campers folder: {FolderPath}", campersFolderPath);
+                _logger.LogInformation("✅ Created campers folder: {FolderPath}", campersFolderPath);
 
-                // Step 6: Copy confirmed camper photos to attendance-sessions bucket
+                // Step 8: Copy confirmed camper photos to attendance-sessions bucket
+                _logger.LogInformation("Step 8: Copying camper photos to cloud storage...");
                 await CopyConfirmedCamperPhotosAsync(campId);
+                _logger.LogInformation("✅ Photos copied for Camp {CampId}", campId);
 
-                _logger.LogInformation("Successfully completed folder creation for Camp {CampId}", campId);
+                _logger.LogInformation("🎉 Successfully completed folder creation for Camp {CampId}", campId);
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating attendance folders for Camp {CampId}", campId);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Populates CamperActivity table from RegistrationOptionalActivity when registration closes
+        /// This links confirmed campers to optional activities they registered for
+        /// </summary>
+        private async Task PopulateCamperActivitiesAsync(int campId)
+        {
+            try
+            {
+                _logger.LogInformation("Populating CamperActivity table for Camp {CampId}", campId);
+
+                // Get all optional activity registrations for this camp
+                var optionalRegistrations = await _unitOfWork.RegistrationOptionalActivities
+                    .GetQueryable()
+                    .Where(roa => roa.activitySchedule.activity.campId == campId)
+                    .Include(roa => roa.activitySchedule)
+                    .Include(roa => roa.camper)
+                    .Include(roa => roa.registration)
+                    .Where(roa => roa.registration.status == "Confirmed") // Only confirmed registrations
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} optional activity registrations for Camp {CampId}",
+                    optionalRegistrations.Count, campId);
+
+                int createdCount = 0;
+                int skippedCount = 0;
+
+                foreach (var registration in optionalRegistrations)
+                {
+                    // Check if CamperActivity already exists
+                    var existingLink = await _unitOfWork.CamperActivities
+                        .GetQueryable()
+                        .Where(ca => ca.camperId == registration.camperId &&
+                                     ca.activityScheduleId == registration.activityScheduleId)
+                        .FirstOrDefaultAsync();
+
+                    if (existingLink == null)
+                    {
+                        // Create new CamperActivity link
+                        var camperActivity = new DAL.Models.CamperActivity
+                        {
+                            camperId = registration.camperId,
+                            activityScheduleId = registration.activityScheduleId,
+                            participationStatus = "Registered"
+                        };
+
+                        // Use GetDbContext to add to context
+                        await _unitOfWork.GetDbContext().CamperActivities.AddAsync(camperActivity);
+                        createdCount++;
+                    }
+                    else
+                    {
+                        skippedCount++;
+                    }
+                }
+
+                if (createdCount > 0)
+                {
+                    await _unitOfWork.CommitAsync();
+                    _logger.LogInformation("Created {CreatedCount} CamperActivity links for Camp {CampId} (Skipped {SkippedCount} existing)",
+                        createdCount, campId, skippedCount);
+                }
+                else
+                {
+                    _logger.LogInformation("No new CamperActivity links created for Camp {CampId} ({SkippedCount} already exist)",
+                        campId, skippedCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error populating CamperActivity table for Camp {CampId}", campId);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Pre-generates AttendanceLog records with status='Pending' for all registered campers
+        /// This happens when registration closes, before face recognition begins
+        /// Logs are created for both core activities (via CamperGroups) and optional activities (via CamperActivities)
+        /// </summary>
+        private async Task GenerateAttendanceLogsAsync(int campId)
+        {
+            try
+            {
+                _logger.LogInformation("📋 Pre-generating AttendanceLog records for Camp {CampId}", campId);
+
+                var createdCount = 0;
+                var skippedCount = 0;
+
+                // Get all activity schedules for this camp (both core and optional)
+                var activitySchedules = await _unitOfWork.ActivitySchedules
+                    .GetQueryable()
+                    .Where(asc => asc.activity.campId == campId)
+                    .Include(asc => asc.activity)
+                    .Include(asc => asc.GroupActivities)
+                        .ThenInclude(ga => ga.group)
+                            .ThenInclude(g => g.CamperGroups)
+                    .Include(asc => asc.CamperActivities)
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} activity schedules for Camp {CampId}",
+                    activitySchedules.Count, campId);
+
+                foreach (var schedule in activitySchedules)
+                {
+                    // Get list of camper IDs registered for this activity
+                    var camperIds = new List<int>();
+
+                    if (schedule.isOptional)
+                    {
+                        // Optional activity: use CamperActivities
+                        camperIds = schedule.CamperActivities?
+                            .Where(ca => ca.camperId.HasValue)
+                            .Select(ca => ca.camperId.Value)
+                            .ToList() ?? new List<int>();
+                    }
+                    else
+                    {
+                        // Core activity: use GroupActivities -> CamperGroups
+                        var groupActivity = schedule.GroupActivities?.FirstOrDefault();
+                        if (groupActivity?.group != null)
+                        {
+                            camperIds = groupActivity.group.CamperGroups?
+                                .Select(cg => cg.camperId)
+                                .ToList() ?? new List<int>();
+                        }
+                    }
+
+                    _logger.LogInformation("  Activity '{ActivityName}' (Schedule {ScheduleId}, Optional: {IsOptional}): {CamperCount} campers",
+                        schedule.activity?.name ?? "Unknown",
+                        schedule.activityScheduleId,
+                        schedule.isOptional,
+                        camperIds.Count);
+
+                    // Create AttendanceLog for each camper
+                    foreach (var camperId in camperIds)
+                    {
+                        // Check if log already exists (idempotency)
+                        var existingLog = await _unitOfWork.AttendanceLogs
+                            .GetQueryable()
+                            .Where(al => al.camperId == camperId
+                                      && al.activityScheduleId == schedule.activityScheduleId)
+                            .FirstOrDefaultAsync();
+
+                        if (existingLog == null)
+                        {
+                            var attendanceLog = new DAL.Models.AttendanceLog
+                            {
+                                camperId = camperId,
+                                activityScheduleId = schedule.activityScheduleId,
+                                timestamp = DateTime.UtcNow,
+                                eventType = "Pending",
+                                checkInMethod = "NotCheckedIn",
+                                participantStatus = "Pending",
+                                note = "Pre-generated at registration close"
+                            };
+
+                            await _unitOfWork.GetDbContext().AttendanceLogs.AddAsync(attendanceLog);
+                            createdCount++;
+                        }
+                        else
+                        {
+                            skippedCount++;
+                        }
+                    }
+                }
+
+                if (createdCount > 0)
+                {
+                    await _unitOfWork.CommitAsync();
+                    _logger.LogInformation("✅ Created {CreatedCount} AttendanceLog records for Camp {CampId} (Skipped {SkippedCount} existing)",
+                        createdCount, campId, skippedCount);
+                }
+                else
+                {
+                    _logger.LogInformation("ℹ️  No new AttendanceLog records created for Camp {CampId} ({SkippedCount} already exist)",
+                        campId, skippedCount);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating AttendanceLog records for Camp {CampId}", campId);
+                throw;
             }
         }
 
@@ -167,17 +366,30 @@ namespace SummerCampManagementSystem.BLL.Services
                      .GetQueryable()
                      .Where(c => c.CamperGroups.Any(cg => groupIds.Contains(cg.groupId)))
                      .Where(c => !string.IsNullOrEmpty(c.avatar))
-                     .Include(c => c.CamperGroups) 
+                     .Include(c => c.CamperGroups)
                      .ToListAsync();
 
-                _logger.LogInformation("Found {Count} campers with photos in Camp {CampId}", campersInGroups.Count, campId);
+                _logger.LogInformation("Found {Count} campers with photos in camp groups for Camp {CampId}", campersInGroups.Count, campId);
 
-                // Get optional activities with registrations
+                // Get optional activities with registrations (NOW CamperActivities should be populated)
                 var optionalActivities = await _unitOfWork.ActivitySchedules
                     .GetQueryable()
                     .Where(asc => asc.isOptional && asc.activity.campId == campId)
+                    .Include(asc => asc.activity)
                     .Include(asc => asc.CamperActivities)
                     .ToListAsync();
+
+                _logger.LogInformation("Found {Count} optional activities for Camp {CampId}", optionalActivities.Count, campId);
+
+                // Log details about each optional activity
+                foreach (var optActivity in optionalActivities)
+                {
+                    var registeredCount = optActivity.CamperActivities?.Count ?? 0;
+                    _logger.LogInformation("  📋 Activity '{ActivityName}' (Schedule {ScheduleId}): {Count} registered campers",
+                        optActivity.activity?.name ?? "Unknown",
+                        optActivity.activityScheduleId,
+                        registeredCount);
+                }
 
                 int successCount = 0;
                 int failCount = 0;
@@ -188,7 +400,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         var camperGroupLink = camper.CamperGroups?.FirstOrDefault();
 
-                        if (camperGroupLink != null) 
+                        if (camperGroupLink != null)
                         {
                             // Copy to camper_group folder
                             var targetFolder = $"camp_{campId}/camper_group_{camperGroupLink.groupId}";

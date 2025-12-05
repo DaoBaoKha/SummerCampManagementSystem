@@ -65,7 +65,7 @@ builder.Services.AddSingleton(sp => new PayOS(
 
 // Supabase - Use ServiceRoleKey for admin operations (storage uploads, etc.)
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
-var supabaseServiceRoleKey = builder.Configuration["Supabase:ServiceRoleKey"] ?? "";
+var supabaseServiceRoleKey = builder.Configuration["Supabase:Key"] ?? "";
 var supabase = new Supabase.Client(supabaseUrl, supabaseServiceRoleKey);
 await supabase.InitializeAsync();
 builder.Services.AddSingleton(supabase);
@@ -89,6 +89,18 @@ builder.Services.Configure<EmailSetting>(opts =>
     opts.SenderEmail = builder.Configuration["EmailSetting:SenderEmail"] ?? "";
     opts.Password = builder.Configuration["EmailSetting:Password"] ?? "";
 });
+
+// Override Python AI Service URL based on environment
+if (builder.Environment.IsProduction())
+{
+    // Production: Use Render deployment
+    builder.Configuration["AIServiceSettings:BaseUrl"] = "https://face-recognition-api-e6h6.onrender.com";
+}
+else
+{
+    // Development: Use localhost (can be overridden in appsettings.Development.json)
+    builder.Configuration["AIServiceSettings:BaseUrl"] ??= "http://localhost:5000";
+}
 
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
@@ -318,13 +330,15 @@ builder.Services.AddHangfire(configuration => configuration
     .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
     .UseSimpleAssemblyNameTypeSerializer()
     .UseRecommendedSerializerSettings()
+    .UseIgnoredAssemblyVersionTypeResolver() // Add this to handle version mismatches
     .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
     {
         CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
         SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
         QueuePollInterval = TimeSpan.Zero,
         UseRecommendedIsolationLevel = true,
-        DisableGlobalLocks = true
+        DisableGlobalLocks = true,
+        PrepareSchemaIfNecessary = true // Ensure schema is created/updated
     }));
 
 // Add Hangfire server
@@ -352,12 +366,26 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 
-
-
-app.UseHangfireDashboard("/hangfire");
-
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Configure Hangfire Dashboard with authorization
+var dashboardEnabled = app.Configuration.GetValue<bool>("Hangfire:DashboardEnabled", true);
+if (dashboardEnabled)
+{
+    var dashboardOptions = new DashboardOptions
+    {
+        Authorization = new[]
+        {
+            new HangfireAuthorizationFilter(
+                app.Services.GetRequiredService<ILogger<HangfireAuthorizationFilter>>(),
+                app.Configuration
+            )
+        },
+        DashboardTitle = "CampEase Background Jobs"
+    };
+    app.UseHangfireDashboard("/hangfire", dashboardOptions);
+}
 
 app.UseMiddleware<ExceptionMiddleware>();
 
