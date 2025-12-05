@@ -14,6 +14,7 @@ using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.CampType;
+using SummerCampManagementSystem.BLL.DTOs.ChatRoom;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.DTOs.Feedback;
 using SummerCampManagementSystem.BLL.DTOs.Group;
@@ -35,6 +36,7 @@ using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
+using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto;
@@ -419,6 +421,24 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<FeedbackRequestDto, Feedback>()
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Pending"));
             CreateMap<Feedback, FeedbackResponseDto>();
+
+            // Message mappings
+            CreateMap<SendMessageDto, Message>()
+                .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow));
+
+            CreateMap<Message, ChatRoomMessageDto>()
+            .ForMember(dest => dest.MessageId, opt => opt.MapFrom(src => src.messageId))
+            .ForMember(dest => dest.SenderId, opt => opt.MapFrom(src => src.senderId))
+            .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.content))
+
+            // change name sentAt -> createAt
+            .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.createAt.HasValue ? src.createAt.Value.ToVietnamTime() : DateTime.UtcNow.ToVietnamTime()))
+
+            // get user info
+            .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src =>
+                src.sender != null ? $"{src.sender.lastName} {src.sender.firstName}" : "Unknown"))
+            .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src =>
+                src.sender != null ? src.sender.avatar : string.Empty));
         }
     }
 }

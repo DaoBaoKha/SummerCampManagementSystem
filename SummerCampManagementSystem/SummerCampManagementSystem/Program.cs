@@ -6,7 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Net.payOS;
+using SummerCampManagementSystem.API.Hubs;
 using SummerCampManagementSystem.API.Middlewares;
+using SummerCampManagementSystem.API.Services;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.HostedServices;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -188,6 +190,14 @@ builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// Chat service (DI for Hub)
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
+builder.Services.AddScoped<IChatRoomUserRepository, ChatRoomUserRepository>();
+builder.Services.AddScoped<IChatRoomRepository, ChatRoomRepository>();
+builder.Services.AddScoped<IChatRoomService, ChatRoomService>(); // service for real-time chat
+builder.Services.AddScoped<IChatNotifier, SignalRChatNotifier>(); // interface for BLL to call signalR
+builder.Services.AddHttpClient();
+
 // Register Hangfire jobs
 builder.Services.AddScoped<AttendanceFolderCreationJob>();
 builder.Services.AddScoped<PreloadCampFaceDbJob>();
@@ -349,6 +359,33 @@ builder.Services.AddHangfireServer(options =>
     options.SchedulePollingInterval = TimeSpan.FromSeconds(15);
 });
 
+// Add Redis Config
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    builder.Services.AddSignalR()
+        .AddStackExchangeRedis(redisConnectionString, options => {
+            options.Configuration.ChannelPrefix = "CampEase_Chat";
+        })
+        .AddJsonProtocol(options => {
+            // convert to VietNamTime when send to client
+            options.PayloadSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
+            options.PayloadSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
+            options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        });
+}
+else
+{
+    // fallback for local if no redis
+    builder.Services.AddSignalR()
+        .AddJsonProtocol(options => {
+            options.PayloadSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
+            options.PayloadSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
+            options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        });
+}
+
 var app = builder.Build();
 
 // Middleware Pipeline
@@ -368,6 +405,9 @@ app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// map hub path
+app.MapHub<ChatRoomHub>("/hubs/chat");
 
 // Configure Hangfire Dashboard with authorization
 var dashboardEnabled = app.Configuration.GetValue<bool>("Hangfire:DashboardEnabled", true);

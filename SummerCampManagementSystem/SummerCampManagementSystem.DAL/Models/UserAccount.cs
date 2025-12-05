@@ -84,11 +84,8 @@ public partial class UserAccount
     [InverseProperty("host")]
     public virtual ICollection<Livestream> Livestreams { get; set; } = new List<Livestream>();
 
-    [InverseProperty("receiver")]
-    public virtual ICollection<Message> Messagereceivers { get; set; } = new List<Message>();
-
     [InverseProperty("sender")]
-    public virtual ICollection<Message> Messagesenders { get; set; } = new List<Message>();
+    public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
 
     [InverseProperty("user")]
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
