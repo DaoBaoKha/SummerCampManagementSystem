@@ -9,9 +9,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
 
         public int TransportScheduleId { get; set; }
 
-        public CamperNameDto Camper { get; set; } 
+        public CamperNameDto? Camper { get; set; } 
 
-        public LocationDto Location { get; set; }
+        public LocationDto? Location { get; set; }
 
         public bool IsAbsent { get; set; }
 
@@ -19,9 +19,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
 
         public DateTime? CheckOutTime { get; set; }
 
-        public string Status { get; set; }
+        public string? Status { get; set; }
 
-        public string Note { get; set; }
+        public string? Note { get; set; }
     }
 
     public class CamperInScheduleResponseDto
@@ -30,9 +30,9 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
 
         public int TransportScheduleId { get; set; }
 
-        public CamperNameDto Camper { get; set; }
+        public CamperNameDto? Camper { get; set; }
 
-        public LocationDto Location { get; set; }
+        public LocationDto? Location { get; set; }
 
         public bool IsAbsent { get; set; }
 
@@ -40,8 +40,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperTransport
 
         public DateTime? CheckOutTime { get; set; }
 
-        public string Status { get; set; }
+        public string? Status { get; set; }
 
-        public string Note { get; set; }
+        public string? Note { get; set; }
     }
 }

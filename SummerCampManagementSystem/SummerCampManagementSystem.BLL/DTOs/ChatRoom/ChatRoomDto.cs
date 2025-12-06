@@ -19,4 +19,14 @@
         public string Content { get; set; }
         public DateTime SentAt { get; set; }
     }
+
+    public class ChatRoomDetailDto
+    {
+        public int ChatRoomId { get; set; }
+        public string Name { get; set; }
+        public int Type { get; set; } // private or group
+        public string? LastMessage { get; set; }
+        public DateTime? LastMessageTime { get; set; }
+        public string? AvatarUrl { get; set; } 
+    }
 }
