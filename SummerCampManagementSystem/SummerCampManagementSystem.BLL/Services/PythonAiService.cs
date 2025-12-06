@@ -39,7 +39,7 @@ namespace SummerCampManagementSystem.BLL.Services
             _configuration = configuration;
 
             _baseUrl = configuration["AIServiceSettings:BaseUrl"] ?? "http://localhost:5000";
-            _timeoutSeconds = int.TryParse(configuration["AIServiceSettings:Timeout"], out var timeout) ? timeout : 30;
+            _timeoutSeconds = int.TryParse(configuration["AIServiceSettings:Timeout"], out var timeout) ? timeout : 300;
 
             // Load JWT settings for Python API authentication (optional - only needed for background jobs)
             // For user requests, tokens are forwarded from the frontend
@@ -51,7 +51,7 @@ namespace SummerCampManagementSystem.BLL.Services
             _httpClient.BaseAddress = new Uri(_baseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
 
-            _logger.LogInformation("PythonAiService initialized with base URL: {BaseUrl}", _baseUrl);
+            _logger.LogInformation("PythonAiService initialized - BaseUrl: {BaseUrl}, Timeout: {Timeout}s", _baseUrl, _timeoutSeconds);
         }
 
         /// <summary>
