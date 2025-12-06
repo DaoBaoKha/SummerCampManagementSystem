@@ -9,5 +9,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
     public interface IGroupActivityRepository : IGenericRepository<GroupActivity>
     {
+        Task<IEnumerable<GroupActivity>> GetByGroupId(int groupId);
     }
 }
