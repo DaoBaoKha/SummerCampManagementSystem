@@ -41,18 +41,17 @@ namespace SummerCampManagementSystem.BLL.Services
             _baseUrl = configuration["AIServiceSettings:BaseUrl"] ?? "http://localhost:5000";
             _timeoutSeconds = int.TryParse(configuration["AIServiceSettings:Timeout"], out var timeout) ? timeout : 30;
 
-            // Load JWT settings for Python API authentication
-            _jwtSecretKey = configuration["PythonJWT:SecretKey"]
-                ?? throw new InvalidOperationException("PythonJWT:SecretKey is not configured in appsettings.json");
-            _jwtIssuer = configuration["PythonJWT:Issuer"] ?? "SummerCampBackend";
-            _jwtAudience = configuration["PythonJWT:Audience"] ?? "face-recognition-api";
+            // Load JWT settings for Python API authentication (optional - only needed for background jobs)
+            // For user requests, tokens are forwarded from the frontend
+            _jwtSecretKey = configuration["Jwt:Key"] ?? "";
+            _jwtIssuer = configuration["Jwt:Issuer"] ?? "SummerCampBackend";
+            _jwtAudience = configuration["Jwt:Audience"] ?? "SummerCampBackend";
             _jwtExpirationMinutes = int.TryParse(configuration["PythonJWT:ExpirationMinutes"], out var expiration) ? expiration : 60;
 
             _httpClient.BaseAddress = new Uri(_baseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
 
-            _logger.LogInformation("PythonAiService initialized with JWT authentication (Issuer: {Issuer}, Audience: {Audience})",
-                _jwtIssuer, _jwtAudience);
+            _logger.LogInformation("PythonAiService initialized with base URL: {BaseUrl}", _baseUrl);
         }
 
         /// <summary>
@@ -60,6 +59,11 @@ namespace SummerCampManagementSystem.BLL.Services
         /// </summary>
         public string GenerateJwtToken()
         {
+            if (string.IsNullOrEmpty(_jwtSecretKey))
+            {
+                throw new InvalidOperationException("JWT configuration is not available. Ensure Jwt:Key is configured in appsettings.json");
+            }
+
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
@@ -84,7 +88,6 @@ namespace SummerCampManagementSystem.BLL.Services
             // Log token details for debugging
             _logger.LogInformation("Generated JWT token for Python API");
             _logger.LogInformation("  Secret Key Length: {Length}", _jwtSecretKey.Length);
-            _logger.LogInformation("  Secret Key (FULL): {SecretKey}", _jwtSecretKey);
             _logger.LogInformation("  Issuer: {Issuer}", _jwtIssuer);
             _logger.LogInformation("  Audience: {Audience}", _jwtAudience);
             _logger.LogInformation("  Token (first 100 chars): {TokenPrefix}...", tokenString.Substring(0, Math.Min(100, tokenString.Length)));
