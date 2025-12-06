@@ -386,13 +386,28 @@ namespace SummerCampManagementSystem.API.Controllers
 
                     _logger.LogInformation("Fetching attendance logs for {CamperCount} campers...", camperIds.Count);
 
-                    var existingLogs = await _unitOfWork.AttendanceLogs
+                    // Fetch all attendance logs for these campers in this activity schedule
+                    var existingLogsList = await _unitOfWork.AttendanceLogs
                         .GetQueryable()
                         .Where(al => camperIds.Contains(al.camperId)
                                   && al.activityScheduleId == request.ActivityScheduleId)
-                        .ToDictionaryAsync(al => al.camperId);
+                        .ToListAsync();
 
-                    _logger.LogInformation("Fetched {LogCount} existing attendance logs from database", existingLogs.Count);
+                    _logger.LogInformation("Fetched {LogCount} existing attendance logs from database", existingLogsList.Count);
+
+                    // Handle duplicates: Group by camperId and take the first log for each camper
+                    var existingLogs = existingLogsList
+                        .GroupBy(al => al.camperId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.First()
+                        );
+
+                    if (existingLogsList.Count != existingLogs.Count)
+                    {
+                        _logger.LogWarning("⚠️ Found {DuplicateCount} duplicate attendance logs that were deduplicated",
+                            existingLogsList.Count - existingLogs.Count);
+                    }
 
                     var currentTime = DateTime.UtcNow;
 
