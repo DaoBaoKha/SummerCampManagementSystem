@@ -18,30 +18,40 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         /// Downloads faces from Supabase attendance-sessions bucket and loads them into DeepFace model
         /// </summary>
         /// <param name="campId">The camp ID to load face database for</param>
+        /// <param name="authToken">JWT token from authenticated user</param>
         /// <param name="forceReload">Force reload even if already loaded</param>
         /// <returns>Response containing success status and face count</returns>
-        Task<FaceDbResponse> LoadCampFaceDbAsync(int campId, bool forceReload = false);
+        Task<FaceDbResponse> LoadCampFaceDbAsync(int campId, string authToken, bool forceReload = false);
 
         /// <summary>
         /// Unload face database for a specific camp from Python AI service memory
         /// Clears camp data from memory and optionally deletes local files
         /// </summary>
         /// <param name="campId">The camp ID to unload face database for</param>
+        /// <param name="authToken">JWT token from authenticated user</param>
         /// <returns>Response containing success status</returns>
-        Task<FaceDbResponse> UnloadCampFaceDbAsync(int campId);
+        Task<FaceDbResponse> UnloadCampFaceDbAsync(int campId, string authToken);
 
         /// <summary>
         /// Recognize faces in a photo for a specific activity schedule
         /// Processes the photo using DeepFace model and returns recognized campers
         /// </summary>
         /// <param name="request">Recognition request containing activity schedule ID and photo</param>
+        /// <param name="authToken">JWT token from authenticated user</param>
         /// <returns>Response containing list of recognized campers with confidence scores</returns>
-        Task<RecognitionResponse> RecognizeAsync(RecognizeFaceRequest request);
+        Task<RecognitionResponse> RecognizeAsync(RecognizeFaceRequest request, string authToken);
 
         /// <summary>
         /// Get statistics about loaded camps in Python AI service
         /// </summary>
+        /// <param name="authToken">JWT token from authenticated user</param>
         /// <returns>Dictionary with camp IDs as keys and face counts as values</returns>
-        Task<Dictionary<int, int>> GetLoadedCampsAsync();
+        Task<Dictionary<int, int>> GetLoadedCampsAsync(string authToken);
+
+        /// <summary>
+        /// Generate JWT token for service-to-service authentication (used by background jobs)
+        /// </summary>
+        /// <returns>JWT token string</returns>
+        string GenerateJwtToken();
     }
 }

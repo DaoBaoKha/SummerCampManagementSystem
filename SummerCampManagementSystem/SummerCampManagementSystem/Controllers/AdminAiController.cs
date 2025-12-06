@@ -61,7 +61,16 @@ namespace SummerCampManagementSystem.API.Controllers
         [ProducesResponseType(typeof(Dictionary<int, int>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetLoadedCamps()
         {
-            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync();
+            // Extract user's JWT token from Authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var userToken = authHeader.Replace("Bearer ", "").Trim();
+
+            if (string.IsNullOrEmpty(userToken))
+            {
+                return Unauthorized(new { success = false, message = "No authentication token provided" });
+            }
+
+            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync(userToken);
             return Ok(new
             {
                 success = true,
@@ -249,6 +258,15 @@ namespace SummerCampManagementSystem.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> RecognizeFaces([FromForm] RecognizeFaceRequest request)
         {
+            // Extract user's JWT token from Authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var userToken = authHeader.Replace("Bearer ", "").Trim();
+
+            if (string.IsNullOrEmpty(userToken))
+            {
+                return Unauthorized(new { success = false, message = "No authentication token provided" });
+            }
+
             if (request.Photo == null || request.Photo.Length == 0)
             {
                 return BadRequest(new { success = false, message = "Photo file is required" });
@@ -301,11 +319,11 @@ namespace SummerCampManagementSystem.API.Controllers
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             // Check if face database is already loaded (FAST - just HTTP call, no download)
-            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync();
+            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync(userToken);
             if (!loadedCamps.ContainsKey(campId) || loadedCamps[campId] == 0)
             {
                 _logger.LogInformation("Face database not loaded for Camp {CampId}, loading now...", campId);
-                var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId);
+                var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId, userToken);
                 if (!loadResult.Success)
                 {
                     _logger.LogError("Failed to load face database for Camp {CampId}: {Message}", campId, loadResult.Message);
@@ -328,7 +346,7 @@ namespace SummerCampManagementSystem.API.Controllers
             _logger.LogInformation("Preprocessing completed in {Time}ms, starting recognition...", preprocessingTime);
 
             stopwatch.Restart();
-            var result = await _pythonAiService.RecognizeAsync(request);
+            var result = await _pythonAiService.RecognizeAsync(request, userToken);
             stopwatch.Stop();
 
             _logger.LogInformation(

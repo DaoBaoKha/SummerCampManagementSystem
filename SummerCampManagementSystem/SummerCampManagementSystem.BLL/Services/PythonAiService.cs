@@ -56,9 +56,9 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         /// <summary>
-        /// Generate JWT token for authenticating with Python API
+        /// Generate JWT token for authenticating with Python API (for background jobs without user context)
         /// </summary>
-        private string GenerateJwtToken()
+        public string GenerateJwtToken()
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSecretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -94,15 +94,14 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         /// <summary>
-        /// Create HTTP request with JWT authentication header
+        /// Create HTTP request with JWT authentication header using provided token
         /// </summary>
-        private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url)
+        private HttpRequestMessage CreateAuthenticatedRequest(HttpMethod method, string url, string authToken)
         {
             var request = new HttpRequestMessage(method, url);
-            var jwtToken = GenerateJwtToken();
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwtToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", authToken);
 
-            _logger.LogDebug("Created authenticated request to {Url} with JWT token", url);
+            _logger.LogDebug("Created authenticated request to {Url} with forwarded user token", url);
             return request;
         }
 
@@ -159,7 +158,7 @@ namespace SummerCampManagementSystem.BLL.Services
         /// <summary>
         /// Load face database for a specific camp into Python AI service memory
         /// </summary>
-        public async Task<FaceDbResponse> LoadCampFaceDbAsync(int campId, bool forceReload = false)
+        public async Task<FaceDbResponse> LoadCampFaceDbAsync(int campId, string authToken, bool forceReload = false)
         {
             var stopwatch = Stopwatch.StartNew();
             try
@@ -175,8 +174,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 var jsonContent = JsonSerializer.Serialize(requestBody);
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                // Use authenticated request with JWT token
-                var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/face-db/load/{campId}");
+                // Use authenticated request with forwarded user token
+                var request = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/face-db/load/{campId}", authToken);
                 request.Content = httpContent;
 
                 var response = await _httpClient.SendAsync(request);
@@ -225,14 +224,14 @@ namespace SummerCampManagementSystem.BLL.Services
         /// <summary>
         /// Unload face database for a specific camp from Python AI service memory
         /// </summary>
-        public async Task<FaceDbResponse> UnloadCampFaceDbAsync(int campId)
+        public async Task<FaceDbResponse> UnloadCampFaceDbAsync(int campId, string authToken)
         {
             try
             {
                 _logger.LogInformation("Unloading face database for Camp {CampId}", campId);
 
-                // Use authenticated request with JWT token
-                var request = CreateAuthenticatedRequest(HttpMethod.Delete, $"/api/face-db/unload/{campId}");
+                // Use authenticated request with forwarded user token
+                var request = CreateAuthenticatedRequest(HttpMethod.Delete, $"/api/face-db/unload/{campId}", authToken);
                 var response = await _httpClient.SendAsync(request);
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -277,7 +276,7 @@ namespace SummerCampManagementSystem.BLL.Services
         /// <summary>
         /// Recognize faces in a photo for a specific activity schedule
         /// </summary>
-        public async Task<RecognitionResponse> RecognizeAsync(RecognizeFaceRequest request)
+        public async Task<RecognitionResponse> RecognizeAsync(RecognizeFaceRequest request, string authToken)
         {
             var stopwatch = Stopwatch.StartNew();
             try
@@ -298,15 +297,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 HttpResponseMessage response;
                 if (request.GroupId.HasValue)
                 {
-                    // Core activity - group-specific recognition with JWT authentication
-                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}");
+                    // Core activity - group-specific recognition with forwarded user token
+                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-group/{request.CampId}/{request.GroupId.Value}", authToken);
                     httpRequest.Content = content;
                     response = await _httpClient.SendAsync(httpRequest);
                 }
                 else
                 {
-                    // Optional activity - activity-specific recognition with JWT authentication
-                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-activity/{request.CampId}/{request.ActivityScheduleId}");
+                    // Optional activity - activity-specific recognition with forwarded user token
+                    var httpRequest = CreateAuthenticatedRequest(HttpMethod.Post, $"/api/recognition/recognize-activity/{request.CampId}/{request.ActivityScheduleId}", authToken);
                     httpRequest.Content = content;
                     response = await _httpClient.SendAsync(httpRequest);
                 }
@@ -355,14 +354,14 @@ namespace SummerCampManagementSystem.BLL.Services
         /// <summary>
         /// Get statistics about loaded camps in Python AI service
         /// </summary>
-        public async Task<Dictionary<int, int>> GetLoadedCampsAsync()
+        public async Task<Dictionary<int, int>> GetLoadedCampsAsync(string authToken)
         {
             try
             {
                 _logger.LogInformation("Getting loaded camps statistics from Python AI service");
 
-                // Use authenticated request with JWT token
-                var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/face-db/stats");
+                // Use authenticated request with forwarded user token
+                var request = CreateAuthenticatedRequest(HttpMethod.Get, "/api/face-db/stats", authToken);
                 var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
