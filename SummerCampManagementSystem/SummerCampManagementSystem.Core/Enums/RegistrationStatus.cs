@@ -8,8 +8,7 @@
         PendingPayment = 4,   
         Confirmed = 5,      
         PendingRefund = 6,    
-        OnGoing = 7,         
-        Completed = 8,      
-        Canceled = 9          
+        Refunded = 7,         
+        Canceled = 8          
     }
 }
