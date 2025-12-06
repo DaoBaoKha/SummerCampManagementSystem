@@ -46,12 +46,26 @@ namespace SummerCampManagementSystem.BLL.Services
             _jwtSecretKey = configuration["Jwt:Key"] ?? "";
             _jwtIssuer = configuration["Jwt:Issuer"] ?? "SummerCampBackend";
             _jwtAudience = configuration["Jwt:Audience"] ?? "SummerCampBackend";
-            _jwtExpirationMinutes = int.TryParse(configuration["PythonJWT:ExpirationMinutes"], out var expiration) ? expiration : 60;
+
+            // Try to read ExpirationMinutes, or convert ExpiryDays to minutes, or default to 60 minutes
+            if (int.TryParse(configuration["Jwt:ExpirationMinutes"], out var expirationMinutes))
+            {
+                _jwtExpirationMinutes = expirationMinutes;
+            }
+            else if (int.TryParse(configuration["Jwt:ExpiryDays"], out var expiryDays))
+            {
+                _jwtExpirationMinutes = expiryDays * 24 * 60; // Convert days to minutes
+            }
+            else
+            {
+                _jwtExpirationMinutes = 60; // Default 1 hour
+            }
 
             _httpClient.BaseAddress = new Uri(_baseUrl);
             _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
 
-            _logger.LogInformation("PythonAiService initialized - BaseUrl: {BaseUrl}, Timeout: {Timeout}s", _baseUrl, _timeoutSeconds);
+            _logger.LogInformation("PythonAiService initialized - BaseUrl: {BaseUrl}, Timeout: {Timeout}s, JWT Expiration: {ExpirationMinutes}min",
+                _baseUrl, _timeoutSeconds, _jwtExpirationMinutes);
         }
 
         /// <summary>
