@@ -225,9 +225,43 @@ namespace SummerCampManagementSystem.BLL.Services
                     Timestamp = DateTime.UtcNow
                 };
             }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                _logger.LogError(ex, "Timeout loading face database for Camp {CampId}. Timeout: {Timeout}s", campId, _timeoutSeconds);
+                return new FaceDbResponse
+                {
+                    Success = false,
+                    Message = $"Request timeout after {_timeoutSeconds}s. The Python API may be overloaded or the operation is taking too long.",
+                    CampId = campId,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Request cancelled while loading face database for Camp {CampId}", campId);
+                return new FaceDbResponse
+                {
+                    Success = false,
+                    Message = $"Request was cancelled or timed out after {_timeoutSeconds}s",
+                    CampId = campId,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request error loading face database for Camp {CampId}. BaseUrl: {BaseUrl}", campId, _baseUrl);
+                return new FaceDbResponse
+                {
+                    Success = false,
+                    Message = $"Connection error: {ex.Message}. Check if Python API at {_baseUrl} is accessible.",
+                    CampId = campId,
+                    Timestamp = DateTime.UtcNow
+                };
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading face database for Camp {CampId}", campId);
+                _logger.LogError(ex, "Unexpected error loading face database for Camp {CampId}. Exception type: {ExceptionType}",
+                    campId, ex.GetType().Name);
                 return new FaceDbResponse
                 {
                     Success = false,
