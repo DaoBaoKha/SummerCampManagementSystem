@@ -30,6 +30,9 @@ public partial class Accommodation
     public int? supervisorId { get; set; }
 
     [InverseProperty("accommodation")]
+    public virtual ICollection<AccommodationActivitySchedule> AccommodationActivitySchedules { get; set; } = new List<AccommodationActivitySchedule>();
+
+    [InverseProperty("accommodation")]
     public virtual ICollection<CamperAccommodation> CamperAccommodations { get; set; } = new List<CamperAccommodation>();
 
     [ForeignKey("accommodationTypeId")]

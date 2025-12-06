@@ -20,6 +20,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<Accommodation> Accommodations { get; set; }
 
+    public virtual DbSet<AccommodationActivitySchedule> AccommodationActivitySchedules { get; set; }
+
     public virtual DbSet<AccommodationType> AccommodationTypes { get; set; }
 
     public virtual DbSet<Activity> Activities { get; set; }
@@ -171,6 +173,15 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.camp).WithMany(p => p.Accommodations).HasConstraintName("FK__Accommoda__campI__1BC821DD");
 
             entity.HasOne(d => d.supervisor).WithMany(p => p.Accommodations).HasConstraintName("FK_Accommodation_UserAccount");
+        });
+
+        modelBuilder.Entity<AccommodationActivitySchedule>(entity =>
+        {
+            entity.Property(e => e.accommodationActivityScheduleId).ValueGeneratedNever();
+
+            entity.HasOne(d => d.accommodation).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_Accommodation");
+
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_ActivitySchedule");
         });
 
         modelBuilder.Entity<AccommodationType>(entity =>

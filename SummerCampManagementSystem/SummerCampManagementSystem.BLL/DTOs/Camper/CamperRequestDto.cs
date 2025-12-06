@@ -39,4 +39,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public HealthRecordCreateDto? HealthRecord { get; set; }
 
     }
+
+    public class CampExtensionRequestDto
+    {
+        [Required(ErrorMessage = "Ngày đóng đăng ký mới là bắt buộc.")]
+        public DateTime NewRegistrationEndDate { get; set; }
+    }
 }
