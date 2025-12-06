@@ -407,6 +407,33 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
         }
 
+
+        public async Task UpdateAttendanceLogAsync(AttendanceLogUpdateListRequest updates, int staffId)
+        {
+            if (updates.AttendanceLogs == null || updates.AttendanceLogs.Count == 0)
+                return;
+
+            var logIds = updates.AttendanceLogs.Select(u => u.AttendanceLogId).ToList();
+
+            // Lấy tất cả log 1 lần
+            var logs = await _unitOfWork.AttendanceLogs.GetQueryable()
+                .Where(l => logIds.Contains(l.attendanceLogId))
+                .ToListAsync();
+
+            foreach (var log in logs)
+            {
+                var req = updates.AttendanceLogs.First(u => u.AttendanceLogId == log.attendanceLogId);
+                log.participantStatus = req.participantStatus.ToString();
+                log.timestamp = DateTime.UtcNow;
+                log.staffId = staffId;
+                log.note = req.Note;
+                await _unitOfWork.AttendanceLogs.UpdateAsync(log);
+
+            }
+
+            await _unitOfWork.CommitAsync();
+        }
+
         public async Task CreateAttendanceLogsForClosedCampsAsync()
         {
             // 1. Lấy tất cả camp đang RegistrationClosed
