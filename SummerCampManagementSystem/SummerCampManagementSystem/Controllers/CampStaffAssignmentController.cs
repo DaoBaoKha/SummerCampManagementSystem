@@ -6,7 +6,6 @@ using SummerCampManagementSystem.BLL.Interfaces;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin, Manager")]
     [Route("api/campstaffassignment")]
 
     public class CampStaffAssignmentsController : ControllerBase
@@ -19,6 +18,7 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> AssignStaff([FromBody] CampStaffAssignmentRequestDto requestDto)
         {
             if (!ModelState.IsValid)
