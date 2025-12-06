@@ -96,7 +96,7 @@ builder.Services.Configure<EmailSetting>(opts =>
 if (builder.Environment.IsProduction())
 {
     // Production: Use Render deployment
-    builder.Configuration["AIServiceSettings:BaseUrl"] = "https://face-recognition-api-e6h6.onrender.com";
+    builder.Configuration["AIServiceSettings:BaseUrl"] = "https://capstone-faceattendanceai-production.up.railway.app/";
 }
 else
 {
