@@ -2,9 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
-using SummerCampManagementSystem.BLL.Jobs;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -54,16 +54,6 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Camps.CreateAsync(newCamp);
             await _unitOfWork.CommitAsync();
 
-            // Schedule Hangfire job for attendance folder creation when registration ends
-            if (newCamp.registrationEndDate.HasValue)
-            {
-                var jobId = AttendanceFolderCreationJob.ScheduleForCamp(
-                    newCamp.campId,
-                    newCamp.registrationEndDate.Value);
-                _logger.LogInformation("Scheduled attendance folder creation job {JobId} for Camp {CampId} at {RegistrationEndDate}",
-                    jobId, newCamp.campId, newCamp.registrationEndDate.Value);
-            }
-
             // get the created camp with related entities
             var createdCamp = await GetCampsWithIncludes()
                 .FirstOrDefaultAsync(c => c.campId == newCamp.campId);
@@ -96,10 +86,10 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<CampResponseDto>> GetCampsByStaffIdAsync(int staffId)
         {
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException($"Staff with ID {staffId} not found.");
+                ?? throw new NotFoundException($"Staff with ID {staffId} not found.");
 
             var camps = await _unitOfWork.Camps.GetCampsByStaffIdAsync(staffId)
-                ?? throw new KeyNotFoundException($"No camps found for staff ID {staffId}.");
+                ?? throw new NotFoundException($"No camps found for staff ID {staffId}.");
 
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
@@ -133,12 +123,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (existingCamp == null)
             {
-                throw new KeyNotFoundException($"Camp with ID {campId} not found.");
+                throw new NotFoundException($"Camp with ID {campId} not found.");
             }
 
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
             {
-                throw new InvalidOperationException("Trạng thái hiện tại của Camp không hợp lệ.");
+                throw new BusinessRuleException("Trạng thái hiện tại của Camp không hợp lệ.");
             }
 
             bool isValidTransition = false;
@@ -243,7 +233,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (!isValidTransition)
             {
-                throw new ArgumentException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã quy định.");
+                throw new BadRequestException($"Chuyển đổi trạng thái từ '{currentStatus}' sang '{newStatus}' không hợp lệ theo flow đã quy định.");
             }
 
             if (newStatus == CampStatus.Published) // approve other schedules
@@ -267,20 +257,21 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<CampResponseDto> UpdateCampAsync(int campId, CampRequestDto campRequest)
         {
             // get the existing camp with related entities
-            var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId);
+            var existingCamp = await GetCampsWithIncludes().FirstOrDefaultAsync(c => c.campId == campId);
 
             if (existingCamp == null)
             {
-                throw new KeyNotFoundException("Camp not found");
+                throw new NotFoundException("Camp not found");
             }
 
-            // only allow update when status is Draft or Rejected
-            if (existingCamp.status != CampStatus.Draft.ToString() && existingCamp.status != CampStatus.Rejected.ToString())
+            bool isUnderEnrolled = existingCamp.status == CampStatus.UnderEnrolled.ToString();
+
+            // only update when status = Draft, Rejected, UnderEnrolled
+            if (existingCamp.status != CampStatus.Draft.ToString() &&
+                existingCamp.status != CampStatus.Rejected.ToString() &&
+                !isUnderEnrolled)
             {
-                // Bổ sung: Cho phép chỉnh sửa khi UnderEnrolled nếu Admin muốn thay đổi MinCapacity/thời gian trước khi gia hạn? 
-                // Nếu không, chỉ giữ Draft/Rejected.
-                throw new ArgumentException($"Camp chỉ có thể được chỉnh sửa nội dung khi ở trạng thái Draft hoặc Rejected. Trạng thái hiện tại: {existingCamp.status}.");
+                throw new BadRequestException($"Camp chỉ có thể chỉnh sửa khi ở trạng thái Draft, Rejected hoặc UnderEnrolled. Trạng thái hiện tại: {existingCamp.status}");
             }
 
             await RunValidationChecks(campRequest, campId);
@@ -297,18 +288,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 existingCamp.status = CampStatus.Draft.ToString(); // back to draft after updating
             }
 
+            // if underEnrolled -> OpenForRegistration 
+            else if (isUnderEnrolled)
+            {
+                if (existingCamp.registrationEndDate.Value > DateTime.UtcNow)
+                {
+                    existingCamp.status = CampStatus.OpenForRegistration.ToString();
+                }
+            }
+
             await _unitOfWork.Camps.UpdateAsync(existingCamp);
             await _unitOfWork.CommitAsync();
-
-            // Reschedule Hangfire job if registration end date changed
-            if (existingCamp.registrationEndDate.HasValue)
-            {
-                var jobId = AttendanceFolderCreationJob.ScheduleForCamp(
-                    existingCamp.campId,
-                    existingCamp.registrationEndDate.Value);
-                _logger.LogInformation("Rescheduled attendance folder creation job {JobId} for Camp {CampId} at {RegistrationEndDate}",
-                    jobId, existingCamp.campId, existingCamp.registrationEndDate.Value);
-            }
 
             return _mapper.Map<CampResponseDto>(existingCamp);
         }
@@ -349,7 +339,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
             {
-                throw new ArgumentException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
+                throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
             }
 
 
@@ -368,21 +358,61 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (!hasActivities)
             {
-                throw new ArgumentException("Không thể gửi phê duyệt. Camp cần có ít nhất một hoạt động (Activity) được tạo.");
+                throw new BadRequestException("Không thể gửi phê duyệt. Camp cần có ít nhất một hoạt động (Activity) được tạo.");
             }
             if (!hasGroupsOrStaff)
             {
-                throw new ArgumentException("Không thể gửi phê duyệt. Camp cần có ít nhất một Group/Staff Assignment hoặc Camper Group được tạo.");
+                throw new BadRequestException("Không thể gửi phê duyệt. Camp cần có ít nhất một Group/Staff Assignment hoặc Camper Group được tạo.");
             }
 
             return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
+        }
+
+        public async Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate)
+        {
+            var camp = await GetCampsWithIncludes().FirstOrDefaultAsync(c => c.campId == campId);
+            if (camp == null)
+                throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+
+            // only allow when status = UnderEnrolled
+            if (camp.status != CampStatus.UnderEnrolled.ToString())
+            {
+                throw new BadRequestException($"Chỉ có thể gia hạn khi trại đang ở trạng thái 'UnderEnrolled'. Trạng thái hiện tại: {camp.status}.");
+            }
+
+            DateTime newEndDateUtc = newRegistrationEndDate.ToUtcForStorage();
+
+            // validate
+            if (newEndDateUtc <= DateTime.UtcNow)
+            {
+                throw new BadRequestException("Thời gian đóng đăng ký mới phải là một thời điểm trong tương lai.");
+            }
+
+            // validate buffer time
+            if (camp.startDate.HasValue)
+            {
+                // isCreateNew = false -> allow 5 days buffer
+                ValidateRegistrationBufferTime(camp.startDate.Value, newEndDateUtc, isCreateNew: false);
+            }
+
+            camp.registrationEndDate = newEndDateUtc;
+            camp.status = CampStatus.OpenForRegistration.ToString();
+
+            await _unitOfWork.Camps.UpdateAsync(camp);
+            await _unitOfWork.CommitAsync();
+
+            _logger.LogInformation($"Admin extended registration for Camp {campId} to {newEndDateUtc}. Status -> OpenForRegistration.");
+
+            return _mapper.Map<CampResponseDto>(camp);
         }
 
         #region Scheduled Status Transitions
 
         public async Task RunScheduledStatusTransitionsAsync()
         {
-            // take camp with status Published, OpenForRegistration, RegistrationClosed, InProgress
+            _logger.LogInformation("Starting scheduled camp status transition job.");
+
+            // get camp
             var pendingCamps = await _unitOfWork.Camps.GetQueryable()
                 .Where(c => c.status == CampStatus.Published.ToString() ||
                             c.status == CampStatus.OpenForRegistration.ToString() ||
@@ -398,69 +428,84 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 try
                 {
-                    // make sure the status is valid enum
-                    if (!Enum.TryParse(camp.status, true, out CampStatus currentStatus)) continue;
+                    if (!Enum.TryParse(camp.status, true, out CampStatus currentStatus))
+                    {
+                        _logger.LogWarning($"Camp ID {camp.campId} has invalid status string: '{camp.status}'. Skipping.");
+                        continue;
+                    }
 
                     CampStatus? nextStatus = null;
-                    _logger.LogDebug($"Checking Camp ID {camp.campId} ('{camp.name}') - Current Status: {currentStatus}.");
+                    //_logger.LogDebug($"Checking Camp ID {camp.campId}. Current Status: {currentStatus}.");
 
-                    // LOGIC TRANSITION BASED ON TIME AND CONDITIONS
-
-                    // pubished -> OpenForRegistration 
+                    // Published -> OpenForRegistration
                     if (currentStatus == CampStatus.Published &&
                         camp.registrationStartDate.HasValue &&
                         camp.registrationStartDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.OpenForRegistration;
+                        _logger.LogInformation($"Camp {camp.campId}: Registration Start Date reached ({camp.registrationStartDate}). Prepared to Open.");
                     }
 
-                    // openForRegistration -> RegistrationClosed 
+                    // OpenForRegistration -> registrationEndDate -> check min participants
                     else if (currentStatus == CampStatus.OpenForRegistration &&
                              camp.registrationEndDate.HasValue &&
                              camp.registrationEndDate.Value <= utcNow)
                     {
+                        // count confirmed campers
+                        int confirmedCount = await _unitOfWork.RegistrationCampers.GetQueryable()
+                            .CountAsync(rc => rc.registration.campId == camp.campId
+                                           && rc.status == RegistrationCamperStatus.Confirmed.ToString());
 
-                        /*
-                         * need to check if enough campers registered
-                         * missing underEnrolled check here
-                         */
+                        int minRequired = camp.minParticipants ?? 0;
 
+                        _logger.LogInformation($"Camp {camp.campId}: Registration End Date reached. Checking participants: Confirmed={confirmedCount}, MinRequired={minRequired}.");
 
-                        nextStatus = CampStatus.RegistrationClosed;
+                        if (confirmedCount < minRequired)
+                        {
+                            // NOT ENOUGH CAMPERS -> UNDER ENROLLED 
+                            nextStatus = CampStatus.UnderEnrolled;
+                            _logger.LogWarning($"Camp {camp.campId} UnderEnrolled! Confirmed ({confirmedCount}) < Min ({minRequired}). Transitioning to UnderEnrolled.");
+                        }
+                        else
+                        {
+                            // enough campers -> RegistrationClosed
+                            nextStatus = CampStatus.RegistrationClosed;
+                            _logger.LogInformation($"Camp {camp.campId} met participant requirements. Transitioning to RegistrationClosed.");
+                        }
                     }
 
-                    // registrationClosed -> InProgress
+                    // RegistrationClosed -> InProgress
                     else if (currentStatus == CampStatus.RegistrationClosed &&
                              camp.startDate.HasValue &&
                              camp.startDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.InProgress;
+                        _logger.LogInformation($"Camp {camp.campId}: Start Date reached ({camp.startDate}). Transitioning to InProgress.");
                     }
 
-                    // inProgress -> Completed
+                    // InProgress -> Completed
                     else if (currentStatus == CampStatus.InProgress &&
                              camp.endDate.HasValue &&
                              camp.endDate.Value <= utcNow)
                     {
                         nextStatus = CampStatus.Completed;
+                        _logger.LogInformation($"Camp {camp.campId}: End Date reached ({camp.endDate}). Transitioning to Completed.");
                     }
 
+                    // continue to next camp if no status change
                     if (nextStatus.HasValue)
                     {
-                        _logger.LogInformation($"Transitioning Camp ID {camp.campId} from {currentStatus} to {nextStatus.Value}...");
-
-                        // use the existing method to transition status
                         await TransitionCampStatusAsync(camp.campId, nextStatus.Value);
-
-                        _logger.LogInformation($"Successfully transitioned Camp ID {camp.campId} to {nextStatus.Value}.");
+                        _logger.LogInformation($"SUCCESS: Camp {camp.campId} transitioned from {currentStatus} to {nextStatus}.");
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"FATAL ERROR processing Camp ID {camp.campId}. Skipping this camp.");
+                    _logger.LogError(ex, $"CRITICAL ERROR processing status transition for Camp ID {camp.campId}");
                 }
             }
-            _logger.LogInformation("--- FINISHED scheduled camp status transition job. ---");
+
+            _logger.LogInformation("Completed scheduled camp status transition job.");
         }
 
         #endregion
@@ -477,6 +522,26 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Include(c => c.promotion);
         }
 
+        private void ValidateRegistrationBufferTime(DateTime startDate, DateTime regEndDate, bool isCreateNew)
+        {
+            TimeSpan buffer = startDate.Date - regEndDate.Date;
+
+            if (isCreateNew) // create new camp 
+            {
+                if (buffer.TotalDays < 10)
+                {
+                    throw new BadRequestException($"Quy tắc tạo trại: Ngày đóng đăng ký phải trước ngày bắt đầu ít nhất 10 ngày. (Hiện tại: {buffer.TotalDays:F1} ngày)");
+                }
+            }
+            else // update or extend registration
+            {
+                if (buffer.TotalDays < 5)
+                {
+                    throw new BadRequestException($"Quy tắc cập nhật/gia hạn: Thời gian đóng đăng ký phải trước ngày bắt đầu trại ít nhất 5 ngày để đảm bảo công tác chuẩn bị.");
+                }
+            }
+        }
+
         private async Task RunValidationChecks(CampRequestDto campRequest, int? currentCampId = null)
         {
             // check nullables
@@ -486,7 +551,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 !campRequest.MinParticipants.HasValue || !campRequest.MaxParticipants.HasValue ||
                 !campRequest.MinAge.HasValue || !campRequest.MaxAge.HasValue)
             {
-                throw new ArgumentException("Ngày bắt đầu/kết thúc, ngày đăng ký, địa điểm, loại trại, số lượng tham gia và độ tuổi là các trường bắt buộc.");
+                throw new BadRequestException("Ngày bắt đầu/kết thúc, ngày đăng ký, địa điểm, loại trại, số lượng tham gia và độ tuổi là các trường bắt buộc.");
             }
 
             // validation
@@ -495,7 +560,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 string.IsNullOrWhiteSpace(campRequest.Place) ||
                 string.IsNullOrWhiteSpace(campRequest.Address))
             {
-                throw new ArgumentException("Tên, mô tả, địa điểm tổ chức và địa chỉ không được để trống.");
+                throw new BadRequestException("Tên, mô tả, địa điểm tổ chức và địa chỉ không được để trống.");
             }
 
             var reqStartDate = campRequest.StartDate.Value;
@@ -505,46 +570,50 @@ namespace SummerCampManagementSystem.BLL.Services
             // registration date
             if (campRequest.RegistrationStartDate.Value >= reqRegEndDate)
             {
-                throw new ArgumentException("Ngày đóng đăng ký phải sau ngày mở đăng ký.");
+                throw new BadRequestException("Ngày đóng đăng ký phải sau ngày mở đăng ký.");
             }
 
             if (reqRegEndDate.Date >= reqStartDate.Date)
             {
-                throw new ArgumentException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
+                throw new BadRequestException("Ngày đóng đăng ký phải trước ngày bắt đầu trại.");
             }
 
             if (reqStartDate >= reqEndDate)
             {
-                throw new ArgumentException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
+                throw new BadRequestException("Ngày kết thúc trại phải sau ngày bắt đầu trại.");
             }
+
+            // check buffer time 
+            bool isCreateNew = (currentCampId == null);
+            ValidateRegistrationBufferTime(reqStartDate, reqRegEndDate, isCreateNew);
 
             TimeSpan duration = reqEndDate.Date - reqStartDate.Date;
             if (duration.TotalDays < 3)
             {
-                throw new ArgumentException("Thời lượng trại phải kéo dài ít nhất 3 ngày.");
+                throw new BadRequestException("Thời lượng trại phải kéo dài ít nhất 3 ngày.");
             }
 
             if (campRequest.MinParticipants.Value <= 0 || campRequest.MaxParticipants.Value <= 0)
             {
-                throw new ArgumentException("Số lượng tham gia tối thiểu và tối đa phải lớn hơn 0.");
+                throw new BadRequestException("Số lượng tham gia tối thiểu và tối đa phải lớn hơn 0.");
             }
             if (campRequest.MinParticipants.Value > campRequest.MaxParticipants.Value)
             {
-                throw new ArgumentException("Số lượng tham gia tối thiểu không được lớn hơn số lượng tham gia tối đa.");
+                throw new BadRequestException("Số lượng tham gia tối thiểu không được lớn hơn số lượng tham gia tối đa.");
             }
 
             if (campRequest.MinAge.Value < 0 || campRequest.MaxAge.Value < 0)
             {
-                throw new ArgumentException("Giới hạn độ tuổi không được là số âm.");
+                throw new BadRequestException("Giới hạn độ tuổi không được là số âm.");
             }
             if (campRequest.MinAge.Value > campRequest.MaxAge.Value)
             {
-                throw new ArgumentException("Độ tuổi tối thiểu không được lớn hơn độ tuổi tối đa.");
+                throw new BadRequestException("Độ tuổi tối thiểu không được lớn hơn độ tuổi tối đa.");
             }
 
             if (campRequest.Price.HasValue && campRequest.Price.Value < 0)
             {
-                throw new ArgumentException("Giá trại không được là số âm.");
+                throw new BadRequestException("Giá trại không được là số âm.");
             }
 
             // check same location
@@ -566,7 +635,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 .ToListAsync();
             if (overlappingCamps.Any())
             {
-                throw new ArgumentException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate.Value.ToShortDateString()} đến {overlappingCamps.First().endDate.Value.ToShortDateString()}.");
+                throw new BadRequestException($"Địa điểm này đã có Camp ({overlappingCamps.First().name}) hoạt động trong khoảng thời gian từ {overlappingCamps.First().startDate.Value.ToShortDateString()} đến {overlappingCamps.First().endDate.Value.ToShortDateString()}.");
             }
         }
 
