@@ -17,6 +17,15 @@ public partial class ChatRoom
     [StringLength(255)]
     public string name { get; set; }
 
+    [StringLength(50)]
+    public string type { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? createdAt { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? updateAt { get; set; }
+
     [InverseProperty("chatRoom")]
     public virtual ICollection<ChatRoomUser> ChatRoomUsers { get; set; } = new List<ChatRoomUser>();
 
