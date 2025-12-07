@@ -610,5 +610,20 @@ namespace SummerCampManagementSystem.BLL.Services
             }
             await _unitOfWork.CommitAsync();
         }
+
+        public async Task ChangeActityScheduleToPendingAttendance()
+        {
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllAsync();
+
+            foreach (var schedule in schedules)
+            {
+                if (schedule.status == ActivityScheduleStatus.NotYet.ToString())
+                {
+                    schedule.status = ActivityScheduleStatus.PendingAttendance.ToString();
+                    await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                }
+            }
+            await _unitOfWork.CommitAsync();
+        }
     }
 }
