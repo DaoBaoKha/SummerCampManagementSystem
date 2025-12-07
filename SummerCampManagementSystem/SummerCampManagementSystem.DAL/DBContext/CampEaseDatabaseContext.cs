@@ -559,6 +559,8 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.registrationCancelId).HasName("PK__Registra__1BFD300A16D0BB46");
 
+            entity.HasOne(d => d.bankUser).WithMany(p => p.RegistrationCancels).HasConstraintName("FK_RegistrationCancel_BankUser");
+
             entity.HasOne(d => d.registration).WithMany(p => p.RegistrationCancels).HasConstraintName("FK__Registrat__regis__73852659");
         });
 
