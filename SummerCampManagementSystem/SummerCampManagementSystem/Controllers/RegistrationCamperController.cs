@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -7,6 +8,7 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/registrationcamper")]
     [ApiController]
+    [Authorize]
     public class RegistrationCamperController : ControllerBase
     {
         private readonly IRegistrationCamperService _registrationCamperService;
