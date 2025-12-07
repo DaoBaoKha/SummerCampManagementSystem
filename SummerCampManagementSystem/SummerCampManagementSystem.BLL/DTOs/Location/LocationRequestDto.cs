@@ -9,7 +9,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Location
         {
             [Required(ErrorMessage = "Tên vị trí là bắt buộc.")]
             [StringLength(255, ErrorMessage = "Tên không được vượt quá 255 ký tự.")]
-            public string Name { get; set; }
+            public string? Name { get; set; }
 
             [Required(ErrorMessage = "Loại vị trí là bắt buộc.")]
             public LocationType LocationType { get; set; } 

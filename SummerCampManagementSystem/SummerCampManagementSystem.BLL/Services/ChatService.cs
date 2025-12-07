@@ -166,8 +166,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 // Get Registration and Camp info BASED ON camperIds
                 var activeRegStatuses = new List<string> {
-                    RegistrationStatus.Confirmed.ToString(),
-                    RegistrationStatus.OnGoing.ToString()
+                    RegistrationStatus.Confirmed.ToString()
                 };
 
                 var activeCamperRegistrations = await _unitOfWork.RegistrationCampers.GetQueryable()

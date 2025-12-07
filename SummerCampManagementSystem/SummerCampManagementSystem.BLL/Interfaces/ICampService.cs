@@ -19,5 +19,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         // workflow automation
         Task RunScheduledStatusTransitionsAsync();
+
+        Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate);
     }
 }

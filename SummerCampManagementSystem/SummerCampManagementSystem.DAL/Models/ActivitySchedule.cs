@@ -42,6 +42,9 @@ public partial class ActivitySchedule
     public int? currentCapacity { get; set; }
 
     [InverseProperty("activitySchedule")]
+    public virtual ICollection<AccommodationActivitySchedule> AccommodationActivitySchedules { get; set; } = new List<AccommodationActivitySchedule>();
+
+    [InverseProperty("activitySchedule")]
     public virtual ICollection<AttendanceLog> AttendanceLogs { get; set; } = new List<AttendanceLog>();
 
     [InverseProperty("activitySchedule")]

@@ -8,16 +8,16 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
     {
         [Required]
         [StringLength(255)]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [Required]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Required]
-        public string Place { get; set; }
+        public string? Place { get; set; }
 
         [Required]
-        public string Address { get; set; }
+        public string? Address { get; set; }
 
         [Required]
         [Range(1, int.MaxValue)]

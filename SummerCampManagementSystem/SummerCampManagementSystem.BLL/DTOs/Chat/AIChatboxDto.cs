@@ -25,12 +25,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.Chat
         public class ChatResponseDto
         {
             // AI response
-            public string TextResponse { get; set; }
+            public string? TextResponse { get; set; }
 
 
             public int ConversationId { get; set; }
 
-            public string Title { get; set; }
+            public string? Title { get; set; }
         }
 
 

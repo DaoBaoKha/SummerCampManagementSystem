@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
+using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 
@@ -29,33 +30,19 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCampById(int id)
         {
-            try
-            {
-                var camp = await _campService.GetCampByIdAsync(id);
-                return Ok(camp);
-            }
-            catch (Exception ex) when (ex.Message.Contains("not found"))
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while retrieving the camp." });
-            }
+            var camp = await _campService.GetCampByIdAsync(id);
+
+            if (camp == null) 
+                return NotFound(new { message = $"Camp with ID {id} not found." });
+
+            return Ok(camp);
         }
 
         [HttpGet("status")]
         public async Task<ActionResult<IEnumerable<CampResponseDto>>> GetCampsByStatus([FromQuery] CampStatus? status)
         {
-            try
-            {
-                var camps = await _campService.GetCampsByStatusAsync(status);
-                return Ok(camps);
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while filtering camps by status." });
-            }
+            var camps = await _campService.GetCampsByStatusAsync(status);
+            return Ok(camps);
         }
 
         [HttpDelete("{id}")]
@@ -74,31 +61,19 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize]
         public async Task<IActionResult> CreateCamp([FromBody] CampRequestDto camp)
         {
-            if (!ModelState.IsValid)
-            {
+            if (!ModelState.IsValid) 
                 return BadRequest(ModelState);
-            }
-            try
-            {
-                var createdCamp = await _campService.CreateCampAsync(camp);
-                return CreatedAtAction(nameof(GetCampById), new { id = createdCamp.CampId }, createdCamp);
-            }
-            catch (UnauthorizedAccessException ex) // authorization error
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex) 
-            {
-                // detailed error for unexpected exceptions
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An unexpected error occurred during camp creation.", detail = ex.Message });
-            }
+
+            var createdCamp = await _campService.CreateCampAsync(camp);
+
+            return CreatedAtAction(nameof(GetCampById),     
+                new { id = createdCamp.CampId }, createdCamp);
         }
 
-        // Endpoint for Cloud Scheduler to trigger scheduled status updates
+        /// <summary>
+        /// Endpoint to run scheduled status updates for camps.
+        /// </summary>
+        /// <returns></returns>
         [HttpPost("scheduled-status-update")]
         public async Task<IActionResult> RunScheduledStatusUpdates()
         {
@@ -107,13 +82,13 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 await _campService.RunScheduledStatusTransitionsAsync();
 
-                // Log thành công và trả về 200 OK
+                // Log success and return 200 OK
                 _logger.LogInformation("API Worker finished successfully.");
                 return Ok(new { message = "Scheduled status updates executed successfully." });
             }
             catch (Exception ex)
             {
-                // Log lỗi và trả về 500
+                // Log error and return 500
                 _logger.LogError(ex, "API Worker failed during status updates.");
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi khi chạy tác vụ cập nhật trạng thái: " + ex.Message });
             }
@@ -123,127 +98,61 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize]
         public async Task<IActionResult> UpdateCamp(int id, [FromBody] CampRequestDto camp)
         {
-            if (!ModelState.IsValid)
-            {
+            if (!ModelState.IsValid) 
                 return BadRequest(ModelState);
-            }
-            try
-            {
-                var updatedCamp = await _campService.UpdateCampAsync(id, camp);
-                return Ok(updatedCamp);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex) when (ex.Message.Contains("Camp not found"))
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An error occurred while updating the camp." });
-            }
+
+            var updatedCamp = await _campService.UpdateCampAsync(id, camp);
+
+            return Ok(updatedCamp);
         }
 
+
         [HttpPut("{campId}/approve")]
-        [Authorize]
-        // [Authorize(Roles = "Manager")] 
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApproveCamp(int campId)
         {
-            try
-            {
-                // approve camp
-                var approvedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Published);
-                return Ok(approvedCamp);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex) // error in business flow
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
-            }
+            var approvedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Published);
+
+            return Ok(approvedCamp);
         }
 
         [HttpPut("{campId}/reject")]
-        [Authorize]
-        // [Authorize(Roles = "Manager")] 
+        [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> RejectCamp(int campId)
         {
-            try
-            {
-                // reject camp
-                var rejectedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Rejected);
-                return Ok(rejectedCamp);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex) // error in business flow
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ: " + ex.Message });
-            }
+            var rejectedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Rejected);
+
+            return Ok(rejectedCamp);
+        }
+
+        [HttpPatch("{id}/extend-registration")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> ExtendRegistration(int id, [FromBody] CampExtensionRequestDto request)
+        {
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+
+            var result = await _campService.ExtendRegistrationAsync(id, request.NewRegistrationEndDate);
+
+            return Ok(result);
         }
 
         [HttpPatch("{campId}/status")]
         [Authorize]
         public async Task<ActionResult<CampResponseDto>> UpdateCampStatus(int campId, [FromBody] CampStatusUpdateRequestDto statusUpdate)
         {
-            try
-            {
-                // use TransitionCampStatusAsync to check bussiness flow
-                var updatedCamp = await _campService.TransitionCampStatusAsync(campId, statusUpdate.Status);
+            var updatedCamp = await _campService.UpdateCampStatusAsync(campId, statusUpdate);
 
-                return Ok(updatedCamp);
-            }
-            catch (ArgumentException ex) 
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex) when (ex.Message.Contains("Camp not found"))
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error updating camp status." });
-            }
+            return Ok(updatedCamp);
         }
 
         [HttpPatch("{campId}/submit-for-approval")]
         [Authorize]
         public async Task<ActionResult<CampResponseDto>> SubmitForApproval(int campId)
         {
-            try
-            {
-                // use SubmitForApprovalAsync, check Activity/Group/Staff
-                var updatedCamp = await _campService.SubmitForApprovalAsync(campId);
+            var updatedCamp = await _campService.SubmitForApprovalAsync(campId);
 
-                return Ok(updatedCamp);
-            }
-            catch (ArgumentException ex) // flow error 
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex) when (ex.Message.Contains("not found"))
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (Exception)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error submitting camp for approval." });
-            }
+            return Ok(updatedCamp);
         }
     }
 }
