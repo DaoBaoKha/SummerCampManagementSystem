@@ -1,4 +1,5 @@
-﻿using SummerCampManagementSystem.DAL.Models;
+﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public AccommodationActivityRepository(CampEaseDatabaseContext context) : base(context)
         {
             _context = context;
+        }
+
+        public async Task<IEnumerable<AccommodationActivitySchedule>> GetByAccommodationIdAsync(int accommodationId)
+        {
+            return await _context.AccommodationActivitySchedules
+                .Where(a => a.accommodationId == accommodationId)
+                .ToListAsync();
         }
     }
 }

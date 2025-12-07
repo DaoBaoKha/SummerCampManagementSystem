@@ -122,7 +122,17 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
+
             await _unitOfWork.Accommodations.RemoveAsync(accommodation);
+
+            var accommodationActivities = await _unitOfWork.AccommodationActivities
+                .GetByAccommodationIdAsync(accommodationId);
+
+            foreach (var accommodationActivity in accommodationActivities)
+            {
+                await _unitOfWork.AccommodationActivities.RemoveAsync(accommodationActivity);
+            }
+
             await _unitOfWork.CommitAsync();
             return true;
         }
