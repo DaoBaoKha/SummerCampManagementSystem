@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IUserAccountRepository UserAccounts { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRegistrationRepository Registrations { get; }
+        public IRegistrationCancelRepository RegistrationCancels { get; }
         public IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
         public IReportRepository Reports { get; }
         public IRouteRepository Routes { get; }
@@ -71,7 +72,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
             , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
-            , IBankUserRepository bankUsers
+            , IBankUserRepository bankUsers, IRegistrationCancelRepository registrationCancels
             )
         {
             _context = context;
@@ -110,6 +111,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             PromotionTypes = promotionTypes;
             ParentCampers = parentCampers;
             Registrations = registrations;
+            RegistrationCancels = registrationCancels;
             RegistrationOptionalActivities = registrationOptionalActivities;
             Routes = routes;
             RouteStops = routeStops;
