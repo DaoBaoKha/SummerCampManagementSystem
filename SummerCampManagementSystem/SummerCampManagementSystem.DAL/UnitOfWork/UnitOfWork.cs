@@ -8,6 +8,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
     {
         private readonly CampEaseDatabaseContext _context;
         public IAccommodationRepository Accommodations { get; }
+        public IAccommodationActivityRepository AccommodationActivities { get; }
         public IAccommodationTypeRepository AccommodationTypes { get; }
         public IActivityRepository Activities { get; }
         public IActivityScheduleRepository ActivitySchedules { get; }
@@ -15,10 +16,12 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IAlbumPhotoRepository AlbumPhotos { get; }
         public IAlbumPhotoFaceRepository AlbumPhotoFaces { get; }
         public IBlogRepository Blogs { get; }
+        public IBankUserRepository BankUsers { get; }
         public IUserRepository Users { get; }
         public IUserAccountRepository UserAccounts { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
         public IRegistrationRepository Registrations { get; }
+        public IRegistrationCancelRepository RegistrationCancels { get; }
         public IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
         public IReportRepository Reports { get; }
         public IRouteRepository Routes { get; }
@@ -70,10 +73,13 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
             , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
+            , IBankUserRepository bankUsers, IAccommodationActivityRepository accommodationActivities
+            , IRegistrationCancelRepository registrationCancels
             )
         {
             _context = context;
             Accommodations = accommodations;
+            AccommodationActivities = accommodationActivities;
             AccommodationTypes = accommodationTypes;
             Activities = activities;
             ActivitySchedules = activitySchedules;
@@ -82,6 +88,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             AlbumPhotoFaces = albumPhotoFaces;
             AttendanceLogs = attendanceLogs;
             Blogs = blogs;
+            BankUsers = bankUsers;
             Camps = campRepository;
             CampTypes = campTypes;
             CamperGroups = camperGroups;
@@ -107,6 +114,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             PromotionTypes = promotionTypes;
             ParentCampers = parentCampers;
             Registrations = registrations;
+            RegistrationCancels = registrationCancels;
             RegistrationOptionalActivities = registrationOptionalActivities;
             Routes = routes;
             RouteStops = routeStops;

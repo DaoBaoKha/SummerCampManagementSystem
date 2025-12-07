@@ -59,5 +59,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(ga => ga.group)
                 .ToListAsync();
         }
+
+        public async Task<Group?> GetGroupByCamperAndCamp(int camperId, int campId)
+        {
+            return await _context.CamperGroups
+                .Where(c => c.camperId == camperId && c.group.campId == campId)
+                .Select(c => c.group)
+                .FirstOrDefaultAsync();
+        }
     }
 }

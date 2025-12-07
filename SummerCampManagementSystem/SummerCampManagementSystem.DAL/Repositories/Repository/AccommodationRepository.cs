@@ -15,7 +15,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context = context;
         }
-
+        public async Task<IEnumerable<Accommodation>> GetByCampId(int campId)
+        {
+            return await _context.Accommodations
+                .Where(a => a.campId == campId)
+                .ToListAsync();
+        }
         public async Task<Accommodation?> GetBySupervisorIdAsync(int supervisorId, int campId)
         {
             return await _context.Accommodations

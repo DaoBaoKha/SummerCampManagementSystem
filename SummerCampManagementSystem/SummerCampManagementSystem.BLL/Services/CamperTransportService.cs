@@ -122,6 +122,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Using TimezoneHelper.GetVietnamNow() inside checkInTransitionLogic
                 checkInTransitionLogic(entity, request.Note);
 
+                // update RegistrationCamper status = transporting
+                var regCamper = await _unitOfWork.RegistrationCampers.GetByCamperId(entity.camperId);
+                if (regCamper != null && regCamper.status != RegistrationCamperStatus.Transporting.ToString())
+                {
+                    regCamper.status = RegistrationCamperStatus.Transporting.ToString(); 
+                    await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                }
+
                 await _unitOfWork.CamperTransports.UpdateAsync(entity);
             }
 
@@ -140,6 +148,17 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // check status, time integrity, and set time
                 checkOutTransitionLogic(entity, now, request.Note);
+
+                // update RegistrationCamper status = transported
+                if (entity.transportSchedule.transportType == TransportScheduleType.PickUp.ToString())
+                {
+                    var regCamper = await _unitOfWork.RegistrationCampers.GetByCamperId(entity.camperId);
+                    if (regCamper != null && regCamper.status != RegistrationCamperStatus.Transported.ToString())
+                    {
+                        regCamper.status = RegistrationCamperStatus.Transported.ToString(); 
+                        await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                    }
+                }
 
                 await _unitOfWork.CamperTransports.UpdateAsync(entity);
             }

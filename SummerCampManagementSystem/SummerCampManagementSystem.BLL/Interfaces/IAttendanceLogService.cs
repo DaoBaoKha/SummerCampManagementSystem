@@ -21,6 +21,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<object> CoreActivityAttendanceAsync(AttendanceLogListRequestDto dto, int staffId, bool commit = true);
         Task CreateAttendanceLogsForClosedCampsAsync();
         Task UpdateAttendanceLogAsync(List<AttendanceLogUpdateRequest> updates, int staffId);
+        Task UpdateAttendanceLogV2Async(AttendanceLogUpdateListRequest updates, int staffId);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetAttendedActivitiesByCamperId(int camperId);
         Task<IEnumerable<CamperSummaryDto>> GetAttendedCampersByActivityScheduleId(int activityScheduleId);
     }

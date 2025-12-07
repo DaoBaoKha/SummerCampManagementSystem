@@ -177,8 +177,6 @@ public partial class CampEaseDatabaseContext : DbContext
 
         modelBuilder.Entity<AccommodationActivitySchedule>(entity =>
         {
-            entity.Property(e => e.accommodationActivityScheduleId).ValueGeneratedNever();
-
             entity.HasOne(d => d.accommodation).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_Accommodation");
 
             entity.HasOne(d => d.activitySchedule).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_ActivitySchedule");
@@ -310,8 +308,6 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<CamperAccommodation>(entity =>
         {
             entity.HasKey(e => e.camperAccommodationId).HasName("PK__CamperAc__3784380FF16C0712");
-
-            entity.Property(e => e.assignedAt).HasDefaultValueSql("(getdate())");
 
             entity.HasOne(d => d.accommodation).WithMany(p => p.CamperAccommodations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -558,6 +554,8 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<RegistrationCancel>(entity =>
         {
             entity.HasKey(e => e.registrationCancelId).HasName("PK__Registra__1BFD300A16D0BB46");
+
+            entity.HasOne(d => d.bankUser).WithMany(p => p.RegistrationCancels).HasConstraintName("FK_RegistrationCancel_BankUser");
 
             entity.HasOne(d => d.registration).WithMany(p => p.RegistrationCancels).HasConstraintName("FK__Registrat__regis__73852659");
         });

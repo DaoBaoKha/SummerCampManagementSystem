@@ -71,6 +71,16 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(response);
         }
 
+        /// <summary>
+        /// get camper transport schedules filtered by camp ID
+        /// </summary>
+        [HttpGet("camper/{camperId}/camp/{campId}")]
+        [Authorize(Roles = "Admin, Manager, Parent")]
+        public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperAndCampId(int camperId, int campId)
+        {
+            var response = await _scheduleService.GetSchedulesByCamperAndCampIdAsync(camperId, campId);
+            return Ok(response);
+        }
 
         /// <summary>
         /// get list or search transport schedules

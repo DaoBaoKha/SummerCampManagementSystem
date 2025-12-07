@@ -10,5 +10,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<IEnumerable<Group>> GetByCampIdAsync(int campId);
         Task<Group?> GetGroupBySupervisorIdAsync(int supervisorId, int campId);
         Task<IEnumerable<Group>> GetGroupsByActivityScheduleIdAsync(int activityScheduleId);
+        Task<Group?> GetGroupByCamperAndCamp(int camperId, int campId);
     }
 }

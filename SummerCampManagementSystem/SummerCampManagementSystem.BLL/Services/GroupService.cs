@@ -126,6 +126,13 @@ namespace SummerCampManagementSystem.BLL.Services
                 ?? throw new KeyNotFoundException($"Camper Group with ID {id} not found."); 
 
             await _unitOfWork.Groups.RemoveAsync(existingGroup);
+
+            var groupActivities = await _unitOfWork.GroupActivities.GetByGroupId(id);
+            foreach (var ga in groupActivities)
+            {
+                await _unitOfWork.GroupActivities.RemoveAsync(ga);
+            }
+
             await _unitOfWork.CommitAsync();
 
             return true;

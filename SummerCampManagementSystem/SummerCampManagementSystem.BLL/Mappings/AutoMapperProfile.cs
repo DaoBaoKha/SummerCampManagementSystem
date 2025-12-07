@@ -7,6 +7,7 @@ using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Album;
 using SummerCampManagementSystem.BLL.DTOs.AlbumPhoto;
 using SummerCampManagementSystem.BLL.DTOs.AttendanceLog;
+using SummerCampManagementSystem.BLL.DTOs.BankUser;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
@@ -24,6 +25,7 @@ using SummerCampManagementSystem.BLL.DTOs.Livestream;
 using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
+using SummerCampManagementSystem.BLL.DTOs.Refund;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
@@ -440,6 +442,28 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 src.sender != null ? $"{src.sender.lastName} {src.sender.firstName}" : "Unknown"))
             .ForMember(dest => dest.Avatar, opt => opt.MapFrom(src =>
                 src.sender != null ? src.sender.avatar : string.Empty));
+
+            // BankUser Mappings
+            CreateMap<BankUserRequestDto, BankUser>();
+
+            CreateMap<BankUser, BankUserResponseDto>()
+                .ForMember(dest => dest.BankUserId, opt => opt.MapFrom(src => src.bankUserId))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
+                .ForMember(dest => dest.BankCode, opt => opt.MapFrom(src => src.bankCode))
+                .ForMember(dest => dest.BankName, opt => opt.MapFrom(src => src.bankName))
+                .ForMember(dest => dest.BankNumber, opt => opt.MapFrom(src => src.bankNumber))
+                .ForMember(dest => dest.IsPrimary, opt => opt.MapFrom(src => src.isPrimary))
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.isActive));
+
+            // Registration Cancel Mappings
+            CreateMap<CancelRequestDto, RegistrationCancel>()
+                .ForMember(dest => dest.refundAmount, opt => opt.Ignore())
+                .ForMember(dest => dest.requestDate, opt => opt.Ignore())
+                .ForMember(dest => dest.bankUserId, opt => opt.Ignore())
+                .ForMember(dest => dest.status, opt => opt.Ignore());
+
+            CreateMap<RegistrationCancel, RegistrationCancelResponseDto>()
+              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.status));
         }
     }
 }

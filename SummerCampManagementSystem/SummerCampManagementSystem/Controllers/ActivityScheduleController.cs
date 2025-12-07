@@ -125,6 +125,27 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
+        [HttpGet("attendances-checkin-checkout/camps/{campId}")]
+        public async Task<IActionResult> GetCheckInCheckoutByCampAndStaff(int campId)
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                var result = await _service.GetCheckInCheckoutByCampAndStaffAsync(campId, staffId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
         [HttpGet("camp/{campId}/camper/{camperId}")]
         public async Task<IActionResult> GetByCamperAndCamp(int campId, int camperId)
         {
@@ -253,6 +274,21 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
+
+        [HttpPut("change-status-to-pending-attendance")]
+        public async Task<IActionResult> ChangeActivityScheduleStatusToPendingAttendance()
+        {
+            try
+            {
+                await _service.ChangeActityScheduleToPendingAttendance();
+                return Ok(new { message = "Update Status to Pending Attendance Successfully !!!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
 
         [HttpPut("{activityScheduleId}/status")]
         public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)

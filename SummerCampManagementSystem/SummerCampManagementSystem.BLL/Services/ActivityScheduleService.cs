@@ -127,6 +127,9 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+
+            var accomodations = await _unitOfWork.Accommodations.GetByCampId(camp.campId);
+
             var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             if (dto.IsLiveStream == true && dto.StaffId == null)
@@ -165,20 +168,46 @@ namespace SummerCampManagementSystem.BLL.Services
                 await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
                 await _unitOfWork.CommitAsync();
 
-                foreach (var group in groups)
+                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
+
+                if(result == null)
                 {
-                    var groupActivity = new GroupActivity
-                    {
-                        groupId = group.groupId,
-                        activityScheduleId = schedule.activityScheduleId,
-                    };
-                    await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
+                    throw new InvalidOperationException("Failed to retrieve the created activity schedule.");
                 }
+
+                var activityType = result.activity.activityType;
+
+                if (activityType == ActivityType.Core.ToString() || activityType == ActivityType.Checkin.ToString()
+                    || activityType == ActivityType.Checkout.ToString())
+                {
+                    foreach (var group in groups)
+                    {
+                        var groupActivity = new GroupActivity
+                        {
+                            groupId = group.groupId,
+                            activityScheduleId = schedule.activityScheduleId,
+                        };
+                        await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
+                    }
+                }
+
+                if (activityType == ActivityType.Resting.ToString())
+                {
+                    foreach (var accomodation in accomodations)
+                    {
+                        var accomodationActivitySchedule = new AccommodationActivitySchedule
+                        {
+                            accommodationId = accomodation.accommodationId,
+                            activityScheduleId = schedule.activityScheduleId,
+                        };
+                        await _unitOfWork.AccommodationActivities.CreateAsync(accomodationActivitySchedule);
+                    }
+                }
+
                 await _unitOfWork.CommitAsync();
 
                 await transaction.CommitAsync();
 
-                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
                 return _mapper.Map<ActivityScheduleResponseDto>(result);
             }
             catch (Exception)
@@ -372,12 +401,29 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException("Camp not found.");
 
-            var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
+                ?? throw new KeyNotFoundException("Staff Not found");
+            
 
             var schedules = await _unitOfWork.ActivitySchedules.GetByCampAndStaffAsync(campId, staffId);
 
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
+
+
+        public async Task<IEnumerable<ActivityScheduleResponseDto>> GetCheckInCheckoutByCampAndStaffAsync(int campId, int staffId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException("Camp not found.");
+
+            var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
+                ?? throw new KeyNotFoundException("Staff Not found");
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetCheckInCheckoutByCampAndStaffAsync(campId, staffId);
+
+            return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
+        }
+
 
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
         {
@@ -559,6 +605,21 @@ namespace SummerCampManagementSystem.BLL.Services
                     )
                 {
                     schedule.status = ActivityScheduleStatus.Completed.ToString();
+                    await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                }
+            }
+            await _unitOfWork.CommitAsync();
+        }
+
+        public async Task ChangeActityScheduleToPendingAttendance()
+        {
+            var schedules = await _unitOfWork.ActivitySchedules.GetAllAsync();
+
+            foreach (var schedule in schedules)
+            {
+                if (schedule.status == ActivityScheduleStatus.NotYet.ToString())
+                {
+                    schedule.status = ActivityScheduleStatus.PendingAttendance.ToString();
                     await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
                 }
             }

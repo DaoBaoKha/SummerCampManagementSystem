@@ -107,6 +107,8 @@ else
 // DI
 builder.Services.AddScoped<IBlogService, BlogService>();
 builder.Services.AddScoped<IBlogRepository, BlogRepository>();
+builder.Services.AddScoped<IBankUserService, BankUserService>();
+builder.Services.AddScoped<IBankUserRepository, BankUserRepository>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICampService, CampService>();
 builder.Services.AddScoped<ICampRepository, CampRepository>();
@@ -185,9 +187,12 @@ builder.Services.AddScoped<ILiveStreamRepository, LiveStreamRepository>();
 builder.Services.AddScoped<ILiveStreamService, LiveStreamService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
+builder.Services.AddScoped<IRefundService, RefundService>();
+builder.Services.AddScoped<IRegistrationCancelRepository, RegistrationCancelRepository>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
+builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivityRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Chat service (DI for Hub)

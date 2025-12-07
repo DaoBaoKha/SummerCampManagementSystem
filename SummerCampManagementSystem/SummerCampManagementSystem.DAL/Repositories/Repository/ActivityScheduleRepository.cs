@@ -155,8 +155,30 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     (
                         (a.staffId == staffId && a.coreActivityId != null) ||
                         (a.staffId == staffId && a.activity.activityType == ActivityType.Resting.ToString()) ||
-                        a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
+                        (a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
+                            && a.activity.activityType != ActivityType.Checkin.ToString()
+                            && a.activity.activityType != ActivityType.Checkout.ToString()
+                        )
                     )
+                    && a.status.ToLower() == "pendingattendance"
+                    )
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetCheckInCheckoutByCampAndStaffAsync(int campId, int staffId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(a => a.activity)
+                .Include(a => a.staff)
+                .Include(s => s.livestream)
+                .Include(a => a.GroupActivities)
+                    .ThenInclude(ga => ga.group)
+                .Where(a =>
+                    a.activity.campId == campId
+                    && a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
+                    &&
+                    ( a.activity.activityType == ActivityType.Checkin.ToString() || a.activity.activityType == ActivityType.Checkout.ToString())
                     && a.status.ToLower() == "pendingattendance"
                     )
                 .ToListAsync();

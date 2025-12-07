@@ -83,12 +83,6 @@ namespace SummerCampManagementSystem.BLL.Services
                     .Include(r => r.camp) // get campId for assign group logic
                     .FirstOrDefaultAsync(r => r.registrationId == transaction.registrationId.Value);
 
-                // load Groups & CamperGroups to assign group
-                var groups = await _unitOfWork.Groups.GetQueryable()
-                    .Where(g => g.campId == registration.campId)
-                    .Include(g => g.CamperGroups)
-                    .ToListAsync();
-
                 // respond to the webhook based on the verification result
                 // successful payment
                 if (verifiedData.code == "00")
@@ -135,32 +129,64 @@ namespace SummerCampManagementSystem.BLL.Services
                             // change status from holding to confirmed
                             activity.status = "Confirmed";
                             await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
+
+                            // check duplicate in CamperActivity
+                            var existingCamperActivity = await _unitOfWork.CamperActivities.GetQueryable()
+                                .FirstOrDefaultAsync(ca => ca.camperId == activity.camperId &&
+                                                           ca.activityScheduleId == activity.activityScheduleId);
+
+                            if (existingCamperActivity == null)
+                            {
+                                var newCamperActivity = new CamperActivity
+                                {
+                                    camperId = activity.camperId,
+                                    activityScheduleId = activity.activityScheduleId,
+                                    participationStatus = "Approved"
+                                };
+                                await _unitOfWork.CamperActivities.CreateAsync(newCamperActivity);
+                            }
                         }
                     }
 
-                    // auto assign group
-                    List<int> unassignedCamperIds = new List<int>();
-
-                    // return camperId(s) with no group
                     if (registration.campId.HasValue && confirmedCamperIds.Any())
                     {
-                        unassignedCamperIds = await AssignCampersToGroupsAsync(registration.campId.Value, confirmedCamperIds, registration.RegistrationCampers, groups);
-                    }
+                        int campId = registration.campId.Value;
 
-                    // update status based on group assign result
-                    if (unassignedCamperIds.Any())
-                    {
-                        // update status of each camper to PendingAssignGroup
-                        foreach (var camperLink in registration.RegistrationCampers)
+                        // load groups
+                        var groups = await _unitOfWork.Groups.GetQueryable()
+                            .Where(g => g.campId == campId)
+                            .Include(g => g.CamperGroups)
+                            .ToListAsync();
+
+                        // auto assign group
+                        var unassignedGroupCamperIds = await AssignCampersToGroupsAsync(campId, confirmedCamperIds, registration.RegistrationCampers, groups);
+
+
+                        // get accommodations
+                        var accommodations = await _unitOfWork.Accommodations.GetQueryable()
+                            .Where(a => a.campId == campId && a.isActive == true)
+                            .Include(a => a.CamperAccommodations)
+                            .ToListAsync();
+
+                        // auto assign accommodation
+                        var unassignedAccCamperIds = await AssignCampersToAccommodationsAsync(campId, confirmedCamperIds, accommodations);
+
+
+                        // update status camper if no group or no accommodation assigned
+                        if (unassignedGroupCamperIds.Any())
                         {
-                            if (unassignedCamperIds.Contains(camperLink.camperId))
+                            foreach (var camperLink in registration.RegistrationCampers)
                             {
-                                camperLink.status = RegistrationCamperStatus.PendingAssignGroup.ToString();
-                                await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                                if (unassignedGroupCamperIds.Contains(camperLink.camperId))
+                                {
+                                    camperLink.status = RegistrationCamperStatus.PendingAssignGroup.ToString();
+                                    await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                                }
                             }
-                            // if has group -> status still Confirmed
                         }
                     }
+
+
                     // if no unassignedCamperIds -> all status = Confirmed
 
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
@@ -413,6 +439,46 @@ namespace SummerCampManagementSystem.BLL.Services
 
             return unassignedCamperIds; // return list camperIds with no group
         }
+
+        private async Task<List<int>> AssignCampersToAccommodationsAsync(int campId, List<int> camperIds, List<Accommodation> availableAccommodations)
+        {
+            if (!availableAccommodations.Any()) return camperIds;
+
+            var newCamperAccommodations = new List<CamperAccommodation>();
+            var unassignedCamperIds = new List<int>();
+
+            foreach (var camperId in camperIds)
+            {
+                // logic "First Come First Served"
+                var suitableAccommodation = availableAccommodations
+                    .FirstOrDefault(a => a.capacity > a.CamperAccommodations.Count);
+
+                if (suitableAccommodation != null)
+                {
+                    var mapping = new CamperAccommodation
+                    {
+                        camperId = camperId,
+                        accommodationId = suitableAccommodation.accommodationId,
+                        status = "Active", 
+                    };
+
+                    newCamperAccommodations.Add(mapping);
+
+                    suitableAccommodation.CamperAccommodations.Add(mapping);
+                }
+                else
+                {
+                    unassignedCamperIds.Add(camperId); // no suitable accommodation
+                }
+            }
+
+            if (newCamperAccommodations.Any())
+            {
+                await _unitOfWork.CamperAccommodations.AddRangeAsync(newCamperAccommodations);
+            }
+
+            return unassignedCamperIds;
+        }        
 
         #endregion
     }

@@ -103,9 +103,40 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             try
             {
-                var staffId = _userContextService.GetCurrentUserId();
-                await _attendanceLogService.UpdateAttendanceLogAsync(updates, staffId.Value);
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                await _attendanceLogService.UpdateAttendanceLogAsync(updates, staffId);
                 return NoContent();
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+
+        [Authorize(Roles = "Staff")]
+        [HttpPut("v2")]
+        public async Task<IActionResult> Update([FromBody] AttendanceLogUpdateListRequest updates)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                await _attendanceLogService.UpdateAttendanceLogV2Async(updates, staffId);
+                return Ok(new {message = "Điểm danh thành công"});
             }
             catch (KeyNotFoundException ex)
             {
