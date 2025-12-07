@@ -406,6 +406,27 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<CampResponseDto>(camp);
         }
 
+        public async Task<CampResponseDto> UpdateCampStatusNoValidationAsync(int campId, CampStatus newStatus)
+        {
+            var existingCamp = await _unitOfWork.Camps.GetByIdAsync(campId);
+
+            if (existingCamp == null)
+            {
+                throw new NotFoundException($"Camp with ID {campId} not found.");
+            }
+
+            existingCamp.status = newStatus.ToString();
+
+            await _unitOfWork.Camps.UpdateAsync(existingCamp);
+            await _unitOfWork.CommitAsync();
+
+            // get updated camp with includes
+            var updatedCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId);
+
+            return _mapper.Map<CampResponseDto>(updatedCamp);
+        }
+
         #region Scheduled Status Transitions
 
         public async Task RunScheduledStatusTransitionsAsync()

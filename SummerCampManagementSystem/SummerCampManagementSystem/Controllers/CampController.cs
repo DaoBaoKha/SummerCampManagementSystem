@@ -154,5 +154,19 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(updatedCamp);
         }
+
+        /// <summary>
+        /// [ADMIN] Update camp status without validation checks
+        /// </summary>
+        [HttpPatch("{campId}/test-status")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<CampResponseDto>> UpdateCampStatusNoValidation(int campId, [FromBody] CampStatusUpdateRequestDto statusUpdate)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var updatedCamp = await _campService.UpdateCampStatusNoValidationAsync(campId, statusUpdate.Status);
+            return Ok(updatedCamp);
+        }
     }
 }
