@@ -507,7 +507,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     IEnumerable<CamperSummaryDto> campers;
 
-                    if (activity.activity.activityType == ActivityType.Core.ToString())
+                    if (activity.activity.activityType == ActivityType.Core.ToString() || activity.activity.activityType == ActivityType.Checkin.ToString()
+                        ||activity.activity.activityType == ActivityType.Checkout.ToString())
                     {
                         // Core activity: lấy tất cả camper trong group (API đã xử lý logic optional)
                         campers = await _camperService.GetCampersByCoreActivityIdAsync(activity.activityScheduleId);
