@@ -311,8 +311,6 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.camperAccommodationId).HasName("PK__CamperAc__3784380FF16C0712");
 
-            entity.Property(e => e.assignedAt).HasDefaultValueSql("(getdate())");
-
             entity.HasOne(d => d.accommodation).WithMany(p => p.CamperAccommodations)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_CamperAccommodation_Accommodation");
