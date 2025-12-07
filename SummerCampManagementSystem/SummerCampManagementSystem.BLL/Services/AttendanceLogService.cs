@@ -408,8 +408,10 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
 
-        public async Task UpdateAttendanceLogAsync(AttendanceLogUpdateListRequest updates, int staffId)
+        public async Task UpdateAttendanceLogV2Async(AttendanceLogUpdateListRequest updates, int staffId)
         {
+            
+
             if (updates.AttendanceLogs == null || updates.AttendanceLogs.Count == 0)
                 return;
 
@@ -420,6 +422,16 @@ namespace SummerCampManagementSystem.BLL.Services
                 .Where(l => logIds.Contains(l.attendanceLogId))
                 .ToListAsync();
 
+            var activityScheduleIds = logs
+                 .Select(l => l.activityScheduleId)
+                 .Distinct()
+                 .ToList();
+
+            var schedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                .Where(s => activityScheduleIds.Contains(s.activityScheduleId))
+                .Include(s => s.activity)
+                .ToListAsync();
+
             foreach (var log in logs)
             {
                 var req = updates.AttendanceLogs.First(u => u.AttendanceLogId == log.attendanceLogId);
@@ -427,13 +439,58 @@ namespace SummerCampManagementSystem.BLL.Services
                 log.timestamp = DateTime.UtcNow;
                 log.staffId = staffId;
                 log.note = req.Note;
+
                 await _unitOfWork.AttendanceLogs.UpdateAsync(log);
 
+                var schedule = schedules.First(s => s.activityScheduleId == log.activityScheduleId);
+
+                if (schedule.activity.activityType == ActivityType.Checkin.ToString() ||
+                    schedule.activity.activityType == ActivityType.Checkout.ToString())
+                {
+                    // Bỏ qua nếu camper vẫn NotYet
+                    if (req.participantStatus != ParticipationStatus.NotYet)
+                    {
+                        var regisCamper = await _unitOfWork.RegistrationCampers.GetQueryable()
+                            .FirstOrDefaultAsync(r => r.camperId == log.camperId && r.registration.campId == schedule.activity.campId);
+
+                        if (regisCamper != null)
+                        {
+                            if (schedule.activity.activityType == ActivityType.Checkin.ToString())
+                                regisCamper.status = RegistrationCamperStatus.CheckedIn.ToString();
+
+                            if (schedule.activity.activityType == ActivityType.Checkout.ToString())
+                                regisCamper.status = RegistrationCamperStatus.CheckedOut.ToString();
+
+                            await _unitOfWork.RegistrationCampers.UpdateAsync(regisCamper);
+                        }
+                    }
+                }
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            foreach (var activityScheduleId in activityScheduleIds)
+            {
+                bool hasNotYet = await _unitOfWork.AttendanceLogs.GetQueryable()
+                    .AnyAsync(l => l.activityScheduleId == activityScheduleId &&
+                                   l.participantStatus == ParticipationStatus.NotYet.ToString());
+
+                if (!hasNotYet)
+                {
+                    var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId.Value);
+                    if (schedule != null && schedule.status != ActivityScheduleStatus.AttendanceChecked.ToString())
+                    {
+                        schedule.status = ActivityScheduleStatus.AttendanceChecked.ToString();
+                        await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                    }
+                }
             }
 
             await _unitOfWork.CommitAsync();
         }
 
+
+       
         public async Task CreateAttendanceLogsForClosedCampsAsync()
         {
             // 1. Lấy tất cả camp đang RegistrationClosed
