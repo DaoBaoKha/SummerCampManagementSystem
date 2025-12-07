@@ -32,6 +32,9 @@ public partial class BankUser
 
     public bool? isActive { get; set; }
 
+    [InverseProperty("bankUser")]
+    public virtual ICollection<RegistrationCancel> RegistrationCancels { get; set; } = new List<RegistrationCancel>();
+
     [ForeignKey("userId")]
     [InverseProperty("BankUsers")]
     public virtual UserAccount user { get; set; }

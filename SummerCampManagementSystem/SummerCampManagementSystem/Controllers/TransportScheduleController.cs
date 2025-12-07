@@ -7,7 +7,7 @@ using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/transportschedules")]
+    [Route("api/transport-schedules")]
     [ApiController]
     public class TransportScheduleController : ControllerBase
     {
@@ -78,7 +78,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// <param name="searchDto"></param>
         /// <returns></returns>
         [HttpGet]
-        [Authorize(Roles = "Admin, Manager")]
+        [Authorize(Roles = "Admin, Manager, User")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)
         {
             // check if any search criteria is provided

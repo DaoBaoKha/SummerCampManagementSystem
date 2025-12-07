@@ -19,6 +19,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[AccommodationActivitySchedule]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[AccommodationType]",
          "ObjectType": 0
       },

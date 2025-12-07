@@ -61,7 +61,16 @@ namespace SummerCampManagementSystem.API.Controllers
         [ProducesResponseType(typeof(Dictionary<int, int>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetLoadedCamps()
         {
-            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync();
+            // Extract user's JWT token from Authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var userToken = authHeader.Replace("Bearer ", "").Trim();
+
+            if (string.IsNullOrEmpty(userToken))
+            {
+                return Unauthorized(new { success = false, message = "No authentication token provided" });
+            }
+
+            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync(userToken);
             return Ok(new
             {
                 success = true,
@@ -249,6 +258,15 @@ namespace SummerCampManagementSystem.API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> RecognizeFaces([FromForm] RecognizeFaceRequest request)
         {
+            // Extract user's JWT token from Authorization header
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var userToken = authHeader.Replace("Bearer ", "").Trim();
+
+            if (string.IsNullOrEmpty(userToken))
+            {
+                return Unauthorized(new { success = false, message = "No authentication token provided" });
+            }
+
             if (request.Photo == null || request.Photo.Length == 0)
             {
                 return BadRequest(new { success = false, message = "Photo file is required" });
@@ -301,11 +319,11 @@ namespace SummerCampManagementSystem.API.Controllers
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             // Check if face database is already loaded (FAST - just HTTP call, no download)
-            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync();
+            var loadedCamps = await _pythonAiService.GetLoadedCampsAsync(userToken);
             if (!loadedCamps.ContainsKey(campId) || loadedCamps[campId] == 0)
             {
                 _logger.LogInformation("Face database not loaded for Camp {CampId}, loading now...", campId);
-                var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId);
+                var loadResult = await _pythonAiService.LoadCampFaceDbAsync(campId, userToken);
                 if (!loadResult.Success)
                 {
                     _logger.LogError("Failed to load face database for Camp {CampId}: {Message}", campId, loadResult.Message);
@@ -328,7 +346,7 @@ namespace SummerCampManagementSystem.API.Controllers
             _logger.LogInformation("Preprocessing completed in {Time}ms, starting recognition...", preprocessingTime);
 
             stopwatch.Restart();
-            var result = await _pythonAiService.RecognizeAsync(request);
+            var result = await _pythonAiService.RecognizeAsync(request, userToken);
             stopwatch.Stop();
 
             _logger.LogInformation(
@@ -358,63 +376,110 @@ namespace SummerCampManagementSystem.API.Controllers
                     result.RecognizedCampers.Count,
                     request.ActivityScheduleId);
 
-                // ✅ OPTIMIZATION: Batch query - fetch ALL attendance logs in ONE database call
-                var camperIds = result.RecognizedCampers
-                    .Where(rc => rc.CamperId > 0)
-                    .Select(rc => rc.CamperId)
-                    .ToList();
-
-                var existingLogs = await _unitOfWork.AttendanceLogs
-                    .GetQueryable()
-                    .Where(al => camperIds.Contains(al.camperId)
-                              && al.activityScheduleId == request.ActivityScheduleId)
-                    .ToDictionaryAsync(al => al.camperId);
-
-                var currentTime = DateTime.UtcNow;
-
-                // ✅ OPTIMIZATION: Prepare batch updates in memory
-                foreach (var recognizedCamper in result.RecognizedCampers)
+                try
                 {
-                    if (recognizedCamper.CamperId <= 0)
+                    // ✅ OPTIMIZATION: Batch query - fetch ALL attendance logs in ONE database call
+                    var camperIds = result.RecognizedCampers
+                        .Where(rc => rc.CamperId > 0)
+                        .Select(rc => rc.CamperId)
+                        .ToList();
+
+                    _logger.LogInformation("Fetching attendance logs for {CamperCount} campers...", camperIds.Count);
+
+                    // Fetch all attendance logs for these campers in this activity schedule
+                    var existingLogsList = await _unitOfWork.AttendanceLogs
+                        .GetQueryable()
+                        .Where(al => camperIds.Contains(al.camperId)
+                                  && al.activityScheduleId == request.ActivityScheduleId)
+                        .ToListAsync();
+
+                    _logger.LogInformation("Fetched {LogCount} existing attendance logs from database", existingLogsList.Count);
+
+                    // Handle duplicates: Group by camperId and take the first log for each camper
+                    var existingLogs = existingLogsList
+                        .GroupBy(al => al.camperId)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.First()
+                        );
+
+                    if (existingLogsList.Count != existingLogs.Count)
                     {
-                        _logger.LogWarning("Skipping attendance log for invalid CamperId: {CamperId}", recognizedCamper.CamperId);
-                        continue;
+                        _logger.LogWarning("⚠️ Found {DuplicateCount} duplicate attendance logs that were deduplicated",
+                            existingLogsList.Count - existingLogs.Count);
                     }
 
-                    // O(1) dictionary lookup instead of database query
-                    if (existingLogs.TryGetValue(recognizedCamper.CamperId, out var existingLog))
-                    {
-                        // UPDATE existing log in memory
-                        existingLog.participantStatus = "Present";
-                        existingLog.timestamp = currentTime;
-                        existingLog.checkInMethod = "FaceRecognition";
-                        existingLog.eventType = "CheckIn";
-                        existingLog.staffId = staffId;
-                        existingLog.note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}";
+                    var currentTime = DateTime.UtcNow;
 
-                        await _unitOfWork.AttendanceLogs.UpdateAsync(existingLog);
-                        updatedCount++;
-                    }
-                    else
+                    // ✅ OPTIMIZATION: Prepare batch updates in memory
+                    foreach (var recognizedCamper in result.RecognizedCampers)
                     {
-                        // ERROR: No pre-existing log found
-                        notFoundCount++;
-                        notFoundCampers.Add(recognizedCamper.CamperId);
-                        _logger.LogWarning("❌ No pre-existing AttendanceLog found for Camper {CamperId} in ActivitySchedule {ActivityScheduleId}",
-                            recognizedCamper.CamperId, request.ActivityScheduleId);
+                        if (recognizedCamper.CamperId <= 0)
+                        {
+                            _logger.LogWarning("Skipping attendance log for invalid CamperId: {CamperId}", recognizedCamper.CamperId);
+                            continue;
+                        }
+
+                        // O(1) dictionary lookup instead of database query
+                        if (existingLogs.TryGetValue(recognizedCamper.CamperId, out var existingLog))
+                        {
+                            // UPDATE existing log in memory
+                            existingLog.participantStatus = "Present";
+                            existingLog.timestamp = currentTime;
+                            existingLog.checkInMethod = "FaceRecognition";
+                            existingLog.eventType = "CheckIn";
+                            existingLog.staffId = staffId;
+                            existingLog.note = $"Face detected with {recognizedCamper.Confidence:P2} confidence. Session: {result.SessionId}";
+
+                            await _unitOfWork.AttendanceLogs.UpdateAsync(existingLog);
+                            updatedCount++;
+                        }
+                        else
+                        {
+                            // ERROR: No pre-existing log found
+                            notFoundCount++;
+                            notFoundCampers.Add(recognizedCamper.CamperId);
+                            _logger.LogWarning("❌ No pre-existing AttendanceLog found for Camper {CamperId} in ActivitySchedule {ActivityScheduleId}",
+                                recognizedCamper.CamperId, request.ActivityScheduleId);
+                        }
                     }
+                }
+                catch (Exception dbFetchEx)
+                {
+                    _logger.LogError(dbFetchEx, "❌ Database query failed while fetching attendance logs");
+                    return StatusCode(500, new
+                    {
+                        success = false,
+                        message = $"Face recognition succeeded but database query failed: {dbFetchEx.Message}",
+                        recognitionResult = result
+                    });
                 }
 
                 if (updatedCount > 0)
                 {
-                    // Update activity schedule status
-                    activitySchedule.status = "AttendanceChecked";
-                    await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
+                    try
+                    {
+                        // Update activity schedule status
+                        activitySchedule.status = "AttendanceChecked";
+                        await _unitOfWork.ActivitySchedules.UpdateAsync(activitySchedule);
 
-                    // ✅ OPTIMIZATION: Single transaction commit for all updates
-                    await _unitOfWork.CommitAsync();
-                    _logger.LogInformation("✅ Batch updated {UpdatedCount} attendance logs in single transaction (NotFound: {NotFoundCount})",
-                        updatedCount, notFoundCount);
+                        // ✅ OPTIMIZATION: Single transaction commit for all updates
+                        await _unitOfWork.CommitAsync();
+                        _logger.LogInformation("✅ Batch updated {UpdatedCount} attendance logs in single transaction (NotFound: {NotFoundCount})",
+                            updatedCount, notFoundCount);
+                    }
+                    catch (Exception dbEx)
+                    {
+                        _logger.LogError(dbEx, "❌ Database commit failed after successful face recognition. UpdatedCount: {UpdatedCount}", updatedCount);
+                        return StatusCode(500, new
+                        {
+                            success = false,
+                            message = $"Face recognition succeeded but database update failed: {dbEx.Message}",
+                            recognitionResult = result,
+                            updatedCount = 0,
+                            notFoundCount = notFoundCount
+                        });
+                    }
                 }
                 else
                 {

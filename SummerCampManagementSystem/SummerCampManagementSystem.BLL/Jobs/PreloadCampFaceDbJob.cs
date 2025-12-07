@@ -36,8 +36,11 @@ namespace SummerCampManagementSystem.BLL.Jobs
 
             try
             {
+                // Generate service token for background job (no user context)
+                var serviceToken = _pythonAiService.GenerateJwtToken();
+
                 // Call Python AI service to load face database
-                var result = await _pythonAiService.LoadCampFaceDbAsync(campId, forceReload);
+                var result = await _pythonAiService.LoadCampFaceDbAsync(campId, serviceToken, forceReload);
 
                 if (result.Success)
                 {

@@ -17,10 +17,32 @@ public partial class RegistrationCancel
 
     public int? registrationId { get; set; }
 
+    public int? bankUserId { get; set; }
+
+    [Column(TypeName = "decimal(18, 0)")]
+    public decimal? refundAmount { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? requestDate { get; set; }
+
+    [Column(TypeName = "datetime")]
+    public DateTime? approvalDate { get; set; }
+
+    public string note { get; set; }
+
+    [StringLength(50)]
+    public string status { get; set; }
+
     public string reason { get; set; }
 
-    [StringLength(255)]
     public string imageRefund { get; set; }
+
+    [StringLength(255)]
+    public string transactionCode { get; set; }
+
+    [ForeignKey("bankUserId")]
+    [InverseProperty("RegistrationCancels")]
+    public virtual BankUser bankUser { get; set; }
 
     [ForeignKey("registrationId")]
     [InverseProperty("RegistrationCancels")]
