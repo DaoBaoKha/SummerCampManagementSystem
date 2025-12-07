@@ -40,5 +40,47 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(result);
         }
+
+        /// <summary>
+        /// Get all refund requests with optional filtering
+        /// </summary>
+        /// <param name="filter"></param>
+        /// <returns></returns>
+        [HttpGet("requests")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetAllRefundRequests([FromQuery] RefundRequestFilterDto filter)
+        {
+            var results = await _refundService.GetAllRefundRequestsAsync(filter);
+
+            return Ok(results);
+        }
+
+        [HttpPost("approve")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> ApproveRefund([FromForm] ApproveRefundDto dto)
+        {
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+
+            var result = await _refundService.ApproveRefundAsync(dto);
+
+            result.RequestDate = result.RequestDate.ToVietnamTime();
+
+            return Ok(result);
+        }
+
+        [HttpPost("reject")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> RejectRefund([FromBody] RejectRefundDto dto)
+        {
+            if (!ModelState.IsValid) 
+                return BadRequest(ModelState);
+
+            var result = await _refundService.RejectRefundAsync(dto);
+
+            result.RequestDate = result.RequestDate.ToVietnamTime();
+
+            return Ok(result);
+        }
     }
 }
