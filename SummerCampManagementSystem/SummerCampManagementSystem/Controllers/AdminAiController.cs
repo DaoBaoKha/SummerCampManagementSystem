@@ -20,7 +20,7 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/admin/ai")]
     [ApiController]
-    [Authorize(Roles = "Admin,Manager")]
+    [Authorize(Roles = "Admin,Manager,Staff")]
     public class AdminAiController : ControllerBase
     {
         private readonly IPythonAiService _pythonAiService;
