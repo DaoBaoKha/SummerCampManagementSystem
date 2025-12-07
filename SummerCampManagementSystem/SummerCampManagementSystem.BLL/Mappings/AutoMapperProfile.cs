@@ -25,6 +25,7 @@ using SummerCampManagementSystem.BLL.DTOs.Livestream;
 using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
 using SummerCampManagementSystem.BLL.DTOs.PromotionType;
+using SummerCampManagementSystem.BLL.DTOs.Refund;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationOptionalActivity;
@@ -452,7 +453,17 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.BankName, opt => opt.MapFrom(src => src.bankName))
                 .ForMember(dest => dest.BankNumber, opt => opt.MapFrom(src => src.bankNumber))
                 .ForMember(dest => dest.IsPrimary, opt => opt.MapFrom(src => src.isPrimary))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.isActive)); 
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.isActive));
+
+            // Registration Cancel Mappings
+            CreateMap<CancelRequestDto, RegistrationCancel>()
+                .ForMember(dest => dest.refundAmount, opt => opt.Ignore())
+                .ForMember(dest => dest.requestDate, opt => opt.Ignore())
+                .ForMember(dest => dest.bankUserId, opt => opt.Ignore())
+                .ForMember(dest => dest.status, opt => opt.Ignore());
+
+            CreateMap<RegistrationCancel, RegistrationCancelResponseDto>()
+              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.status));
         }
     }
 }

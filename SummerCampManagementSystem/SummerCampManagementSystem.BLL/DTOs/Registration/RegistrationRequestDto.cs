@@ -22,7 +22,10 @@
     public class TransportChoiceDto
     {
         public int CamperId { get; set; }
-        public bool RequestTransport { get; set; }
+        public int TransportScheduleId { get; set; }
+        public int LocationId { get; set; }
+
+
     }
 
     public class UpdateRegistrationRequestDto

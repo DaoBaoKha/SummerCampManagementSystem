@@ -312,14 +312,53 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
             }
 
-            // check transport choices
-            if (request.TransportChoices != null)
+            // validate transport choices
+            var transportScheduleIds = request.TransportChoices?.Select(t => t.TransportScheduleId).Distinct().ToList() ?? new List<int>();
+            var locationIds = request.TransportChoices?.Select(t => t.LocationId).Distinct().ToList() ?? new List<int>();
+
+            // get schedules and locations from db
+            var schedules = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(t => transportScheduleIds.Contains(t.transportScheduleId))
+                .Include(t => t.route).ThenInclude(r => r.RouteStops)
+                .Include(t => t.vehicle)
+                .Include(t => t.CamperTransports) 
+                .ToListAsync();
+
+            var locations = await _unitOfWork.Locations.GetQueryable()
+                .Where(l => locationIds.Contains(l.locationId))
+                .ToListAsync();
+
+            if (request.TransportChoices != null && request.TransportChoices.Any())
             {
                 foreach (var choice in request.TransportChoices)
                 {
                     if (!validCamperIds.Contains(choice.CamperId))
                     {
-                        throw new InvalidOperationException($"Camper ID {choice.CamperId} không thuộc đơn đăng ký này (Registration ID: {registrationId}).");
+                        throw new InvalidOperationException($"Camper ID {choice.CamperId} trong danh sách đưa đón không thuộc đơn đăng ký này.");
+                    }
+
+                    // validate Schedule
+                    var schedule = schedules.FirstOrDefault(s => s.transportScheduleId == choice.TransportScheduleId);
+                    if (schedule == null)
+                        throw new KeyNotFoundException($"Không tìm thấy lịch trình vận chuyển ID {choice.TransportScheduleId}.");
+
+                    if (schedule.campId != registration.campId)
+                        throw new InvalidOperationException($"Lịch trình vận chuyển {choice.TransportScheduleId} không thuộc về trại của đơn đăng ký.");
+
+                    // validate location (pickup point)
+                    var location = locations.FirstOrDefault(l => l.locationId == choice.LocationId);
+                    if (location == null)
+                        throw new KeyNotFoundException($"Không tìm thấy điểm đón ID {choice.LocationId}.");
+
+                    // check if location in transportSchedule route
+                    var isValidStop = schedule.route?.RouteStops.Any(rs => rs.locationId == choice.LocationId) ?? false;
+                    if (!isValidStop)
+                        throw new InvalidOperationException($"Điểm đón {location.name} không nằm trong tuyến đường của lịch trình {choice.TransportScheduleId}.");
+
+                    // check capacity
+                    if (schedule.vehicle != null && schedule.vehicle.capacity <= schedule.CamperTransports.Count)
+                    {
+                        throw new InvalidOperationException($"Lịch trình {choice.TransportScheduleId} đã hết chỗ.");
                     }
                 }
             }
@@ -444,28 +483,56 @@ namespace SummerCampManagementSystem.BLL.Services
                         }
                     }
 
-                    // transport choices
+
+                    // TRANSPORT CHOICES
+                    // reset all requestTransport = false
+                    foreach (var rc in registration.RegistrationCampers)
+                    {
+                        rc.requestTransport = false;
+                        await _unitOfWork.RegistrationCampers.UpdateAsync(rc);
+                    }
+
+                    // remove old pending/assigned transports for this registration to avoid duplicates or stale data
+                    var oldTransports = await _unitOfWork.CamperTransports.GetQueryable()
+                        .Where(ct => registration.RegistrationCampers.Select(rc => rc.camperId).Contains(ct.camperId) &&
+                                     ct.transportSchedule.campId == registration.campId &&
+                                     ct.status == CamperTransportStatus.Assigned.ToString())
+                        .ToListAsync();
+
+                    if (oldTransports.Any())
+                    {
+                        _unitOfWork.CamperTransports.RemoveRange(oldTransports);
+                    }
+
+                    // new choices
                     if (request.TransportChoices != null && request.TransportChoices.Any())
                     {
                         foreach (var choice in request.TransportChoices)
                         {
-                            // find camper in registration
+                            // update requestTransport
                             var registrationCamper = registration.RegistrationCampers
                                 .FirstOrDefault(rc => rc.camperId == choice.CamperId);
 
-                            // if found -> update 
                             if (registrationCamper != null)
                             {
-                                // only update if != null
-                                if (registrationCamper.requestTransport != choice.RequestTransport)
-                                {
-                                    registrationCamper.requestTransport = choice.RequestTransport;
+                                registrationCamper.requestTransport = true;
+                                await _unitOfWork.RegistrationCampers.UpdateAsync(registrationCamper);
 
-                                    await _unitOfWork.RegistrationCampers.UpdateAsync(registrationCamper);
-                                }
+                                // create new camperTransport 
+                                var newCamperTransport = new CamperTransport
+                                {
+                                    camperId = choice.CamperId,
+                                    transportScheduleId = choice.TransportScheduleId,
+                                    stopLocationId = choice.LocationId,
+                                    status = CamperTransportStatus.Assigned.ToString(),
+                                    isAbsent = false,
+                                };
+
+                                await _unitOfWork.CamperTransports.CreateAsync(newCamperTransport);
                             }
                         }
                     }
+
 
 
                     // calculate price

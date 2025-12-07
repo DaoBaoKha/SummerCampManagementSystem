@@ -20,6 +20,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IUserAccountRepository UserAccounts { get; }
         IRefreshTokenRepository RefreshTokens { get; }
         IRegistrationRepository Registrations { get; }
+        IRegistrationCancelRepository RegistrationCancels { get; }
         IRegistrationOptionalActivityRepository RegistrationOptionalActivities { get; }
         IRouteRepository Routes { get; }
         IRouteStopRepository RouteStops { get; }
