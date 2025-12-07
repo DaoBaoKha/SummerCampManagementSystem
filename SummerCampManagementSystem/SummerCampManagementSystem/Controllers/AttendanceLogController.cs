@@ -103,8 +103,9 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             try
             {
-                var staffId = _userContextService.GetCurrentUserId();
-                await _attendanceLogService.UpdateAttendanceLogAsync(updates, staffId.Value);
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                await _attendanceLogService.UpdateAttendanceLogAsync(updates, staffId);
                 return NoContent();
             }
             catch (KeyNotFoundException ex)
@@ -122,9 +123,9 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        //[Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff")]
         [HttpPut("v2")]
-        public async Task<IActionResult> Update([FromBody] AttendanceLogUpdateListRequest updates, int staffId)
+        public async Task<IActionResult> Update([FromBody] AttendanceLogUpdateListRequest updates)
         {
             if (!ModelState.IsValid)
             {
@@ -132,7 +133,8 @@ namespace SummerCampManagementSystem.API.Controllers
             }
             try
             {
-                //var staffId = _userContextService.GetCurrentUserId();
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
                 await _attendanceLogService.UpdateAttendanceLogV2Async(updates, staffId);
                 return Ok(new {message = "Điểm danh thành công"});
             }

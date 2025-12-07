@@ -180,7 +180,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
                     }
                 }
-                   
+
                 await _unitOfWork.CommitAsync();
 
                 await transaction.CommitAsync();

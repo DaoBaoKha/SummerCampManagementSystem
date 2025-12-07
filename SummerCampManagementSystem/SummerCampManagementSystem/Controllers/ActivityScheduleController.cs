@@ -104,14 +104,14 @@ namespace SummerCampManagementSystem.API.Controllers
         /// cái get này sẽ get những optional activity schedule mà staff đó đc phân hoặc core activity schedule của group mà có quản lý
         /// </remarks>
 
-        //[Authorize(Roles = "Staff")]
+        [Authorize(Roles = "Staff")]
         [HttpGet("attendances/camps/{campId}")]
-        public async Task<IActionResult> GetByCampAndStaff(int campId, int staffId)
+        public async Task<IActionResult> GetByCampAndStaff(int campId)
         {
             try
             {
-                //var staffId = _userContextService.GetCurrentUserId()
-                //    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
                 var result = await _service.GetByCampAndStaffAsync(campId, staffId);
                 return Ok(result);
             }
@@ -125,13 +125,14 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
         [HttpGet("attendances-checkin-checkout/camps/{campId}")]
-        public async Task<IActionResult> GetCheckInCheckoutByCampAndStaff(int campId, int staffId)
+        public async Task<IActionResult> GetCheckInCheckoutByCampAndStaff(int campId)
         {
             try
             {
-                //var staffId = _userContextService.GetCurrentUserId()
-                //    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
                 var result = await _service.GetCheckInCheckoutByCampAndStaffAsync(campId, staffId);
                 return Ok(result);
             }
