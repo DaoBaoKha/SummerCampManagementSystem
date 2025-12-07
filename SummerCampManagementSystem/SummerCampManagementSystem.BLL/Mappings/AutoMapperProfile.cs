@@ -461,6 +461,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.requestDate, opt => opt.Ignore())
                 .ForMember(dest => dest.bankUserId, opt => opt.Ignore())
                 .ForMember(dest => dest.status, opt => opt.Ignore());
+
+            CreateMap<RegistrationCancel, RegistrationCancelResponseDto>()
+              .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.status));
         }
     }
 }

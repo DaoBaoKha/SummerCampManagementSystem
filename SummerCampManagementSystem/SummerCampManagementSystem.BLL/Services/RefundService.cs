@@ -7,7 +7,6 @@ using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
-using Supabase.Gotrue;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -16,12 +15,14 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
+        private readonly IUploadSupabaseService _uploadService;
 
-        public RefundService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService)
+        public RefundService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, IUploadSupabaseService uploadService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContextService = userContextService;
+            _uploadService = uploadService;
         }
 
         public async Task<RefundCalculationDto> CalculateRefundAsync(int registrationId)
@@ -29,7 +30,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var userId = _userContextService.GetCurrentUserId();
             if (!userId.HasValue) throw new UnauthorizedException("User not authenticated.");
 
-            var registration = await GetRegistrationWithDetailsAsync(registrationId, userId.Value);
+            // validation and get data
+            var registration = await ValidateAndGetRegistrationForUserAsync(registrationId, userId.Value);
 
             return CalculateRefundInternal(registration);
         }
@@ -40,7 +42,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!userId.HasValue) throw new UnauthorizedException("User not authenticated.");
 
             // validation
-            var registration = await ValidateRegistrationForCancelAsync(requestDto.RegistrationId, userId.Value);
+            var registration = await ValidateRegistrationStatusForCancelAsync(requestDto.RegistrationId, userId.Value);
 
             await ValidateBankInfoIfPaidAsync(registration, requestDto.BankUserId, userId.Value);
 
@@ -63,23 +65,130 @@ namespace SummerCampManagementSystem.BLL.Services
             };
         }
 
+        public async Task<IEnumerable<RefundRequestListDto>> GetAllRefundRequestsAsync(RefundRequestFilterDto? filter = null)
+        {
+            var query = _unitOfWork.RegistrationCancels.GetQueryableWithDetails();
+
+            if (filter != null)
+            {
+                if (!string.IsNullOrEmpty(filter.Status))
+                {
+                    query = query.Where(rc => rc.status == filter.Status);
+                }
+                if (!string.IsNullOrEmpty(filter.SearchTerm))
+                {
+                    string term = filter.SearchTerm.ToLower();
+                    query = query.Where(rc =>
+                        (rc.registration.user.firstName + " " + rc.registration.user.lastName).ToLower().Contains(term) ||
+                        rc.registration.RegistrationCampers.Any(cp => cp.camper.camperName.ToLower().Contains(term))
+                    );
+                }
+            }
+
+            var requests = await query.OrderByDescending(rc => rc.requestDate).ToListAsync();
+
+            return requests.Select(rc => new RefundRequestListDto
+            {
+                RegistrationCancelId = rc.registrationCancelId,
+                RegistrationId = rc.registrationId ?? 0,
+
+                // user information
+                ParentName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : "Unknown",
+                ParentEmail = rc.registration?.user?.email ?? "",
+                ParentPhone = rc.registration?.user?.phoneNumber ?? "",
+                CamperNames = rc.registration?.RegistrationCampers.Select(cp => cp.camper?.camperName ?? "Unknown").ToList() ?? new List<string>(),
+
+                // refund information
+                RefundAmount = rc.refundAmount ?? 0,
+                RequestDate = rc.requestDate.HasValue ? rc.requestDate.Value.ToVietnamTime() : DateTime.MinValue,
+                Reason = rc.reason,
+                Status = rc.status,
+                ApprovalDate = rc.approvalDate.HasValue ? rc.approvalDate.Value.ToVietnamTime() : null,
+                ManagerNote = rc.note,
+                ImageRefund = rc.imageRefund,
+                TransactionCode = rc.transactionCode,
+
+                // bank information
+                BankName = rc.bankUser?.bankName ?? "N/A",
+                BankNumber = rc.bankUser?.bankNumber ?? "N/A",
+                BankAccountName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : ""
+            });
+        }
+
+        public async Task<RegistrationCancelResponseDto> ApproveRefundAsync(ApproveRefundDto dto)
+        {
+            // validaion
+            var cancelRequest = await ValidateCancelRequestForManagerAsync(dto.RegistrationCancelId);
+
+            // upload proof image
+            string proofImageUrl = await _uploadService.UploadRefundProofAsync(cancelRequest.registrationCancelId, dto.RefundImage);
+            if (string.IsNullOrEmpty(proofImageUrl)) throw new Exception("Lỗi upload ảnh minh chứng.");
+
+            // update cancel request
+            cancelRequest.imageRefund = proofImageUrl;
+            cancelRequest.transactionCode = dto.TransactionCode;
+            cancelRequest.note = dto.ManagerNote;
+            cancelRequest.status = RegistrationCancelStatus.Completed.ToString();
+            cancelRequest.approvalDate = DateTime.UtcNow;
+
+            await _unitOfWork.RegistrationCancels.UpdateAsync(cancelRequest);
+
+            await CreateRefundTransactionAsync(cancelRequest);
+
+            var registration = cancelRequest.registration;
+            if (registration != null)
+            {
+                registration.status = RegistrationStatus.Refunded.ToString();
+                await _unitOfWork.Registrations.UpdateAsync(registration);
+            }
+
+            // 6. [TODO] Release Resources (Phase 5)
+
+            await _unitOfWork.CommitAsync();
+
+            var response = _mapper.Map<RegistrationCancelResponseDto>(cancelRequest);
+            response.Status = cancelRequest.status;
+            return response;
+        }
+
+        public async Task<RegistrationCancelResponseDto> RejectRefundAsync(RejectRefundDto dto)
+        {
+            // 1. Validation (Validation moved to private method)
+            var cancelRequest = await ValidateCancelRequestForManagerAsync(dto.RegistrationCancelId);
+
+            // 2. Update Request Status
+            cancelRequest.status = RegistrationCancelStatus.Rejected.ToString();
+            cancelRequest.note = dto.RejectReason;
+            cancelRequest.approvalDate = DateTime.UtcNow;
+
+            await _unitOfWork.RegistrationCancels.UpdateAsync(cancelRequest);
+
+            // 3. Revert Registration Status -> Confirmed
+            var registration = cancelRequest.registration;
+            if (registration != null)
+            {
+                registration.status = RegistrationStatus.Confirmed.ToString();
+                await _unitOfWork.Registrations.UpdateAsync(registration);
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            var response = _mapper.Map<RegistrationCancelResponseDto>(cancelRequest);
+            response.Status = cancelRequest.status;
+            return response;
+        }
+
         #region Private Methods
 
-        // get registration with realated data
-        private async Task<Registration> GetRegistrationWithDetailsAsync(int registrationId, int userId)
+        private async Task<Registration> ValidateAndGetRegistrationForUserAsync(int registrationId, int userId)
         {
-            var registration = await _unitOfWork.Registrations.GetQueryable()
-                .Include(r => r.camp)
-                .Include(r => r.Transactions)
-                .FirstOrDefaultAsync(r => r.registrationId == registrationId);
+            var registration = await _unitOfWork.Registrations.GetWithDetailsForRefundAsync(registrationId);
 
             if (registration == null)
                 throw new NotFoundException($"Không tìm thấy đơn đăng ký ID {registrationId}.");
 
             if (registration.userId != userId)
-            {
-                throw new UnauthorizedException("Bạn không có quyền xem hoặc thao tác trên đơn đăng ký này.");
-            }
+                throw new UnauthorizedException("Bạn không có quyền thao tác trên đơn đăng ký này.");
 
             return registration;
         }
@@ -161,10 +270,10 @@ namespace SummerCampManagementSystem.BLL.Services
             };
         }
 
-        // check registration cancel
-        private async Task<Registration> ValidateRegistrationForCancelAsync(int registrationId, int userId)
+        // check registration status for cancel request
+        private async Task<Registration> ValidateRegistrationStatusForCancelAsync(int registrationId, int userId)
         {
-            var registration = await GetRegistrationWithDetailsAsync(registrationId, userId);
+            var registration = await ValidateAndGetRegistrationForUserAsync(registrationId, userId);
 
             if (registration.status == RegistrationStatus.PendingRefund.ToString())
                 throw new InvalidRefundRequestException("Yêu cầu hủy cho đơn này đang được xử lý.");
@@ -178,7 +287,6 @@ namespace SummerCampManagementSystem.BLL.Services
             return registration;
         }
 
-        // check bank info if paid
         private async Task ValidateBankInfoIfPaidAsync(Registration registration, int bankUserId, int userId)
         {
             bool isPaid = registration.status == RegistrationStatus.Confirmed.ToString();
@@ -186,7 +294,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (isPaid)
             {
                 var bankUser = await _unitOfWork.BankUsers.GetByIdAsync(bankUserId);
-                // Kiểm tra bank có tồn tại, thuộc về user và isActive == true
+                // check if bank info is valid
                 if (bankUser == null || bankUser.userId != userId || bankUser.isActive != true)
                     throw new BadRequestException("Thông tin tài khoản ngân hàng không hợp lệ.");
             }
@@ -226,6 +334,42 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.Registrations.UpdateAsync(registration);
             await _unitOfWork.CommitAsync();
         }
+
+
+        // MANAGER
+
+        private async Task<RegistrationCancel> ValidateCancelRequestForManagerAsync(int cancelId)
+        {
+            var cancelRequest = await _unitOfWork.RegistrationCancels.GetByIdWithDetailsAsync(cancelId);
+
+            if (cancelRequest == null)
+                throw new NotFoundException($"Không tìm thấy yêu cầu hủy ID {cancelId}.");
+
+            if (cancelRequest.status != RegistrationCancelStatus.Pending.ToString())
+                throw new InvalidOperationException($"Yêu cầu này đang ở trạng thái '{cancelRequest.status}', không thể thao tác.");
+
+            if (cancelRequest.registration == null)
+                throw new NotFoundException("Dữ liệu lỗi: Đơn đăng ký gốc không tồn tại.");
+
+            return cancelRequest;
+        }
+
+        private async Task CreateRefundTransactionAsync(RegistrationCancel request)
+        {
+            var refundTransaction = new Transaction
+            {
+                registrationId = request.registrationId,
+                amount = Math.Abs(request.refundAmount ?? 0), 
+                type = "Refund",
+                status = TransactionStatus.Confirmed.ToString(),
+                method = "BankTransfer",
+                transactionCode = $"REFUND-{request.transactionCode}",
+                transactionTime = DateTime.UtcNow
+            };
+
+            await _unitOfWork.Transactions.CreateAsync(refundTransaction);
+        }
+
 
         #endregion
     }
