@@ -177,8 +177,6 @@ public partial class CampEaseDatabaseContext : DbContext
 
         modelBuilder.Entity<AccommodationActivitySchedule>(entity =>
         {
-            entity.Property(e => e.accommodationActivityScheduleId).ValueGeneratedNever();
-
             entity.HasOne(d => d.accommodation).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_Accommodation");
 
             entity.HasOne(d => d.activitySchedule).WithMany(p => p.AccommodationActivitySchedules).HasConstraintName("FK_AccommodationActivitySchedule_ActivitySchedule");

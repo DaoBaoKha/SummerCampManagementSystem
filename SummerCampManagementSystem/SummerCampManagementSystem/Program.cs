@@ -192,6 +192,7 @@ builder.Services.AddScoped<IRegistrationCancelRepository, RegistrationCancelRepo
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
+builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivityRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Chat service (DI for Hub)

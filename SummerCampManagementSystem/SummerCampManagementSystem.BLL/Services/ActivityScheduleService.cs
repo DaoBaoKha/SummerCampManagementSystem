@@ -127,6 +127,9 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
+
+            var accomodations = await _unitOfWork.Accommodations.GetByCampId(camp.campId);
+
             var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
             if (dto.IsLiveStream == true && dto.StaffId == null)
@@ -165,7 +168,14 @@ namespace SummerCampManagementSystem.BLL.Services
                 await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
                 await _unitOfWork.CommitAsync();
 
-                var activityType = schedule.activity.activityType;
+                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
+
+                if(result == null)
+                {
+                    throw new InvalidOperationException("Failed to retrieve the created activity schedule.");
+                }
+
+                var activityType = result.activity.activityType;
 
                 if (activityType == ActivityType.Core.ToString() || activityType == ActivityType.Checkin.ToString()
                     || activityType == ActivityType.Checkout.ToString())
@@ -181,11 +191,23 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                 }
 
+                if (activityType == ActivityType.Resting.ToString())
+                {
+                    foreach (var accomodation in accomodations)
+                    {
+                        var accomodationActivitySchedule = new AccommodationActivitySchedule
+                        {
+                            accommodationId = accomodation.accommodationId,
+                            activityScheduleId = schedule.activityScheduleId,
+                        };
+                        await _unitOfWork.AccommodationActivities.CreateAsync(accomodationActivitySchedule);
+                    }
+                }
+
                 await _unitOfWork.CommitAsync();
 
                 await transaction.CommitAsync();
 
-                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
                 return _mapper.Map<ActivityScheduleResponseDto>(result);
             }
             catch (Exception)
