@@ -196,6 +196,18 @@ builder.Services.AddScoped<IChatRoomUserRepository, ChatRoomUserRepository>();
 builder.Services.AddScoped<IChatRoomRepository, ChatRoomRepository>();
 builder.Services.AddScoped<IChatRoomService, ChatRoomService>(); // service for real-time chat
 builder.Services.AddScoped<IChatNotifier, SignalRChatNotifier>(); // interface for BLL to call signalR
+
+// Configure HttpClient with extended timeout for Python AI Service
+builder.Services.AddHttpClient("PythonAiClient", client =>
+{
+    var aiBaseUrl = builder.Configuration.GetValue<string>("AIServiceSettings:BaseUrl", "http://localhost:5000");
+    var aiTimeout = builder.Configuration.GetValue<int>("AIServiceSettings:Timeout", 300);
+
+    client.BaseAddress = new Uri(aiBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(aiTimeout);
+
+    Console.WriteLine($"[PythonAiClient] HttpClient configured - BaseUrl: {aiBaseUrl}, Timeout: {aiTimeout}s");
+});
 builder.Services.AddHttpClient();
 
 // Register Hangfire jobs
@@ -365,10 +377,12 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnectionString))
 {
     builder.Services.AddSignalR()
-        .AddStackExchangeRedis(redisConnectionString, options => {
+        .AddStackExchangeRedis(redisConnectionString, options =>
+        {
             options.Configuration.ChannelPrefix = "CampEase_Chat";
         })
-        .AddJsonProtocol(options => {
+        .AddJsonProtocol(options =>
+        {
             // convert to VietNamTime when send to client
             options.PayloadSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
             options.PayloadSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
@@ -379,7 +393,8 @@ else
 {
     // fallback for local if no redis
     builder.Services.AddSignalR()
-        .AddJsonProtocol(options => {
+        .AddJsonProtocol(options =>
+        {
             options.PayloadSerializerOptions.Converters.Add(new VietnamDateTimeConverter());
             options.PayloadSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
             options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
