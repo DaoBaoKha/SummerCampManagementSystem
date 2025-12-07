@@ -275,6 +275,21 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPut("change-status-to-pending-attendance")]
+        public async Task<IActionResult> ChangeActivityScheduleStatusToPendingAttendance()
+        {
+            try
+            {
+                await _service.ChangeActityScheduleToPendingAttendance();
+                return Ok(new { message = "Update Status to Pending Attendance Successfully !!!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+
         [HttpPut("{activityScheduleId}/status")]
         public async Task<IActionResult> ChangeStatus(int activityScheduleId, [FromQuery] ActivityScheduleStatus status)
         {
