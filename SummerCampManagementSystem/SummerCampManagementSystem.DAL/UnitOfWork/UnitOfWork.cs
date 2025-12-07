@@ -15,6 +15,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IAlbumPhotoRepository AlbumPhotos { get; }
         public IAlbumPhotoFaceRepository AlbumPhotoFaces { get; }
         public IBlogRepository Blogs { get; }
+        public IBankUserRepository BankUsers { get; }
         public IUserRepository Users { get; }
         public IUserAccountRepository UserAccounts { get; }
         public IRefreshTokenRepository RefreshTokens { get; }
@@ -70,6 +71,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
             , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
+            , IBankUserRepository bankUsers
             )
         {
             _context = context;
@@ -82,6 +84,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             AlbumPhotoFaces = albumPhotoFaces;
             AttendanceLogs = attendanceLogs;
             Blogs = blogs;
+            BankUsers = bankUsers;
             Camps = campRepository;
             CampTypes = campTypes;
             CamperGroups = camperGroups;
