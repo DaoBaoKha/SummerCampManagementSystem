@@ -6,5 +6,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         IQueryable<TransportSchedule> GetSchedulesWithIncludes();
         Task<IEnumerable<TransportSchedule>> GetSchedulesByCamperIdAsync(int camperId);
+        Task<IEnumerable<TransportSchedule>> GetSchedulesByCamperAndCampIdAsync(int camperId, int campId);
     }
 }
