@@ -28,7 +28,7 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',  
 
-      '--timeout', '600s',
+      '--timeout', '1000s',
 
       # --- AUTHENTICATION ---
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
@@ -124,7 +124,7 @@ steps:
       # --- ENVIRONMENT ---
       '--set-env-vars', 'ASPNETCORE_ENVIRONMENT=Production',
 
-      '--timeout', '600s',
+      '--timeout', '1000s',
 
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
@@ -168,7 +168,7 @@ steps:
       '--min-instances', '0',
       '--allow-unauthenticated', 
 
-      '--timeout', '600s',
+      '--timeout', '1000s',
 
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
