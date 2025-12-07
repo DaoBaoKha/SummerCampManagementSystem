@@ -121,6 +121,35 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+
+        //[Authorize(Roles = "Staff")]
+        [HttpPut("v2")]
+        public async Task<IActionResult> Update([FromBody] AttendanceLogUpdateListRequest updates, int staffId)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            try
+            {
+                //var staffId = _userContextService.GetCurrentUserId();
+                await _attendanceLogService.UpdateAttendanceLogV2Async(updates, staffId);
+                return Ok(new {message = "Điểm danh thành công"});
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
         [HttpPost]
         [Route("create-logs-for-registrationClosed-camps")]
         public async Task<IActionResult> CreateAttendanceLogsForClosedCamps()
