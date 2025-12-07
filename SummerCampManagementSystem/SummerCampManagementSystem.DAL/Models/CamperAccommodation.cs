@@ -20,8 +20,8 @@ public partial class CamperAccommodation
 
     public int accommodationId { get; set; }
 
-    [Column(TypeName = "datetime")]
-    public DateTime? assignedAt { get; set; }
+    [StringLength(50)]
+    public string status { get; set; }
 
     [ForeignKey("accommodationId")]
     [InverseProperty("CamperAccommodations")]
