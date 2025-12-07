@@ -129,6 +129,22 @@ namespace SummerCampManagementSystem.BLL.Services
                             // change status from holding to confirmed
                             activity.status = "Confirmed";
                             await _unitOfWork.RegistrationOptionalActivities.UpdateAsync(activity);
+
+                            // check duplicate in CamperActivity
+                            var existingCamperActivity = await _unitOfWork.CamperActivities.GetQueryable()
+                                .FirstOrDefaultAsync(ca => ca.camperId == activity.camperId &&
+                                                           ca.activityScheduleId == activity.activityScheduleId);
+
+                            if (existingCamperActivity == null)
+                            {
+                                var newCamperActivity = new CamperActivity
+                                {
+                                    camperId = activity.camperId,
+                                    activityScheduleId = activity.activityScheduleId,
+                                    participationStatus = "Approved"
+                                };
+                                await _unitOfWork.CamperActivities.CreateAsync(newCamperActivity);
+                            }
                         }
                     }
 
