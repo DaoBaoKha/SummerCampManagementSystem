@@ -15,5 +15,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<LocationResponseDto>> GetLocationsByTypeAsync(LocationType type);
         Task<IEnumerable<LocationResponseDto>> GetChildLocationsByParentIdAsync(int parentLocationId);
         Task<IEnumerable<LocationResponseDto>> GetChildLocationsByCampIdByTime(int campId, DateTime startTime, DateTime endTime);
+        Task<IEnumerable<LocationDto>> GetAvailableCampLocationInDateRange(DateTime startDate, DateTime endDate);
     }
 }

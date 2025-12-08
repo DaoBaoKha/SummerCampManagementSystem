@@ -71,6 +71,20 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpGet("available-camp-locations/by-time")]
+        public async Task<IActionResult> GetAvailableCampLocationsByTime([FromQuery] DateTime startTime, [FromQuery] DateTime endTime)
+        {
+            try
+            {
+                var locations = await _locationService.GetAvailableCampLocationInDateRange(startTime, endTime);
+                return Ok(locations);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = $"Lỗi hệ thống: {ex.Message}" });
+            }
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> CreateLocation([FromBody] LocationCreateDto locationDto)

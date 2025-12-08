@@ -228,5 +228,23 @@ namespace SummerCampManagementSystem.BLL.Services
             return suitableLocations;
         }
 
+        public async Task<IEnumerable<LocationDto>> GetAvailableCampLocationInDateRange(DateTime startDate, DateTime endDate)
+        {
+            var allCampLocations = await _unitOfWork.Locations.GetAllCampLocationsAsync();
+
+            var availableLocations = new List<LocationDto>();
+
+            foreach (var location in allCampLocations)
+            {
+                var isOccupied = await _unitOfWork.Locations.IsCampLocationOccupied(location.locationId, startDate, endDate);
+
+                if (!isOccupied)
+                {
+                    availableLocations.Add(_mapper.Map<LocationDto>(location));
+                }
+            }
+            return availableLocations;
+        }
+
     }
 }

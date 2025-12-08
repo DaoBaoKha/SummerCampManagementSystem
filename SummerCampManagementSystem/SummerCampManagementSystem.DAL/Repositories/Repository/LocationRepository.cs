@@ -10,5 +10,20 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context = context;
         }
+
+        public async Task<IEnumerable<Location>> GetAllCampLocationsAsync()
+        {
+            return await _context.Locations
+                .Where(l => l.locationType == "Camp" && l.isActive == true)
+                .ToListAsync();
+        }
+
+        public async Task<bool> IsCampLocationOccupied(int locationId, DateTime startDate, DateTime endDate)
+        {
+            return await _context.Camps
+                .AnyAsync(c => c.locationId == locationId
+                              && c.startDate <= endDate && c.endDate >= startDate     
+                         );
+        }
     }
 }
