@@ -112,5 +112,19 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        [HttpPost("image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            try
+            {
+                var url = await _uploadService.UploadImage(file);
+                return Ok(new UploadPhotoDto { Url = url });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }
