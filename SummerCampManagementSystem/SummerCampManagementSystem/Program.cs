@@ -195,6 +195,10 @@ builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivityRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
+// Attendance webhook services (new - for real-time updates)
+builder.Services.AddScoped<IAttendanceService, AttendanceService>();
+builder.Services.AddScoped<IIdempotencyService, IdempotencyService>();
+
 // Chat service (DI for Hub)
 builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 builder.Services.AddScoped<IChatRoomUserRepository, ChatRoomUserRepository>();
@@ -272,7 +276,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new VietnamTimeOnlyConverter());
 });
 
-// JWT Authentication
+// JWT Authentication - Support both user tokens and service tokens
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -282,10 +286,35 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
+            // Accept multiple issuers (user backend + Python service)
+            ValidIssuers = new[]
+            {
+                builder.Configuration["Jwt:Issuer"] ?? "SummerCampBackend",
+                builder.Configuration["Jwt:ServiceIssuer"] ?? "PythonAiService"
+            },
+            // Accept multiple audiences
+            ValidAudiences = new[]
+            {
+                builder.Configuration["Jwt:Audience"] ?? "SummerCampBackend",
+                builder.Configuration["Jwt:ServiceAudience"] ?? "SummerCampBackend"
+            },
+            // Use IssuerSigningKeyResolver to validate with the appropriate key
+            IssuerSigningKeyResolver = (token, securityToken, kid, parameters) =>
+            {
+                var jwtToken = securityToken as System.IdentityModel.Tokens.Jwt.JwtSecurityToken;
+                var issuer = jwtToken?.Issuer;
+
+                // If token is from Python service, use service secret
+                if (issuer == builder.Configuration["Jwt:ServiceIssuer"])
+                {
+                    var serviceSecret = builder.Configuration["Jwt:ServiceSecret"] ?? "";
+                    return new[] { new SymmetricSecurityKey(Encoding.UTF8.GetBytes(serviceSecret)) };
+                }
+
+                // Otherwise use regular user JWT key
+                var userSecret = builder.Configuration["Jwt:Key"] ?? "";
+                return new[] { new SymmetricSecurityKey(Encoding.UTF8.GetBytes(userSecret)) };
+            }
         };
 
         options.Events = new JwtBearerEvents
@@ -428,6 +457,7 @@ app.UseAuthorization();
 
 // map hub path
 app.MapHub<ChatRoomHub>("/hubs/chat");
+app.MapHub<SummerCampManagementSystem.BLL.Hubs.AttendanceHub>("/hubs/attendance");
 
 // Configure Hangfire Dashboard with authorization
 var dashboardEnabled = app.Configuration.GetValue<bool>("Hangfire:DashboardEnabled", true);
