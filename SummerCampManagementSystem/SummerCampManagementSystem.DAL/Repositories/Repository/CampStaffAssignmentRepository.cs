@@ -35,5 +35,17 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<bool> IsStaffBusyInAnyCampAsync(int staffId, DateOnly date)
+        {
+            var checkDate = date.ToDateTime(TimeOnly.MinValue);
+
+            return await _context.CampStaffAssignments
+                .Include(csa => csa.camp)
+                .AnyAsync(csa =>
+                    csa.staffId == staffId &&
+                    csa.camp.startDate <= checkDate &&
+                    csa.camp.endDate >= checkDate
+                );
+        }
     }
 }

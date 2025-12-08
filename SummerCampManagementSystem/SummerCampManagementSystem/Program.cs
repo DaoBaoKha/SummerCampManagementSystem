@@ -17,7 +17,6 @@ using SummerCampManagementSystem.BLL.Mappings;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.Core.Config;
 using SummerCampManagementSystem.DAL.Models;
-using SummerCampManagementSystem.DAL.Repositories;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.Repositories.Repository;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -193,6 +192,8 @@ builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
 builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivityRepository>();
+builder.Services.AddScoped<ITransportStaffAssignmentRepository, TransportStaffAssignmentRepository>();
+builder.Services.AddScoped<ITransportStaffAssignmentService, TransportStaffAssignmentService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Attendance webhook services (new - for real-time updates)

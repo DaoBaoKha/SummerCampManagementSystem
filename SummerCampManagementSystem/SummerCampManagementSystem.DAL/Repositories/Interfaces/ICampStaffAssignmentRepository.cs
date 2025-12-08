@@ -6,6 +6,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         Task<IEnumerable<UserAccount>> GetAvailableStaffManagerByCampIdAsync(DateTime? start, DateTime? end);
         Task<IEnumerable<UserAccount>> GetAvailableStaffByCampId(int campId);
+        Task<bool> IsStaffBusyInAnyCampAsync(int staffId, DateOnly date);
 
     }
 }

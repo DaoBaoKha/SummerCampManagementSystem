@@ -122,6 +122,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<TransportSchedule> TransportSchedules { get; set; }
 
+    public virtual DbSet<TransportStaffAssignment> TransportStaffAssignments { get; set; }
+
     public virtual DbSet<UserAccount> UserAccounts { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
@@ -628,6 +630,13 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.route).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Route");
 
             entity.HasOne(d => d.vehicle).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Vehicle");
+        });
+
+        modelBuilder.Entity<TransportStaffAssignment>(entity =>
+        {
+            entity.HasOne(d => d.staff).WithMany(p => p.TransportStaffAssignments).HasConstraintName("FK_TransportStaffAssignment_UserAccount");
+
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.TransportStaffAssignments).HasConstraintName("FK_TransportStaffAssignment_TransportSchedule");
         });
 
         modelBuilder.Entity<UserAccount>(entity =>
