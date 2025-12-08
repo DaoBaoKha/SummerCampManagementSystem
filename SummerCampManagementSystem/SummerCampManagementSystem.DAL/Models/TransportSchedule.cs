@@ -42,6 +42,9 @@ public partial class TransportSchedule
     [InverseProperty("transportSchedule")]
     public virtual ICollection<CamperTransport> CamperTransports { get; set; } = new List<CamperTransport>();
 
+    [InverseProperty("transportSchedule")]
+    public virtual ICollection<TransportStaffAssignment> TransportStaffAssignments { get; set; } = new List<TransportStaffAssignment>();
+
     [ForeignKey("campId")]
     [InverseProperty("TransportSchedules")]
     public virtual Camp camp { get; set; }

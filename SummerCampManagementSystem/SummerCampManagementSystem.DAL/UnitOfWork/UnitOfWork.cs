@@ -47,6 +47,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IHealthRecordRepository HealthRecords { get; }
         public ITransactionRepository Transactions { get; }
         public ITransportScheduleRepository TransportSchedules { get; }
+        public ITransportStaffAssignmentRepository TransportStaffAssignments { get; }
         public ILocationRepository Locations { get; }
         public IGroupActivityRepository GroupActivities { get; }
         public IAttendanceLogRepository AttendanceLogs { get; }
@@ -74,7 +75,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
             , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
             , IBankUserRepository bankUsers, IAccommodationActivityRepository accommodationActivities
-            , IRegistrationCancelRepository registrationCancels
+            , IRegistrationCancelRepository registrationCancels, ITransportStaffAssignmentRepository transportStaffAssignments
             )
         {
             _context = context;
@@ -122,6 +123,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             RefreshTokens = refreshTokenRepository;
             Transactions = transactions;
             TransportSchedules = transportSchedules;
+            TransportStaffAssignments = transportStaffAssignments;
             Users = userRepository;
             UserAccounts = userAccounts;
             Vehicles = vehicles;

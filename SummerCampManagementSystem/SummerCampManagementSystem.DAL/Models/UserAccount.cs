@@ -105,6 +105,9 @@ public partial class UserAccount
     [InverseProperty("reportedByNavigation")]
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 
+    [InverseProperty("staff")]
+    public virtual ICollection<TransportStaffAssignment> TransportStaffAssignments { get; set; } = new List<TransportStaffAssignment>();
+
     [InverseProperty("approvedByNavigation")]
     public virtual ICollection<Visitation> VisitationapprovedByNavigations { get; set; } = new List<Visitation>();
 
