@@ -113,6 +113,29 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
         }
 
+        public async Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperAndCampIdAsync(int camperId, int campId)
+        {
+            // validation
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp with ID {campId} not found.");
+
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new NotFoundException($"Camper with ID {camperId} not found.");
+
+            // check if camper is registered for the camp
+            var isCamperRegisteredForCamp = await _unitOfWork.RegistrationCampers.GetQueryable()
+                .AnyAsync(rc => rc.camperId == camperId && rc.registration.campId == campId);
+
+            if (!isCamperRegisteredForCamp)
+            {
+                throw new UnauthorizedException($"Camper ID {camperId} is not registered for Camp ID {campId}.");
+            }
+
+            var schedules = await _repository.GetSchedulesByCamperAndCampIdAsync(camperId, campId);
+
+            return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
         public async Task<IEnumerable<TransportScheduleResponseDto>> SearchAsync(TransportScheduleSearchDto searchDto)
         {
             IQueryable<TransportSchedule> query = _repository.GetSchedulesWithIncludes();

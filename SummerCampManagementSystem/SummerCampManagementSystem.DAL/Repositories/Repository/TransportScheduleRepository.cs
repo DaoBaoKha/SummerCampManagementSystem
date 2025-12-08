@@ -34,5 +34,20 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .OrderByDescending(ts => ts.date) // recent date on top
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<TransportSchedule>> GetSchedulesByCamperAndCampIdAsync(int camperId, int campId)
+        {
+            // query from CamperTransport and filter camperId, campId of schedule
+            return await _context.CamperTransports
+                .Where(ct => ct.camperId == camperId && ct.transportSchedule.campId == campId)
+                // get detail transportSchedule
+                .Include(ct => ct.transportSchedule).ThenInclude(ts => ts.route)
+                .Include(ct => ct.transportSchedule).ThenInclude(ts => ts.vehicle)
+                .Include(ct => ct.transportSchedule).ThenInclude(ts => ts.driver).ThenInclude(d => d.user)
+                .Include(ct => ct.transportSchedule).ThenInclude(ts => ts.camp)
+                .Select(ct => ct.transportSchedule)
+                .OrderByDescending(ts => ts.date)
+                .ToListAsync();
+        }
     }
 }

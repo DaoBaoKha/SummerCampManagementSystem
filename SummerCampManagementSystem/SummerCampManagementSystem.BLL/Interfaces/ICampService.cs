@@ -21,5 +21,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task RunScheduledStatusTransitionsAsync();
 
         Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate);
+        Task<CampResponseDto> UpdateCampStatusNoValidationAsync(int campId, CampStatus newStatus);
     }
 }

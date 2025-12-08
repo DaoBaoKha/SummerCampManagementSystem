@@ -34,7 +34,8 @@ namespace SummerCampManagementSystem.BLL.Services
             IConfiguration configuration,
             ILogger<PythonAiService> logger)
         {
-            _httpClient = httpClientFactory.CreateClient();
+            // Use named HttpClient with proper timeout configuration
+            _httpClient = httpClientFactory.CreateClient("PythonAiClient");
             _logger = logger;
             _configuration = configuration;
 
@@ -61,8 +62,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 _jwtExpirationMinutes = 60; // Default 1 hour
             }
 
-            _httpClient.BaseAddress = new Uri(_baseUrl);
-            _httpClient.Timeout = TimeSpan.FromSeconds(_timeoutSeconds);
+            // BaseAddress and Timeout are now configured in Program.cs via named HttpClient
+            // This ensures proper timeout handling for long-running operations like face database loading
 
             _logger.LogInformation("PythonAiService initialized - BaseUrl: {BaseUrl}, Timeout: {Timeout}s, JWT Expiration: {ExpirationMinutes}min",
                 _baseUrl, _timeoutSeconds, _jwtExpirationMinutes);

@@ -17,5 +17,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<TransportScheduleResponseDto> UpdateScheduleStatusAsync(int id, TransportScheduleStatus desiredStatus, string? cancelReason = null);
         Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperIdAsync(int camperId);
         Task<IEnumerable<CamperInScheduleResponseDto>> GetCampersInScheduleAsync(int scheduleId);
+        Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperAndCampIdAsync(int camperId, int campId);
     }
 }

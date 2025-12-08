@@ -80,6 +80,14 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "refund-proofs", registrationCancelId.ToString());
         }
 
+
+        public async Task<string?> UploadImage(IFormFile? file)
+        {
+            // Bucket: general-images
+            // Path: filename
+            return await UploadFileInternalAsync(file, "general-images", string.Empty);
+        }
+
         #region Private Helper Method
 
         private async Task<string?> UploadFileInternalAsync(IFormFile? file, string bucketName, string folderPath)
