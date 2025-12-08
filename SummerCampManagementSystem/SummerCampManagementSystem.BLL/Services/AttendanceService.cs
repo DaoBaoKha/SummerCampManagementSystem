@@ -102,20 +102,20 @@ public class AttendanceService : IAttendanceService
 
         try
         {
-            // Get existing attendance logs for these campers
-            var camperIds = recognizedCampers.Select(c => c.CamperId).ToList();
-            var existingLogs = await _unitOfWork.AttendanceLogs
-                .GetQueryable()
-                .Where(al => camperIds.Contains(al.camperId)
-                          && al.activityScheduleId == activityScheduleId)
-                .ToDictionaryAsync(al => al.camperId);
-
             var currentTime = DateTime.UtcNow;
 
-            // Update or create attendance logs
+            // Process each recognized camper (same pattern as AdminAiController)
             foreach (var recognized in recognizedCampers)
             {
-                if (existingLogs.TryGetValue(recognized.CamperId, out var existingLog))
+                // Find existing log for this camper and activity schedule
+                var existingLog = await _unitOfWork.AttendanceLogs
+                    .GetQueryable()
+                    .Where(al => al.camperId == recognized.CamperId
+                              && al.activityScheduleId == activityScheduleId)
+                    .OrderByDescending(al => al.timestamp)
+                    .FirstOrDefaultAsync();
+
+                if (existingLog != null)
                 {
                     // Update existing log
                     existingLog.participantStatus = "Present";
@@ -128,8 +128,8 @@ public class AttendanceService : IAttendanceService
                     updatedCount++;
 
                     _logger.LogDebug(
-                        "Updated attendance log for camper {CamperId} (confidence: {Confidence})",
-                        recognized.CamperId, recognized.Confidence
+                        "Updated attendance log {LogId} for camper {CamperId} (confidence: {Confidence})",
+                        existingLog.attendanceLogId, recognized.CamperId, recognized.Confidence
                     );
                 }
                 else
@@ -154,11 +154,10 @@ public class AttendanceService : IAttendanceService
                         recognized.CamperId, recognized.Confidence
                     );
                 }
+
+                // Commit after each camper (same as AdminAiController pattern)
+                await _unitOfWork.CommitAsync();
             }
-
-            // Commit all changes in a single transaction
-            await _unitOfWork.CommitAsync();
-
             _logger.LogInformation(
                 "Attendance update complete: {Updated} updated, {Created} created for activity {ActivityId}",
                 updatedCount, createdCount, activityScheduleId
