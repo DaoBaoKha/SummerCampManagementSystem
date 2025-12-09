@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.TransportStaffAssignment;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
@@ -28,6 +29,17 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Get available staff for transport schedule
+        /// </summary>
+        /// <remarks>Return staff of that camp, exclude staff with conflict in comparison with other Transport/Activity/Camp.</remarks>
+        [HttpGet("available-staff/{transportScheduleId}")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetAvailableStaff(int transportScheduleId)
+        {
+            var result = await _service.GetAvailableStaffForScheduleAsync(transportScheduleId);
+            return Ok(result);
+        }
 
         [HttpPost]
         [Authorize(Roles = "Admin, Manager")]

@@ -47,5 +47,50 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     csa.camp.endDate >= checkDate
                 );
         }
+
+        public async Task<IEnumerable<int>> GetStaffIdsByCampIdAsync(int campId)
+        {
+            var list = await _context.CampStaffAssignments
+                .Where(x => x.campId == campId && x.staffId != null)
+                .Select(x => x.staffId)
+                .ToListAsync();
+
+            return list.Where(id => id.HasValue).Select(id => id.Value);
+        }
+
+        // get available staff - bulk check
+        public async Task<IEnumerable<int>> GetBusyStaffIdsInOtherActiveCampAsync(DateTime checkDate, int currentCampId)
+        {
+            var freeStatuses = new[] { "Completed", "Canceled", "Rejected", "Draft" }; // available status
+
+            return await _context.CampStaffAssignments
+                 .Include(csa => csa.camp)
+                 .Where(csa =>
+                     csa.staffId != null && 
+                     csa.campId != currentCampId && // different from current camp
+                     csa.camp.startDate <= checkDate &&
+                     csa.camp.endDate >= checkDate &&
+                     !freeStatuses.Contains(csa.camp.status)
+                 )
+                 .Select(csa => csa.staffId.Value)
+                 .Distinct()
+                 .ToListAsync();
+        }
+
+        // use for single validation
+        public async Task<bool> IsStaffBusyInOtherActiveCampAsync(int staffId, DateTime checkDate, int currentCampId)
+        {
+            var freeStatuses = new[] { "Completed", "Canceled", "Rejected", "Draft" };
+
+            return await _context.CampStaffAssignments
+               .Include(csa => csa.camp)
+               .AnyAsync(csa =>
+                   csa.staffId == staffId &&
+                   csa.campId != currentCampId &&
+                   !freeStatuses.Contains(csa.camp.status) &&
+                   csa.camp.startDate <= checkDate &&
+                   csa.camp.endDate >= checkDate
+               );
+        }
     }
 }

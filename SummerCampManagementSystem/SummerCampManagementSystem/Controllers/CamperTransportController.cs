@@ -5,7 +5,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/campertransport")]
+    [Route("api/camper-transport")]
     [ApiController]
     [Authorize] 
     public class CamperTransportController : ControllerBase
