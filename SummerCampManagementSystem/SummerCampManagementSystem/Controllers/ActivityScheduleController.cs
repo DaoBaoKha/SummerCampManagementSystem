@@ -10,6 +10,7 @@ using SummerCampManagementSystem.Core.Enums;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize(Roles = "Staff, Manager, Admin")]
     [ApiController]
     public class ActivityScheduleController : ControllerBase
     {
@@ -69,6 +70,31 @@ namespace SummerCampManagementSystem.API.Controllers
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
 
+        }
+
+        [HttpPost("core-template")]
+        public async Task<IActionResult> CreateCoreFromTemplate([FromBody] ActivityScheduleTemplateDto templateDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var results = await _service.GenerateCoreSchedulesFromTemplateAsync(templateDto);
+                return Ok(results);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống khi tạo lịch trình theo mẫu.", detail = ex.Message });
+            }
         }
 
         [HttpPost("optional/{coreScheduleId}")]
