@@ -30,5 +30,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<bool> DeleteActivityScheduleAsync(int activityScheduleId);
         Task ChangeActivityScheduleStatusAuto();
         Task ChangeActityScheduleToPendingAttendance();
+        Task<IEnumerable<ActivityScheduleResponseDto>> GenerateCoreSchedulesFromTemplateAsync(ActivityScheduleTemplateDto templateDto);
     }
 }
