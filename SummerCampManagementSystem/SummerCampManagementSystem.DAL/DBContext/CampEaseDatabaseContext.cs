@@ -590,6 +590,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 
             entity.HasOne(d => d.reportedByNavigation).WithMany(p => p.Reports).HasConstraintName("FK__Report__reported__41EDCAC5");
+
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.Reports).HasConstraintName("FK_Report_TransportSchedule");
         });
 
         modelBuilder.Entity<Route>(entity =>
