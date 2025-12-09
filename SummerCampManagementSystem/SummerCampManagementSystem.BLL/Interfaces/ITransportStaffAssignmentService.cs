@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.TransportStaffAssignment;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -8,5 +9,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<TransportStaffAssignmentResponseDto> UpdateAssignmentAsync(int id, TransportStaffAssignmentUpdateDto dto);
         Task<IEnumerable<TransportStaffAssignmentResponseDto>> SearchAssignmentsAsync(TransportStaffAssignmentSearchDto searchDto);
         Task<bool> DeleteAssignmentAsync(int id);
+        Task<IEnumerable<StaffSummaryDto>> GetAvailableStaffForScheduleAsync(int transportScheduleId);
     }
 }

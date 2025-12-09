@@ -8,6 +8,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 
         Task<IEnumerable<TransportSchedule>> GetSchedulesByStaffIdAsync(int staffId);
 
-        Task<bool> IsStaffAvailableAsync(int staffId, DateOnly date, TimeOnly start, TimeOnly end);
+        Task<IEnumerable<int>> GetBusyStaffIdsInOtherTransportAsync(DateOnly date, TimeOnly start, TimeOnly end);
     }
 }

@@ -26,18 +26,22 @@ public class TransportStaffAssignmentRepository : GenericRepository<TransportSta
             .ToListAsync();
     }
 
-    public async Task<bool> IsStaffAvailableAsync(int staffId, DateOnly date, TimeOnly start, TimeOnly end)
+    public async Task<IEnumerable<int>> GetBusyStaffIdsInOtherTransportAsync(DateOnly date, TimeOnly start, TimeOnly end)
     {
-        // check if staff in another transport schedule 
-        return await _context.TransportStaffAssignments
-            .Include(tsa => tsa.transportSchedule)
-            .Where(tsa => tsa.staffId == staffId && tsa.status == "Active")
-            .AnyAsync(tsa =>
-                tsa.transportSchedule.date == date &&
-                tsa.transportSchedule.status != "Completed" &&
-                tsa.transportSchedule.status != "Canceled" &&
-                tsa.transportSchedule.startTime < end &&
-                tsa.transportSchedule.endTime > start // check overlap
-            );
+        var activeStatuses = new[] { "Draft", "NotYet", "InProgress", "Rejected" };
+
+        var list = await _context.TransportStaffAssignments
+        .Include(tsa => tsa.transportSchedule)
+        .Where(tsa => tsa.status == "Active" &&
+                      tsa.staffId != null && // check null
+                      tsa.transportSchedule.date == date &&
+                      activeStatuses.Contains(tsa.transportSchedule.status) &&
+                      tsa.transportSchedule.startTime < end &&
+                      tsa.transportSchedule.endTime > start)
+        .Select(tsa => tsa.staffId) 
+        .Distinct()
+        .ToListAsync();
+
+        return list.Where(x => x.HasValue).Select(x => x.Value); 
     }
 }
