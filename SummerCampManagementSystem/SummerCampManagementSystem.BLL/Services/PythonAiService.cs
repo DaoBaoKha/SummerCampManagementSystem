@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.Diagnostics;
+using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -23,6 +24,8 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly string _baseUrl;
         private readonly int _timeoutSeconds;
 
+        private readonly IUnitOfWork _unitOfWork;
+
         // JWT Configuration for Python API authentication
         private readonly string _jwtSecretKey;
         private readonly string _jwtIssuer;
@@ -32,13 +35,14 @@ namespace SummerCampManagementSystem.BLL.Services
         public PythonAiService(
             IHttpClientFactory httpClientFactory,
             IConfiguration configuration,
-            ILogger<PythonAiService> logger)
+            ILogger<PythonAiService> logger,
+            IUnitOfWork unitOfWork)
         {
             // Use named HttpClient with proper timeout configuration
             _httpClient = httpClientFactory.CreateClient("PythonAiClient");
             _logger = logger;
             _configuration = configuration;
-
+            _unitOfWork = unitOfWork;
             _baseUrl = configuration["AIServiceSettings:BaseUrl"] ?? "http://localhost:5000";
             _timeoutSeconds = int.TryParse(configuration["AIServiceSettings:Timeout"], out var timeout) ? timeout : 300;
 
@@ -183,10 +187,30 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogInformation("[TIMING] Loading face database for Camp {CampId} (ForceReload: {ForceReload})", campId, forceReload);
 
+                // Get camp end date to calculate Redis TTL
+                var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+                if (camp == null)
+                {
+                    throw new Exception($"Camp {campId} not found");
+                }
+
+                if (camp.endDate == null)
+                {
+                    throw new Exception($"Camp {campId} has no end date set");
+                }
+
+                // Calculate expireAt: camp end date + 1 day (24 hours)
+                var expireAt = camp.endDate.Value.AddDays(1);
+                var expireAtUnix = new DateTimeOffset(expireAt).ToUnixTimeSeconds();
+
+                _logger.LogInformation("Camp {CampId} ends at {EndDate}, Redis TTL expires at {ExpireAt} (Unix: {ExpireAtUnix})",
+                    campId, camp.endDate, expireAt, expireAtUnix);
+
                 var requestBody = new
                 {
                     camp_id = campId,
-                    force_reload = forceReload
+                    force_reload = forceReload,
+                    expire_at = expireAtUnix  // Send expireAt to Python for Redis TTL
                 };
 
                 var jsonContent = JsonSerializer.Serialize(requestBody);
