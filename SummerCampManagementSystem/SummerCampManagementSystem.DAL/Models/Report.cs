@@ -19,6 +19,11 @@ public partial class Report
 
     public int? camperId { get; set; }
 
+    public int? transportScheduleId { get; set; }
+
+    [StringLength(50)]
+    public string reportType { get; set; }
+
     public string note { get; set; }
 
     [StringLength(255)]
@@ -48,4 +53,8 @@ public partial class Report
     [ForeignKey("reportedBy")]
     [InverseProperty("Reports")]
     public virtual UserAccount reportedByNavigation { get; set; }
+
+    [ForeignKey("transportScheduleId")]
+    [InverseProperty("Reports")]
+    public virtual TransportSchedule transportSchedule { get; set; }
 }
