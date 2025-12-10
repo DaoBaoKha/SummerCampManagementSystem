@@ -28,7 +28,7 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',  
 
-      '--timeout', '1000s',
+      '--timeout', '1500s',
 
       # --- ADD LOGGING ---
       '--set-env-vars', 'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true,Logging__LogLevel__Default=Debug,Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug',
