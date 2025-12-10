@@ -122,6 +122,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<TransportSchedule> TransportSchedules { get; set; }
 
+    public virtual DbSet<TransportStaffAssignment> TransportStaffAssignments { get; set; }
+
     public virtual DbSet<UserAccount> UserAccounts { get; set; }
 
     public virtual DbSet<Vehicle> Vehicles { get; set; }
@@ -588,6 +590,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 
             entity.HasOne(d => d.reportedByNavigation).WithMany(p => p.Reports).HasConstraintName("FK__Report__reported__41EDCAC5");
+
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.Reports).HasConstraintName("FK_Report_TransportSchedule");
         });
 
         modelBuilder.Entity<Route>(entity =>
@@ -628,6 +632,13 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.route).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Route");
 
             entity.HasOne(d => d.vehicle).WithMany(p => p.TransportSchedules).HasConstraintName("FK_TransportSchedule_Vehicle");
+        });
+
+        modelBuilder.Entity<TransportStaffAssignment>(entity =>
+        {
+            entity.HasOne(d => d.staff).WithMany(p => p.TransportStaffAssignments).HasConstraintName("FK_TransportStaffAssignment_UserAccount");
+
+            entity.HasOne(d => d.transportSchedule).WithMany(p => p.TransportStaffAssignments).HasConstraintName("FK_TransportStaffAssignment_TransportSchedule");
         });
 
         modelBuilder.Entity<UserAccount>(entity =>

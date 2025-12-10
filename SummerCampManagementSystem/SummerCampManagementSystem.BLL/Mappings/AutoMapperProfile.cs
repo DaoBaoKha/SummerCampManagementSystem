@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.AccommodationType;
 using SummerCampManagementSystem.BLL.DTOs.Activity;
@@ -34,12 +33,12 @@ using SummerCampManagementSystem.BLL.DTOs.Route;
 using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.DTOs.Transaction;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
+using SummerCampManagementSystem.BLL.DTOs.TransportStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using SummerCampManagementSystem.BLL.Helpers;
-using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto;
 
@@ -464,6 +463,18 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<RegistrationCancel, RegistrationCancelResponseDto>()
               .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.status));
+
+            // TransportStaffAssignment Mappings
+            CreateMap<TransportStaffAssignmentCreateDto, TransportStaffAssignment>()
+                .ForMember(dest => dest.status, opt => opt.MapFrom(_ => "Active"));
+
+            CreateMap<TransportStaffAssignmentUpdateDto, TransportStaffAssignment>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+            CreateMap<TransportStaffAssignment, TransportStaffAssignmentResponseDto>()
+                .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.transportStaffAssignmentId))
+                .ForMember(dest => dest.StaffName, opt => opt.MapFrom(src =>
+                    src.staff != null ? $"{src.staff.lastName} {src.staff.firstName}" : string.Empty));
         }
     }
 }

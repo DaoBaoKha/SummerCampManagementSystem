@@ -28,8 +28,10 @@ steps:
       '--platform', 'managed',
       '--allow-unauthenticated',  
 
-      '--timeout', '1000s',
+      '--timeout', '1500s',
 
+      # --- ADD LOGGING ---
+      '--set-env-vars', 'Logging__LogLevel__Default=Debug,Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug,Logging__LogLevel__Microsoft.AspNetCore=Information',
       # --- AUTHENTICATION ---
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
@@ -42,6 +44,9 @@ steps:
       '--set-secrets', 'Jwt__Key=jwt-secret:latest',
       '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
       '--set-secrets', 'Jwt__Audience=jwt-audience:latest',
+      '--set-secrets', 'Jwt__ServiceSecret=jwt-service-secret:latest',
+      '--set-secrets', 'Jwt__ServiceIssuer=jwt-service-issuer:latest',
+      '--set-secrets', 'Jwt__ServiceAudience=jwt-service-audience:latest',
 
       # --- EMAIL SETTINGS ---
       '--set-secrets', 'EmailSetting__SmtpServer=email-smtpserver:latest,EmailSetting__Port=email-port:latest,EmailSetting__SenderName=email-sendername:latest,EmailSetting__SenderEmail=email-senderemail:latest,EmailSetting__Password=email-pass:latest',
@@ -61,13 +66,10 @@ steps:
       '--set-secrets', 'ApiBaseUrl=api-base-url:latest',
 
       # --- GEMINI API ---
-      '--set-secrets', 'GeminiApi__ApiKey=gemini-api-key:latest',
-      '--set-secrets', 'GeminiApi__ApiBaseUrl=gemini-base-url:latest',
-      '--set-secrets', 'GeminiApi__ModelName=gemini-model-name:latest',
+      '--set-secrets', 'GeminiApi__ApiKey=gemini-api-key:latest,GeminiApi__ApiBaseUrl=gemini-base-url:latest,GeminiApi__ModelName=gemini-model-name:latest',
 
       # --- SUPABASE ---
-      '--set-secrets', 'Supabase__Url=supabase-url:latest',
-      '--set-secrets', 'Supabase__Key=supabase-key:latest',
+      '--set-secrets', 'Supabase__Url=supabase-url:latest,Supabase__Key=supabase-key:latest',
 
       # --- DEFAULT AVATAR (AppSetting Section) ---
       '--set-secrets', 'AppSetting__DefaultAvatarUrl=default-avatar-url:latest',

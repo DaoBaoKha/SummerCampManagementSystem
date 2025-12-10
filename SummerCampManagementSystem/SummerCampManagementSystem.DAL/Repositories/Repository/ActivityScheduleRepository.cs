@@ -252,5 +252,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     rc.camperId == camperId
                 );
         }
+
+        public async Task<IEnumerable<int>> GetBusyStaffIdsInActivityAsync(DateTime startUtc, DateTime endUtc)
+        {
+            // query to get all staff with same activity schedule
+            return await _context.ActivitySchedules
+                .Where(s => s.staffId.HasValue &&
+                            s.startTime <= endUtc && s.endTime >= startUtc)
+                .Select(s => s.staffId.Value)
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }
