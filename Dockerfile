@@ -13,6 +13,13 @@ RUN dotnet publish -c Release -o /app/publish
 #FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy AS runtime
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    libgdiplus \
+    libc6-dev \
+    libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 ENV ASPNETCORE_URLS=http://+:8080
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "SummerCampManagementSystem.API.dll"]
