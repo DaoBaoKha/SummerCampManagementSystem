@@ -31,8 +31,7 @@ steps:
       '--timeout', '1500s',
 
       # --- ADD LOGGING ---
-      '--set-env-vars', 'DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true,Logging__LogLevel__Default=Debug,Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug',
-
+      '--set-env-vars', 'Logging__LogLevel__Default=Debug,Logging__LogLevel__Microsoft.EntityFrameworkCore=Debug,Logging__LogLevel__Microsoft.AspNetCore=Information',
       # --- AUTHENTICATION ---
       '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
       '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
