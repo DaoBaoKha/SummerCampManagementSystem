@@ -10,7 +10,7 @@ using SummerCampManagementSystem.Core.Enums;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/[controller]")]
-    [Authorize(Roles = "Staff, Manager, Admin")]
+    //[Authorize(Roles = "Staff, Manager, Admin")]
     [ApiController]
     public class ActivityScheduleController : ControllerBase
     {
