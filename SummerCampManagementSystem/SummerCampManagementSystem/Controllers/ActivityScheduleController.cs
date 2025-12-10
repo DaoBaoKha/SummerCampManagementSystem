@@ -195,6 +195,7 @@ namespace SummerCampManagementSystem.API.Controllers
 
         }
 
+        [Authorize(Roles = "Staff, Manager, Admin, User")]
         [HttpGet("optional/camp/{campId}")]
         public async Task<IActionResult> GetOptionalByCamp(int campId)
         {
@@ -213,6 +214,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff, Manager, Admin, User")]
         [HttpGet("core/camp/{campId}")]
         public async Task<IActionResult> GetCoreByCamp(int campId)
         {
@@ -231,6 +233,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff, Manager, Admin, User")]
         [HttpGet("camp/{campId}")]
         public async Task<IActionResult> GetByCamp(int campId)
         {
@@ -249,6 +252,7 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff, Manager, Admin, User")]
         [HttpGet("date-range")]
         public async Task<IActionResult> GetByDateRange([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
         {
