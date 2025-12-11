@@ -478,6 +478,16 @@ if (dashboardEnabled)
     app.UseHangfireDashboard("/hangfire", dashboardOptions);
 }
 
+// Register recurring jobs
+RecurringJob.AddOrUpdate<PreloadCampFaceDbJob>(
+    "preload-camp-face-db-daily",
+    job => job.ExecuteAsync(),
+    "0 19 * * *", // Run daily at 19:00 UTC (02:00 UTC+7)
+    new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.Utc
+    });
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.MapControllers();

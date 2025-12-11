@@ -31,13 +31,13 @@ namespace SummerCampManagementSystem.BLL.Jobs
 
         /// <summary>
         /// Executes the cleanup job for a specific camp
-        /// This is called by Hangfire after camp ends
+        /// This is called by Hangfire 1 day after camp ends
         /// </summary>
         /// <param name="campId">The camp ID for which face database should be unloaded</param>
         [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 30, 60, 120 })]
         public async Task ExecuteAsync(int campId)
         {
-            _logger.LogInformation("CleanupCampFaceDbJob started for Camp {CampId}", campId);
+            _logger.LogInformation("[CleanupCampFaceDbJob] Starting cleanup for Camp {CampId}", campId);
 
             try
             {
@@ -46,7 +46,7 @@ namespace SummerCampManagementSystem.BLL.Jobs
 
                 if (camp == null)
                 {
-                    _logger.LogWarning("Camp {CampId} not found, skipping cleanup", campId);
+                    _logger.LogWarning("[CleanupCampFaceDbJob] Camp {CampId} not found, skipping cleanup", campId);
                     return;
                 }
 
@@ -54,22 +54,14 @@ namespace SummerCampManagementSystem.BLL.Jobs
                 if (camp.endDate > DateTime.UtcNow)
                 {
                     _logger.LogWarning(
-                        "Camp {CampId} has not ended yet (EndDate: {EndDate}), skipping cleanup",
+                        "[CleanupCampFaceDbJob] Camp {CampId} has not ended yet (EndDate: {EndDate} UTC), skipping cleanup",
                         campId, camp.endDate);
                     return;
                 }
 
-                // Check if there are any overlapping camps still running
-                var overlappingCamps = await CheckForOverlappingCampsAsync(campId);
-
-                if (overlappingCamps > 0)
-                {
-                    _logger.LogInformation(
-                        "Camp {CampId} has {OverlappingCamps} overlapping camps still running, deferring cleanup",
-                        campId, overlappingCamps);
-                    // Don't cleanup yet - other camps are using the face database
-                    return;
-                }
+                _logger.LogInformation(
+                    "[CleanupCampFaceDbJob] Camp {CampId} ended at {EndDate} UTC, proceeding with cleanup",
+                    campId, camp.endDate);
 
                 // Generate service token for background job (no user context)
                 var serviceToken = _pythonAiService.GenerateJwtToken();
@@ -80,58 +72,21 @@ namespace SummerCampManagementSystem.BLL.Jobs
                 if (result.Success)
                 {
                     _logger.LogInformation(
-                        "CleanupCampFaceDbJob completed successfully for Camp {CampId}",
+                        "[CleanupCampFaceDbJob] ✅ Successfully cleaned up Camp {CampId}",
                         campId);
                 }
                 else
                 {
                     _logger.LogError(
-                        "CleanupCampFaceDbJob failed for Camp {CampId}. Error: {ErrorMessage}",
+                        "[CleanupCampFaceDbJob] ❌ Failed for Camp {CampId}. Error: {ErrorMessage}",
                         campId, result.Message);
                     throw new Exception($"Failed to cleanup face database for Camp {campId}: {result.Message}");
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "CleanupCampFaceDbJob encountered an error for Camp {CampId}", campId);
+                _logger.LogError(ex, "[CleanupCampFaceDbJob] Error for Camp {CampId}", campId);
                 throw; // Re-throw to trigger Hangfire retry mechanism
-            }
-        }
-
-        /// <summary>
-        /// Checks if there are any other camps that overlap with this camp and are still running
-        /// </summary>
-        /// <param name="campId">The camp ID to check against</param>
-        /// <returns>Number of overlapping camps that are still running</returns>
-        private async Task<int> CheckForOverlappingCampsAsync(int campId)
-        {
-            try
-            {
-                var currentCamp = await _unitOfWork.Camps.GetByIdAsync(campId);
-                if (currentCamp == null) return 0;
-
-                var now = DateTime.UtcNow;
-
-                // Get all camps that:
-                // 1. Are NOT the current camp
-                // 2. Have start date before current camp's end date
-                // 3. Have end date after current camp's start date
-                // 4. Are still running (end date is in the future)
-                var allCamps = await _unitOfWork.Camps.GetAllAsync();
-
-                var overlappingCamps = allCamps
-                    .Where(c => c.campId != campId)
-                    .Where(c => c.startDate < currentCamp.endDate && c.endDate > currentCamp.startDate)
-                    .Where(c => c.endDate > now)
-                    .Count();
-
-                return overlappingCamps;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking for overlapping camps for Camp {CampId}", campId);
-                // Return 1 to be safe - don't cleanup if we can't determine overlap status
-                return 1;
             }
         }
 

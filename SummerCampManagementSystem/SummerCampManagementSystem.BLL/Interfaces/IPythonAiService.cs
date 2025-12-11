@@ -49,6 +49,14 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<Dictionary<int, int>> GetLoadedCampsAsync(string authToken);
 
         /// <summary>
+        /// Check if a camp's face database is loaded in Redis
+        /// </summary>
+        /// <param name="campId">The camp ID to check</param>
+        /// <param name="authToken">JWT token from authenticated user</param>
+        /// <returns>True if camp is loaded in Redis, false otherwise</returns>
+        Task<bool> CheckCampLoadedAsync(int campId, string authToken);
+
+        /// <summary>
         /// Generate JWT token for service-to-service authentication (used by background jobs)
         /// </summary>
         /// <returns>JWT token string</returns>
