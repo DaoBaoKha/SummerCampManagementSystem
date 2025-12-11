@@ -82,11 +82,11 @@ namespace SummerCampManagementSystem.API.Controllers
 
         /// <summary>
         /// Manually preload face database for a specific camp
-        /// Triggers immediate job execution
+        /// Calls Python AI service directly to load face database
         /// </summary>
         /// <param name="campId">The camp ID to preload</param>
         /// <param name="forceReload">Force reload even if already loaded</param>
-        /// <response code="200">Preload job triggered successfully</response>
+        /// <response code="200">Preload completed successfully</response>
         /// <response code="404">Camp not found</response>
         [HttpPost("preload/{campId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -102,19 +102,36 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { success = false, message = $"Camp {campId} not found" });
             }
 
-            // Trigger immediate preload job
-            var jobId = PreloadCampFaceDbJob.TriggerImmediately(campId, forceReload);
+            // Generate service token for this request
+            var serviceToken = _pythonAiService.GenerateJwtToken();
 
-            _logger.LogInformation("Preload job triggered for Camp {CampId}. JobId: {JobId}", campId, jobId);
+            // Call Python AI service directly
+            var result = await _pythonAiService.LoadCampFaceDbAsync(campId, serviceToken, forceReload);
 
-            return Ok(new
+            if (result.Success)
             {
-                success = true,
-                message = "Preload job triggered successfully",
-                campId = campId,
-                jobId = jobId,
-                forceReload = forceReload
-            });
+                _logger.LogInformation("Manual preload completed for Camp {CampId}. Loaded {FaceCount} faces", campId, result.FaceCount);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Preload completed successfully",
+                    campId = campId,
+                    faceCount = result.FaceCount,
+                    forceReload = forceReload
+                });
+            }
+            else
+            {
+                _logger.LogError("Manual preload failed for Camp {CampId}: {ErrorMessage}", campId, result.Message);
+
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Preload failed: {result.Message}",
+                    campId = campId
+                });
+            }
         }
 
         /// <summary>
@@ -171,7 +188,6 @@ namespace SummerCampManagementSystem.API.Controllers
                     _configuration["AttendanceJobSettings:PreDownloadBufferMinutes"],
                     out var buffer) ? buffer : 10;
 
-                int preloadJobsScheduled = 0;
                 int cleanupJobsScheduled = 0;
                 int attendanceFolderJobsScheduled = 0;
 
@@ -192,18 +208,8 @@ namespace SummerCampManagementSystem.API.Controllers
                             attendanceFolderJobsScheduled++;
                         }
 
-                        // Schedule preload job
-                        var preloadTime = startDate.AddMinutes(-preloadBufferMinutes);
-                        if (preloadTime > now)
-                        {
-                            PreloadCampFaceDbJob.ScheduleForCamp(camp.campId, startDate, preloadBufferMinutes);
-                            preloadJobsScheduled++;
-                        }
-                        else if (startDate > now && endDate > now)
-                        {
-                            PreloadCampFaceDbJob.TriggerImmediately(camp.campId, forceReload: false);
-                            preloadJobsScheduled++;
-                        }
+                        // Note: Preload job now runs as daily recurring job at 19:00 UTC (02:00 UTC+7)
+                        // No need to schedule per-camp preload jobs anymore
 
                         // Schedule cleanup job
                         if (endDate > now)
@@ -219,8 +225,8 @@ namespace SummerCampManagementSystem.API.Controllers
                 }
 
                 _logger.LogInformation(
-                    "Job rebuild completed. Scheduled: {AttendanceFolderJobs} attendance folder jobs, {PreloadJobs} preload jobs, {CleanupJobs} cleanup jobs",
-                    attendanceFolderJobsScheduled, preloadJobsScheduled, cleanupJobsScheduled);
+                    "Job rebuild completed. Scheduled: {AttendanceFolderJobs} attendance folder jobs, {CleanupJobs} cleanup jobs (preload jobs run on daily schedule)",
+                    attendanceFolderJobsScheduled, cleanupJobsScheduled);
 
                 return Ok(new
                 {
@@ -230,7 +236,6 @@ namespace SummerCampManagementSystem.API.Controllers
                     {
                         totalCamps = allCamps.Count(),
                         attendanceFolderJobsScheduled = attendanceFolderJobsScheduled,
-                        preloadJobsScheduled = preloadJobsScheduled,
                         cleanupJobsScheduled = cleanupJobsScheduled
                     }
                 });

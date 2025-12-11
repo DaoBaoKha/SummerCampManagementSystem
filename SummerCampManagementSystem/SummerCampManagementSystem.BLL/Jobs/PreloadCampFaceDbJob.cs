@@ -1,131 +1,130 @@
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.Jobs
 {
     /// <summary>
-    /// Hangfire background job that preloads face database into Python AI service
-    /// before camp starts (triggered X minutes before StartDate)
+    /// Hangfire recurring job that preloads face databases at 19:00 UTC (02:00 UTC+7) daily
+    /// Preloads camps that start within the next 24 hours
     /// </summary>
     public class PreloadCampFaceDbJob
     {
         private readonly IPythonAiService _pythonAiService;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<PreloadCampFaceDbJob> _logger;
 
         public PreloadCampFaceDbJob(
             IPythonAiService pythonAiService,
+            IUnitOfWork unitOfWork,
             ILogger<PreloadCampFaceDbJob> logger)
         {
             _pythonAiService = pythonAiService;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
         /// <summary>
-        /// Executes the preload job for a specific camp
-        /// This is called by Hangfire before camp starts
+        /// Executes the preload job - checks for camps starting soon and preloads them
+        /// This is called by Hangfire daily at 19:00 UTC (02:00 UTC+7)
         /// </summary>
-        /// <param name="campId">The camp ID for which face database should be loaded</param>
-        /// <param name="forceReload">Force reload even if already loaded</param>
         [AutomaticRetry(Attempts = 3, DelaysInSeconds = new[] { 30, 60, 120 })]
-        public async Task ExecuteAsync(int campId, bool forceReload = false)
+        public async Task ExecuteAsync()
         {
-            _logger.LogInformation("PreloadCampFaceDbJob started for Camp {CampId}", campId);
+            _logger.LogInformation("[PreloadCampFaceDbJob] Starting daily preload check at {UtcTime} UTC", DateTime.UtcNow);
 
             try
             {
-                // Generate service token for background job (no user context)
+                var nowUtc = DateTime.UtcNow;
+
+                // Find camps that start within the next 24 hours (database stores UTC)
+                var preloadWindowStart = nowUtc;
+                var preloadWindowEnd = nowUtc.AddHours(24);
+
+                var allCamps = await _unitOfWork.Camps.GetAllAsync();
+                var campsToPreload = allCamps
+                    .Where(c =>
+                        c.startDate.HasValue &&
+                        c.endDate.HasValue &&
+                        c.status == "Active" &&
+                        c.startDate.Value >= preloadWindowStart &&
+                        c.startDate.Value <= preloadWindowEnd)
+                    .ToList();
+
+                if (!campsToPreload.Any())
+                {
+                    _logger.LogInformation("[PreloadCampFaceDbJob] No camps starting in the next 24 hours");
+                    return;
+                }
+
+                _logger.LogInformation(
+                    "[PreloadCampFaceDbJob] Found {Count} camp(s) starting within 24 hours",
+                    campsToPreload.Count);
+
+                // Generate service token once for all preloads
                 var serviceToken = _pythonAiService.GenerateJwtToken();
 
-                // Call Python AI service to load face database
-                var result = await _pythonAiService.LoadCampFaceDbAsync(campId, serviceToken, forceReload);
+                foreach (var camp in campsToPreload)
+                {
+                    try
+                    {
+                        // Check if already loaded to avoid duplicate preloads
+                        var isLoaded = await _pythonAiService.CheckCampLoadedAsync(camp.campId, serviceToken);
 
-                if (result.Success)
-                {
-                    _logger.LogInformation(
-                        "PreloadCampFaceDbJob completed successfully for Camp {CampId}. Loaded {FaceCount} faces",
-                        campId, result.FaceCount);
+                        if (isLoaded)
+                        {
+                            _logger.LogInformation(
+                                "[PreloadCampFaceDbJob] Camp {CampId} already loaded, skipping",
+                                camp.campId);
+                            continue;
+                        }
+
+                        _logger.LogInformation(
+                            "[PreloadCampFaceDbJob] Preloading camp {CampId} (starts at {StartDate} UTC)",
+                            camp.campId,
+                            camp.startDate.Value);
+
+                        var result = await _pythonAiService.LoadCampFaceDbAsync(
+                            camp.campId,
+                            serviceToken,
+                            forceReload: false);
+
+                        if (result.Success)
+                        {
+                            _logger.LogInformation(
+                                "[PreloadCampFaceDbJob] ✅ Successfully preloaded camp {CampId} ({FaceCount} faces)",
+                                camp.campId,
+                                result.FaceCount);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "[PreloadCampFaceDbJob] ⚠️ Failed to preload camp {CampId}: {Message}",
+                                camp.campId,
+                                result.Message);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(
+                            ex,
+                            "[PreloadCampFaceDbJob] Error preloading camp {CampId}",
+                            camp.campId);
+                        // Continue with next camp even if one fails
+                    }
                 }
-                else
-                {
-                    _logger.LogError(
-                        "PreloadCampFaceDbJob failed for Camp {CampId}. Error: {ErrorMessage}",
-                        campId, result.Message);
-                    throw new Exception($"Failed to preload face database for Camp {campId}: {result.Message}");
-                }
+
+                _logger.LogInformation("[PreloadCampFaceDbJob] Daily preload check completed");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "PreloadCampFaceDbJob encountered an error for Camp {CampId}", campId);
-                throw; // Re-throw to trigger Hangfire retry mechanism
+                _logger.LogError(ex, "[PreloadCampFaceDbJob] Error during preload check");
+                throw; // Re-throw to trigger Hangfire retry
             }
-        }
-
-        /// <summary>
-        /// Static method to schedule a preload job for a specific camp before start time
-        /// This should be called when a camp is created or its start date is updated
-        /// </summary>
-        /// <param name="campId">The camp ID</param>
-        /// <param name="startDate">The camp start date/time</param>
-        /// <param name="bufferMinutes">Minutes before start time to trigger preload (default: 10)</param>
-        /// <returns>The Hangfire job ID or null if job already exists</returns>
-        public static string? ScheduleForCamp(int campId, DateTime startDate, int bufferMinutes = 10)
-        {
-            // Check if job already exists for this camp
-            if (IsJobScheduledForCamp(campId))
-            {
-                return null; // Job already exists
-            }
-
-            var preloadTime = startDate.AddMinutes(-bufferMinutes);
-
-            // If preload time is in the past, schedule immediately
-            if (preloadTime < DateTime.UtcNow)
-            {
-                preloadTime = DateTime.UtcNow.AddSeconds(5);
-            }
-
-            var jobId = BackgroundJob.Schedule<PreloadCampFaceDbJob>(
-                job => job.ExecuteAsync(campId, false),
-                preloadTime);
-
-            return jobId;
-        }
-
-        private static bool IsJobScheduledForCamp(int campId)
-        {
-            var monitoringApi = JobStorage.Current.GetMonitoringApi();
-            var scheduledJobs = monitoringApi.ScheduledJobs(0, int.MaxValue);
-
-            return scheduledJobs.Any(j =>
-                j.Value?.Job?.Type == typeof(PreloadCampFaceDbJob) &&
-                j.Value?.Job?.Args?.Any(a => a?.ToString() == campId.ToString()) == true);
-        }
-
-        /// <summary>
-        /// Static method to manually trigger preload immediately (for testing or manual intervention)
-        /// </summary>
-        /// <param name="campId">The camp ID</param>
-        /// <param name="forceReload">Force reload even if already loaded</param>
-        /// <returns>The Hangfire job ID</returns>
-        public static string TriggerImmediately(int campId, bool forceReload = false)
-        {
-            var jobId = BackgroundJob.Enqueue<PreloadCampFaceDbJob>(
-                job => job.ExecuteAsync(campId, forceReload));
-
-            return jobId;
-        }
-
-        /// <summary>
-        /// Static method to cancel a scheduled preload job
-        /// </summary>
-        /// <param name="jobId">The Hangfire job ID to cancel</param>
-        /// <returns>True if job was cancelled successfully</returns>
-        public static bool CancelJob(string jobId)
-        {
-            return BackgroundJob.Delete(jobId);
         }
     }
 }
