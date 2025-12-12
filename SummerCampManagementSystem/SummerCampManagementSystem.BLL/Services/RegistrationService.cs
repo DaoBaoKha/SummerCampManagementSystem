@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Net.payOS;
 using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.Helpers;
@@ -17,17 +16,17 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IValidationService _validationService;
-        private readonly PayOS _payOS;
+        private readonly IPayOSService _payOSService;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
 
         public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService,
-            PayOS payOS, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
+            IPayOSService payOSService, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
-            _payOS = payOS;
+            _payOSService = payOSService;
             _configuration = configuration;
             _mapper = mapper;
             _userContextService = userContextService;
@@ -239,12 +238,41 @@ namespace SummerCampManagementSystem.BLL.Services
             return responseDtos;
         }
 
-        public async Task<bool> DeleteRegistrationAsync(int id)
+        public async Task<bool> DeleteRegistrationAsync(int registrationId)
         {
-            var existingRegistration = await _unitOfWork.Registrations.GetByIdAsync(id);
-            if (existingRegistration == null) return false;
-            await _unitOfWork.Registrations.RemoveAsync(existingRegistration);
+            // validation
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (currentUserId == null)
+            {
+                throw new UnauthorizedAccessException("User is not authenticated.");
+            }
+
+            var registration = await _unitOfWork.Registrations.GetByIdAsync(registrationId);
+            if (registration == null)
+            {
+                throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
+            }
+
+            if (registration.userId != currentUserId.Value)
+            {
+                throw new UnauthorizedAccessException("You do not have permission to cancel this registration.");
+            }
+
+            // only allow cancellation if status is NOT: Confirmed, PendingRefund, Refunded, Canceled
+            if (registration.status == RegistrationStatus.Confirmed.ToString() ||
+                registration.status == RegistrationStatus.PendingRefund.ToString() ||
+                registration.status == RegistrationStatus.Refunded.ToString() ||
+                registration.status == RegistrationStatus.Canceled.ToString()) 
+            {
+                throw new InvalidOperationException($"Cannot cancel registration with status '{registration.status}'.");
+            }
+
+            // soft delete 
+            registration.status = RegistrationStatus.Canceled.ToString();
+
+            await _unitOfWork.Registrations.UpdateAsync(registration);
             await _unitOfWork.CommitAsync();
+
             return true;
         }
 
@@ -596,7 +624,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         returnUrl: returnUrl
                     );
 
-                    CreatePaymentResult createPaymentResult = await _payOS.createPaymentLink(paymentData);
+                    CreatePaymentResult createPaymentResult = await _payOSService.CreatePaymentLink(paymentData);
 
                     // Commit all transaction db
                     await transaction.CommitAsync();
