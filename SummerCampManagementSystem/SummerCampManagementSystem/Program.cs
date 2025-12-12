@@ -115,6 +115,7 @@ builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPromotionTypeRepository, PromotionTypeRepository>();
