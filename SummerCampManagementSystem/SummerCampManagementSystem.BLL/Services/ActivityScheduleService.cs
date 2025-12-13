@@ -74,6 +74,11 @@ namespace SummerCampManagementSystem.BLL.Services
             if (templateDto.StartTime >= templateDto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
 
+            if (!templateDto.IsDaily && (templateDto.RepeatDays == null || !templateDto.RepeatDays.Any()))
+            {
+                throw new InvalidOperationException("Phải chọn IsDaily là true hoặc cung cấp danh sách ngày lặp lại.");
+            }
+
             var campStartDate = DateOnly.FromDateTime(camp.startDate.Value);
             var campEndDate = DateOnly.FromDateTime(camp.endDate.Value);
 
@@ -83,11 +88,19 @@ namespace SummerCampManagementSystem.BLL.Services
 
             while (currentDate <= campEndDate)
             {
-                // Kiểm tra xem ngày này có nằm trong danh sách lặp lại không
-                if (templateDto.RepeatDays.Contains((RepeatDayOfWeek)currentDate.DayOfWeek))
+                var currentDayOfWeek = (RepeatDayOfWeek)currentDate.DayOfWeek;
+
+                bool shouldCreateSchedule = templateDto.IsDaily;
+                if (!shouldCreateSchedule && templateDto.RepeatDays.Any())
                 {
-                    var scheduledStartTime = currentDate.ToDateTime(templateDto.StartTime);
-                    var scheduledEndTime = currentDate.ToDateTime(templateDto.EndTime);
+                    // Fix: Sử dụng ép kiểu trực tiếp do đã sửa Enum Sunday = 0
+                    shouldCreateSchedule = templateDto.RepeatDays.Contains(currentDayOfWeek);
+                }
+
+                if (shouldCreateSchedule)
+                {
+                    var scheduledStartTime = currentDate.ToDateTime(templateDto.StartTime); // VNT
+                    var scheduledEndTime = currentDate.ToDateTime(templateDto.EndTime);     // VNT
 
                     var scheduledStartTimeUtc = scheduledStartTime.ToUtcForStorage();
                     var scheduledEndTimeUtc = scheduledEndTime.ToUtcForStorage();
@@ -137,7 +150,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Kiểm tra Xung đột trước khi tạo bất kỳ cái nào
                 foreach (var newSchedule in schedulesToCreate)
                 {
-                    // Kiểm tra xung đột với DB hiện tại (giống logic cũ)
+                    // Kiểm tra xung đột với DB hiện tại
                     var startTimeUtc = newSchedule.StartTime.ToUtcForStorage();
                     var endTimeUtc = newSchedule.EndTime.ToUtcForStorage();
 
@@ -241,14 +254,17 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.StartTime >= dto.EndTime)
                 throw new InvalidOperationException("Start date must be earlier than end date.");
 
+            var startTimeUtc = dto.StartTime.ToUtcForStorage();
+            var endTimeUtc = dto.EndTime.ToUtcForStorage();
+
             // Rule 1: Thời gian schedule phải nằm trong thời gian trại
-            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
+            if (startTimeUtc < camp.startDate.Value || endTimeUtc > camp.endDate.Value)
             {
                 throw new InvalidOperationException("Schedule time must be within the camp duration.");
             }
 
             // Check overlap
-            bool overlap = await _unitOfWork.ActivitySchedules.IsTimeOverlapAsync(activity.campId, dto.StartTime, dto.EndTime);
+            bool overlap = await _unitOfWork.ActivitySchedules.IsTimeOverlapAsync(activity.campId, startTimeUtc, endTimeUtc);
             if (overlap)
                 throw new InvalidOperationException("Core activity schedule overlaps with another core activity");
 
@@ -260,7 +276,7 @@ namespace SummerCampManagementSystem.BLL.Services
               ?? throw new KeyNotFoundException("Location not found");
 
                 bool locationConflict = await _unitOfWork.ActivitySchedules
-                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, dto.StartTime, dto.EndTime);
+                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
 
                 if (locationConflict)
                     throw new InvalidOperationException("This location is already occupied during the selected time range.");
@@ -288,7 +304,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 // 4.3 Staff không được trùng lịch với activity khác
                 bool staffConflict = await _unitOfWork.ActivitySchedules
-                    .IsStaffBusyAsync(dto.StaffId.Value, dto.StartTime, dto.EndTime);
+                    .IsStaffBusyAsync(dto.StaffId.Value, startTimeUtc, endTimeUtc);
 
                 if (staffConflict)
                     throw new InvalidOperationException("Staff has another activity scheduled during this time.");
@@ -323,11 +339,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
                 var schedule = _mapper.Map<ActivitySchedule>(dto);
 
-                if (schedule.startTime.HasValue)
-                    schedule.startTime = schedule.startTime.Value.ToUtcForStorage();
-
-                if (schedule.endTime.HasValue)
-                    schedule.endTime = schedule.endTime.Value.ToUtcForStorage();
+                schedule.startTime = startTimeUtc;
+                schedule.endTime = endTimeUtc;
 
                 schedule.currentCapacity = currentCapacity;
                 schedule.livestreamId = livestreamId;
