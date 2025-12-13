@@ -12,9 +12,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int ActivityId { get; set; }
         public int? StaffId { get; set; }
         public int? LocationId { get; set; }
+
+        [Required(ErrorMessage = "Ngày Giờ bắt đầu là bắt buộc.")]
         public DateTime StartTime { get; set; }
+        [Required(ErrorMessage = "Ngày Giờ kết thúc là bắt buộc.")]
         public DateTime EndTime { get; set; }
-        public bool? IsOptional { get; set; }
+        public bool IsOptional { get; set; } =false;
         public bool? IsLiveStream { get; set; }
 
     }
@@ -59,8 +62,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
 
         [Required(ErrorMessage = "Giờ kết thúc là bắt buộc.")]
         public TimeOnly EndTime { get; set; }
-
-        [Required(ErrorMessage = "Danh sách ngày lặp lại là bắt buộc.")]
+        public bool IsDaily { get; set; } = false;
         public List<RepeatDayOfWeek> RepeatDays { get; set; } = new List<RepeatDayOfWeek>();
     }
 }
