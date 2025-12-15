@@ -14,7 +14,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
     public class ActivityScheduleResponseDto
     {
         public int ActivityScheduleId { get; set; }
-        public int? CoreActivityId { get; set; } // ADD FOR FILTER LOGIC
+        public int? CoreActivityId { get; set; } 
         public ActivitySummaryDto Activity { get; set; }
         public SupervisorDto Staff { get; set; }    
         public DateTime StartTime { get; set; }
@@ -22,11 +22,17 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public string Status { get; set; }
         public bool? IsLivestream { get; set; }
         public LivestreamResponseDto LiveStream { get; set; }
-        public int? MaxCapacity { get; set; }
         public bool IsOptional { get; set; }
         public LocationDto Location { get; set; }
-       // public int? CurrentCapacity { get; set; }
+        public int? CurrentCapacity { get; set; }
 
+    }
+
+    // DTO mới để hứng kết quả trả về
+    public class CreateScheduleBatchResult
+    {
+        public List<ActivityScheduleResponseDto> Successes { get; set; } = new();
+        public List<string> Errors { get; set; } = new();
     }
 
     public class ActivityScheduleByCamperResponseDto : ActivityScheduleResponseDto
