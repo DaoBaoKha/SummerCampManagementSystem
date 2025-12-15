@@ -14,6 +14,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         //Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
         Task<CreateScheduleBatchResult> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
         Task<CreateScheduleBatchResult> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto);
+        Task<CreateScheduleBatchResult> CreateRestingScheduleAsync(RestingScheduleCreateDto dto);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync();
         Task<ActivityScheduleResponseDto?> GetScheduleByIdAsync(int id);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetByCampAndStaffAsync(int campId, int staffId);
