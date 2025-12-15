@@ -136,44 +136,60 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái 'PendingApproval'.");
             }
 
+            bool isPartialReject = dto.CamperIds != null && dto.CamperIds.Any();
+
             // reject logic
-            if (dto.CamperId.HasValue)
+            if (isPartialReject)
             {
-                // reject single camper
-                var camperLink = registration.RegistrationCampers
-                    .FirstOrDefault(rc => rc.camperId == dto.CamperId.Value);
+                // reject specific campers only
+                var validCamperIds = registration.RegistrationCampers.Select(rc => rc.camperId).ToList();
+                var invalidIds = dto.CamperIds!.Except(validCamperIds).ToList();
 
-                if (camperLink == null)
-                    throw new NotFoundException($"Trại viên ID {dto.CamperId} không thuộc đơn này.");
-
-                camperLink.status = RegistrationCamperStatus.Rejected.ToString();
-                camperLink.rejectReason = dto.RejectReason;
-                await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
-
-                registration.status = RegistrationStatus.Rejected.ToString();
-                registration.rejectReason = $"Tạm từ chối do trại viên ID {dto.CamperId}: {dto.RejectReason}. Vui lòng cập nhật hồ sơ.";
-            }
-            else
-            {
-                // reject whole registration
-                registration.status = RegistrationStatus.Rejected.ToString();
-                registration.rejectReason = dto.RejectReason;
-
-                foreach (var camperLink in registration.RegistrationCampers)
+                if (invalidIds.Any())
                 {
+                    throw new NotFoundException($"Các trại viên có ID [{string.Join(", ", invalidIds)}] không thuộc đơn đăng ký này.");
+                }
+
+                foreach (var camperId in dto.CamperIds!)
+                {
+                    var camperLink = registration.RegistrationCampers.First(rc => rc.camperId == camperId);
+
+                    // only reject if status is PendingApproval
                     if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
                     {
                         camperLink.status = RegistrationCamperStatus.Rejected.ToString();
                         camperLink.rejectReason = dto.RejectReason;
+
                         await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
                     }
                 }
-            }
+
+                registration.status = RegistrationStatus.Rejected.ToString();
+
+                registration.rejectReason = $"Từ chối {dto.CamperIds.Count} trại viên. Lý do: {dto.RejectReason}. Vui lòng cập nhật hồ sơ.";
+                }
+                else
+                {
+                    // reject whole regis
+                    registration.status = RegistrationStatus.Rejected.ToString();
+                    registration.rejectReason = dto.RejectReason;
+
+                    foreach (var camperLink in registration.RegistrationCampers)
+                    {
+                        if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
+                        {
+                            camperLink.status = RegistrationCamperStatus.Rejected.ToString();
+                            camperLink.rejectReason = dto.RejectReason;
+                            await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                        }
+                    }
+                }
 
             await _unitOfWork.Registrations.UpdateAsync(registration);
             await _unitOfWork.CommitAsync();
 
-            return await GetRegistrationByIdAsync(dto.RegistrationId);
+            return await GetRegistrationByIdAsync(dto.RegistrationId)
+                   ?? throw new NotFoundException("Registration not found after rejection.");
         }
 
         public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request)
@@ -188,60 +204,75 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new BusinessRuleException($"Không thể cập nhật đơn ở trạng thái '{existingRegistration.status}'.");
             }
 
-            // mark this regis as resubmission if previously rejected
-            bool isResubmit = existingRegistration.status == RegistrationStatus.Rejected.ToString();
+            if (request.appliedPromotionId.HasValue)
+            {
+                var promotion = await _unitOfWork.Promotions.GetByIdAsync(request.appliedPromotionId.Value);
+                if (promotion == null)
+                {
+                    throw new NotFoundException($"Mã khuyến mãi ID {request.appliedPromotionId} không tồn tại.");
+                }
+            }
 
-            // mark this regis as requiring re-approval if previously approved
-            bool requiresReApproval = existingRegistration.status == RegistrationStatus.Approved.ToString();
-
-            // Access DbContext directly for complex M-to-M entity tracking
+            // access DbContext for complex M-to-M operations
             var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
+
+            // clear existing navigation collection to avoid EF Core tracking issues
+            if (existingRegistration.RegistrationCampers != null)
+            {
+                existingRegistration.RegistrationCampers.Clear();
+            }
+
+            // only attach the existing entity to the context
             dbContext.Registrations.Attach(existingRegistration);
 
-            // get existing link
+            // get list camper(s) from db
             var oldCamperLinks = await dbContext.RegistrationCampers
                 .Where(rc => rc.registrationId == id)
                 .ToListAsync();
 
-            // delete camper links that are removed in the request
+            // delete camper not in the new list
             var linksToRemove = oldCamperLinks
                 .Where(rc => !request.CamperIds.Contains(rc.camperId)).ToList();
-            dbContext.RegistrationCampers.RemoveRange(linksToRemove);
 
-            dbContext.RegistrationCampers.RemoveRange(linksToRemove);
+            if (linksToRemove.Any())
+            {
+                dbContext.RegistrationCampers.RemoveRange(linksToRemove);
+            }
 
-            // add links for new Campers
+            // add camper(s) in the new list
             var existingCamperIds = oldCamperLinks.Select(rc => rc.camperId).ToList();
             var camperIdsToAdd = request.CamperIds
                 .Where(camperId => !existingCamperIds.Contains(camperId)).ToList();
 
             foreach (var camperId in camperIdsToAdd)
             {
-                // use private to check campers
+                // validation
                 await ValidateCamperNotAlreadyRegisteredAsync(request.CampId, camperId);
 
-                // create new link
                 var newLink = new RegistrationCamper
                 {
                     registrationId = id,
                     camperId = camperId,
-                    status = RegistrationCamperStatus.PendingApproval.ToString(), 
+                    status = RegistrationCamperStatus.PendingApproval.ToString(),
                     rejectReason = null
                 };
+                // add into dbcontext
                 dbContext.RegistrationCampers.Add(newLink);
             }
 
-            // keep existing camper(s) if that camper is approved 
+            bool isResubmit = existingRegistration.status == RegistrationStatus.Rejected.ToString();
+            bool requiresReApproval = existingRegistration.status == RegistrationStatus.Approved.ToString() || isResubmit;
+
             if (requiresReApproval)
             {
+                // old camper(s) to keep - reset status to PendingApproval
                 var linksToKeep = oldCamperLinks.Where(rc => request.CamperIds.Contains(rc.camperId)).ToList();
                 foreach (var link in linksToKeep)
                 {
                     link.status = RegistrationCamperStatus.PendingApproval.ToString();
-                    // delete reject reason to renew approval
                     link.rejectReason = null;
-
-                    dbContext.RegistrationCampers.Update(link);
+                    // mark as modified so EF Core tracks the change
+                    dbContext.Entry(link).State = EntityState.Modified;
                 }
             }
 
@@ -254,10 +285,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (requiresReApproval)
             {
-                // if it already approved, return to pending approval status
                 existingRegistration.status = RegistrationStatus.PendingApproval.ToString();
-                existingRegistration.rejectReason = null; 
+                existingRegistration.rejectReason = null;
             }
+
+            await _unitOfWork.Registrations.UpdateAsync(existingRegistration);
 
             await _unitOfWork.CommitAsync();
 
