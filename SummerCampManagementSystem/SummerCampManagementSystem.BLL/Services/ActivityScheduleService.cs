@@ -243,7 +243,6 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
-        // Trong file: SummerCampManagementSystem.BLL/Services/ActivityScheduleService.cs
 
 
         public async Task<CreateScheduleBatchResult> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto)
@@ -327,12 +326,26 @@ namespace SummerCampManagementSystem.BLL.Services
                         continue; // Bỏ qua ngày này, chạy ngày tiếp theo
                     }
 
+                    if (dto.LocationId.HasValue)
+                    {
+                        var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
+                                ?? throw new KeyNotFoundException("Location not found");
+
+                        bool locationConflict = await _unitOfWork.ActivitySchedules
+                            .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
+
+                        if (locationConflict)
+                        {
+                            result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Địa điểm đã có hoạt động khác.");
+                            continue;
+                        }
+                    }
+
                     // 2. Check Conflict (Core đè Core, Cấm đè Optional/Resting)
                     // Lưu ý: Thêm điều kiện !s.isDeleted nếu có
                     bool hasConflict = await dbContext.ActivitySchedules
                         .Include(s => s.activity)
                         .AnyAsync(s =>
-                            !s.status.Equals("Deleted") &&
                             s.activity.campId == camp.campId &&
                             (s.startTime < endTimeUtc && s.endTime > startTimeUtc) && // Logic Overlap
                             (s.activity.activityType == ActivityType.Optional.ToString() ||
@@ -382,7 +395,6 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     // Gán Capacity đã tính ở trên
                     schedule.currentCapacity = totalCapacity;
-                    schedule.maxCapacity = totalCapacity; // Có thể set max = current hoặc logic khác tùy bạn
 
                     await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
                     await _unitOfWork.CommitAsync(); // Save để lấy ID
@@ -573,98 +585,159 @@ namespace SummerCampManagementSystem.BLL.Services
         //    }
         //}
 
-        public async Task<ActivityScheduleResponseDto> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto, int coreScheduleId)
+        public async Task<CreateScheduleBatchResult> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto)
         {
-            var coreSlot = await _unitOfWork.ActivitySchedules.GetByIdAsync(coreScheduleId)
-                ?? throw new KeyNotFoundException("Core schedule not found");
+            var result = new CreateScheduleBatchResult();
 
-            if (!coreSlot.isOptional)
-                throw new InvalidOperationException("This core schedule is not marked as optional");
-
+            // 1. Lấy thông tin Activity và Camp
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
+            // Validate: Đảm bảo Activity này đúng là loại Optional
+            if (activity.activityType != ActivityType.Optional.ToString())
+                throw new InvalidOperationException("Activity ID cung cấp không phải là loại Optional.");
+
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-               ?? throw new KeyNotFoundException("Camp not found");
+                ?? throw new KeyNotFoundException("Camp not found");
 
-            if (!string.Equals(activity.activityType, "Optional", StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("Only Optional activities can be created inside a core optional slot");
+            // Validate giờ
+            if (dto.StartTime >= dto.EndTime)
+                throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
 
-            if (dto.LocationId.HasValue)
-            {
-                var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
-              ?? throw new KeyNotFoundException("Location not found");
-
-                bool locationConflict = await _unitOfWork.ActivitySchedules
-                    .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
-
-                if (locationConflict)
-                    throw new InvalidOperationException("This location is already occupied during the selected time range.");
-            }
-
+            // Validate Staff (nếu có)
             if (dto.StaffId.HasValue)
             {
                 var staff = await _unitOfWork.Users.GetByIdAsync(dto.StaffId.Value)
                     ?? throw new KeyNotFoundException("Staff not found.");
-
-
                 if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
-
-                {
-                    throw new InvalidOperationException("Assigned user is not a staff member.");
-                }
-
-                // 4.2 Staff không được là supervisor của CamperGroup nào
-                //bool isSupervisor = await _unitOfWork.CamperGroups.isSupervisor(dto.StaffId.Value);
-
-
-                //if (isSupervisor)
-                //    throw new InvalidOperationException("Staff is assigned as a supervisor and cannot join activities.");
-
-                // 4.3 Staff không được trùng lịch với activity khác
-                bool staffConflict = await _unitOfWork.ActivitySchedules
-                    .IsStaffBusyAsync(dto.StaffId.Value, coreSlot.startTime.Value, coreSlot.endTime.Value);
-
-                if (staffConflict)
-                    throw new InvalidOperationException("Staff has another activity scheduled during this time.");
+                    throw new InvalidOperationException("User được gán không phải là Staff.");
             }
 
-            if (dto.IsLiveStream == true && dto.StaffId == null)
-                throw new InvalidOperationException("StaffId is required when livestream is enabled.");
+            // 2. Chuẩn hóa thời gian (VN -> UTC Logic)
+            var campStartVn = camp.startDate.Value.ToVietnamTime();
+            var campEndVn = camp.endDate.Value.ToVietnamTime();
+
+            // Ép kiểu về Unspecified (Giờ VN) để tính toán
+            var dtoStartVn = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Unspecified);
+            var dtoEndVn = DateTime.SpecifyKind(dto.EndTime, DateTimeKind.Unspecified);
+
+            var loopStart = dto.IsRepeat ? campStartVn.Date : dtoStartVn.Date;
+            var loopEnd = dto.IsRepeat ? campEndVn.Date : dtoStartVn.Date;
+
+            var datesToProcess = new List<DateTime>();
+            for (var date = loopStart; date <= loopEnd; date = date.AddDays(1))
+            {
+                datesToProcess.Add(date);
+            }
+
+            var dbContext = _unitOfWork.GetDbContext();
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
-
             try
             {
-                int? livestreamId = null;
-
-                if (dto.IsLiveStream == true)
+                foreach (var dateVn in datesToProcess)
                 {
-                    var livestream = new Livestream
-                    {
-                        title = $"{activity.name} - {camp.name}",
-                        hostId = dto.StaffId
-                    };
+                    // Tính thời điểm bắt đầu/kết thúc cho ngày hiện tại (Giờ VN)
+                    var currentStartVn = dateVn.Add(dtoStartVn.TimeOfDay);
+                    var currentEndVn = dateVn.Add(dtoEndVn.TimeOfDay);
 
-                    await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                    // Chuyển sang UTC để query DB và Lưu
+                    var startTimeUtc = currentStartVn.ToUtcForStorage();
+                    var endTimeUtc = currentEndVn.ToUtcForStorage();
+
+                    // === BẮT ĐẦU VALIDATE TỪNG NGÀY ===
+
+                    // 1. Check thời gian nằm trong trại
+                    if (startTimeUtc < camp.startDate.Value || endTimeUtc > camp.endDate.Value)
+                    {
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Nằm ngoài thời gian trại.");
+                        continue;
+                    }
+
+                    // 2. Check Location (Địa điểm bận)
+                    // Logic: Một địa điểm không thể chứa 2 hoạt động cùng lúc (bất kể loại gì)
+                    if (dto.LocationId.HasValue)
+                    {
+                        var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
+                              ?? throw new KeyNotFoundException("Location not found");
+
+                                        bool locationConflict = await _unitOfWork.ActivitySchedules
+                                            .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
+
+                        if (locationConflict)
+                        {
+                            result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Địa điểm đã có hoạt động khác.");
+                            continue;
+                        }
+                    }
+
+                    // 3. Check Logic Nghiệp vụ (RULE CỦA OPTIONAL)
+                    // "Không được đè lên Core/Resting, Optional được phép đè lên nhau"
+                    bool typeConflict = await dbContext.ActivitySchedules
+                        .Include(s => s.activity)
+                        .AnyAsync(s =>
+                            s.activity.campId == camp.campId &&
+                            (s.startTime < endTimeUtc && s.endTime > startTimeUtc) &&
+                            (s.activity.activityType == ActivityType.Core.ToString() ||
+                             s.activity.activityType == ActivityType.Resting.ToString()) // Chỉ sợ Core hoặc Resting
+                        );
+
+                    if (typeConflict)
+                    {
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Bị trùng lịch với hoạt động Core hoặc Resting.");
+                        continue;
+                    }
+
+                    // 4. Check Staff Busy
+                    if (dto.StaffId.HasValue)
+                    {
+                        bool staffBusy = await _unitOfWork.ActivitySchedules
+                            .IsStaffBusyAsync(dto.StaffId.Value, startTimeUtc, endTimeUtc);
+
+                        if (staffBusy)
+                        {
+                            result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Staff đang bận hoạt động khác.");
+                            continue;
+                        }
+                    }
+
+                    // === TẠO MỚI KHI KHÔNG CÓ LỖI ===
+
+                    // Tạo Livestream
+                    int? livestreamId = null;
+                    if (dto.IsLiveStream == true && dto.StaffId.HasValue)
+                    {
+                        var livestream = new Livestream
+                        {
+                            title = $"{activity.name} - {camp.name} ({currentStartVn:dd/MM})",
+                            hostId = dto.StaffId
+                        };
+                        await _unitOfWork.LiveStreams.CreateAsync(livestream);
+                        await _unitOfWork.CommitAsync();
+                        livestreamId = livestream.livestreamId;
+                    }
+
+                    // Tạo Schedule
+                    var schedule = _mapper.Map<ActivitySchedule>(dto);
+                    schedule.startTime = startTimeUtc;
+                    schedule.endTime = endTimeUtc;
+                    schedule.livestreamId = livestreamId;
+
+                    // Optional thường là đăng ký tự do, không gán cứng group
+                    // Capacity có thể để null hoặc max int tùy logic của bạn
+                    schedule.currentCapacity = 0;
+
+                    await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
                     await _unitOfWork.CommitAsync();
 
-                    livestreamId = livestream.livestreamId;
-                }
-                var schedule = _mapper.Map<OptionalScheduleCreateDto, ActivitySchedule>(dto);
-                schedule.livestreamId = livestreamId;
-                schedule.startTime = coreSlot.startTime;
-                schedule.endTime = coreSlot.endTime;
-                schedule.coreActivityId = coreSlot.activityScheduleId;
 
-                await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
-                await _unitOfWork.CommitAsync();
+                    // Thêm vào list thành công
+                    var createdEntity = await _unitOfWork.ActivitySchedules.GetScheduleById(schedule.activityScheduleId);
+                    result.Successes.Add(_mapper.Map<ActivityScheduleResponseDto>(createdEntity));
+                }
 
                 await transaction.CommitAsync();
-
-                var result = await _unitOfWork.ActivitySchedules.GetByIdWithActivityAsync(schedule.activityScheduleId);
-
-                return _mapper.Map<ActivityScheduleResponseDto>(result);
+                return result;
             }
             catch (Exception)
             {

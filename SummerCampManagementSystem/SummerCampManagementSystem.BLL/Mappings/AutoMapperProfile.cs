@@ -279,7 +279,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
             CreateMap<OptionalScheduleCreateDto, ActivitySchedule>()
-               .ForMember(dest => dest.isOptional, opt => opt.MapFrom(src => true))
                .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Draft"));
 
 
