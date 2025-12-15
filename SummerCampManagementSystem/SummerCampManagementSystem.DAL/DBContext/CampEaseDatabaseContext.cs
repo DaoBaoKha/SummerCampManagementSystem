@@ -36,15 +36,11 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<AttendanceLog> AttendanceLogs { get; set; }
 
-    public virtual DbSet<Badge> Badges { get; set; }
-
     public virtual DbSet<BankUser> BankUsers { get; set; }
 
     public virtual DbSet<Blog> Blogs { get; set; }
 
     public virtual DbSet<Camp> Camps { get; set; }
-
-    public virtual DbSet<CampBadge> CampBadges { get; set; }
 
     public virtual DbSet<CampStaffAssignment> CampStaffAssignments { get; set; }
 
@@ -55,8 +51,6 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<CamperAccommodation> CamperAccommodations { get; set; }
 
     public virtual DbSet<CamperActivity> CamperActivities { get; set; }
-
-    public virtual DbSet<CamperBadge> CamperBadges { get; set; }
 
     public virtual DbSet<CamperGroup> CamperGroups { get; set; }
 
@@ -104,6 +98,8 @@ public partial class CampEaseDatabaseContext : DbContext
 
     public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
 
+    public virtual DbSet<RefundPolicy> RefundPolicies { get; set; }
+
     public virtual DbSet<Registration> Registrations { get; set; }
 
     public virtual DbSet<RegistrationCamper> RegistrationCampers { get; set; }
@@ -129,8 +125,6 @@ public partial class CampEaseDatabaseContext : DbContext
     public virtual DbSet<Vehicle> Vehicles { get; set; }
 
     public virtual DbSet<VehicleType> VehicleTypes { get; set; }
-
-    public virtual DbSet<Visitation> Visitations { get; set; }
 
     public static string GetConnectionString(string connectionStringName)
     {
@@ -247,11 +241,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.staff).WithMany(p => p.AttendanceLogs).HasConstraintName("FK_AttendanceLog_Staff");
         });
 
-        modelBuilder.Entity<Badge>(entity =>
-        {
-            entity.HasKey(e => e.badgeId).HasName("PK__Badge__75B46C9F476C0756");
-        });
-
         modelBuilder.Entity<BankUser>(entity =>
         {
             entity.HasKey(e => e.bankUserId).HasName("PK__BankUser__CBF11725229B75CF");
@@ -277,15 +266,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.location).WithMany(p => p.Camps).HasConstraintName("FK_Camp_Location");
 
             entity.HasOne(d => d.promotion).WithMany(p => p.Camps).HasConstraintName("FK_Camp_Promotion");
-        });
-
-        modelBuilder.Entity<CampBadge>(entity =>
-        {
-            entity.HasKey(e => e.campBadgeId).HasName("PK__CampBadg__7452AA76F8B74F8D");
-
-            entity.HasOne(d => d.badge).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__badge__208CD6FA");
-
-            entity.HasOne(d => d.camp).WithMany(p => p.CampBadges).HasConstraintName("FK__CampBadge__campI__2180FB33");
         });
 
         modelBuilder.Entity<CampStaffAssignment>(entity =>
@@ -327,15 +307,6 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasOne(d => d.activitySchedule).WithMany(p => p.CamperActivities).HasConstraintName("FK_CamperActivity_ActivitySchedule");
 
             entity.HasOne(d => d.camper).WithMany(p => p.CamperActivities).HasConstraintName("FK__CamperAct__campe__395884C4");
-        });
-
-        modelBuilder.Entity<CamperBadge>(entity =>
-        {
-            entity.HasKey(e => e.camperBadgeId).HasName("PK__CamperBa__67972E47D42C121E");
-
-            entity.HasOne(d => d.badge).WithMany(p => p.CamperBadges).HasConstraintName("FK__CamperBad__badge__32AB8735");
-
-            entity.HasOne(d => d.camper).WithMany(p => p.CamperBadges).HasConstraintName("FK__CamperBad__campe__31B762FC");
         });
 
         modelBuilder.Entity<CamperGroup>(entity =>
@@ -533,6 +504,11 @@ public partial class CampEaseDatabaseContext : DbContext
                 .HasConstraintName("FK_RefreshToken_User");
         });
 
+        modelBuilder.Entity<RefundPolicy>(entity =>
+        {
+            entity.HasOne(d => d.camp).WithMany(p => p.RefundPolicies).HasConstraintName("FK_RefundPolicy_Camp");
+        });
+
         modelBuilder.Entity<Registration>(entity =>
         {
             entity.HasKey(e => e.registrationId).HasName("PK__Registra__A3DB1435EB987530");
@@ -656,17 +632,6 @@ public partial class CampEaseDatabaseContext : DbContext
         modelBuilder.Entity<VehicleType>(entity =>
         {
             entity.HasKey(e => e.vehicleTypeId).HasName("PK__VehicleT__4709A1D4F0649896");
-        });
-
-        modelBuilder.Entity<Visitation>(entity =>
-        {
-            entity.HasKey(e => e.visitationId).HasName("PK__Visitati__E33BAE4142B08E97");
-
-            entity.HasOne(d => d.approvedByNavigation).WithMany(p => p.VisitationapprovedByNavigations).HasConstraintName("FK__Visitatio__appro__05A3D694");
-
-            entity.HasOne(d => d.camper).WithMany(p => p.Visitations).HasConstraintName("FK__Visitatio__campe__04AFB25B");
-
-            entity.HasOne(d => d.user).WithMany(p => p.Visitationusers).HasConstraintName("FK__Visitatio__userI__03BB8E22");
         });
 
         OnModelCreatingPartial(modelBuilder);

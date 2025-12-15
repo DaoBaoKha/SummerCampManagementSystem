@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
@@ -35,7 +36,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
-                ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
+                ?? throw new NotFoundException($"Camp with ID {request.CampId} not found.");
 
             var currentUserId = _userContextService.GetCurrentUserId();
             if (!currentUserId.HasValue)
@@ -65,7 +66,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // check if camper exists 
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
-                    ?? throw new KeyNotFoundException($"Camper with ID {camperId} not found.");
+                    ?? throw new NotFoundException($"Camper with ID {camperId} not found.");
 
                 // create
                 var registrationCamper = new RegistrationCamper
@@ -90,15 +91,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<RegistrationResponseDto> ApproveRegistrationAsync(int registrationId)
         {
-            // load Registration with related RegistrationCampers 
-            var registration = await _unitOfWork.Registrations.GetQueryable()
-        .Include(r => r.RegistrationCampers)
-        .FirstOrDefaultAsync(r => r.registrationId == registrationId)
-        ?? throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
+            // load Registration with related RegistrationCampers 
+            var registration = await _unitOfWork.Registrations.GetWithCampersAsync(registrationId)
+                 ?? throw new NotFoundException($"Registration with ID {registrationId} not found.");
 
             if (registration.status != RegistrationStatus.PendingApproval.ToString())
             {
-                throw new InvalidOperationException("Only 'PendingApproval' registrations can be approved.");
+                throw new BusinessRuleException("Only 'PendingApproval' registrations can be approved.");
             }
 
             /*
@@ -123,33 +122,91 @@ namespace SummerCampManagementSystem.BLL.Services
             return await GetRegistrationByIdAsync(registrationId);
         }
 
+        public async Task<RegistrationResponseDto> RejectRegistrationAsync(RejectRegistrationRequestDto dto)
+        {
+            // get registration with campers
+            var registration = await _unitOfWork.Registrations.GetDetailsForStatusUpdateAsync(dto.RegistrationId);
+
+            if (registration == null)
+                throw new NotFoundException($"Không tìm thấy đơn đăng ký ID {dto.RegistrationId}.");
+
+            // validation
+            if (registration.status != RegistrationStatus.PendingApproval.ToString())
+            {
+                throw new BadRequestException("Chỉ có thể từ chối đơn khi đang ở trạng thái 'PendingApproval'.");
+            }
+
+            // reject logic
+            if (dto.CamperId.HasValue)
+            {
+                // reject single camper
+                var camperLink = registration.RegistrationCampers
+                    .FirstOrDefault(rc => rc.camperId == dto.CamperId.Value);
+
+                if (camperLink == null)
+                    throw new NotFoundException($"Trại viên ID {dto.CamperId} không thuộc đơn này.");
+
+                camperLink.status = RegistrationCamperStatus.Rejected.ToString();
+                camperLink.rejectReason = dto.RejectReason;
+                await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+
+                registration.status = RegistrationStatus.Rejected.ToString();
+                registration.rejectReason = $"Tạm từ chối do trại viên ID {dto.CamperId}: {dto.RejectReason}. Vui lòng cập nhật hồ sơ.";
+            }
+            else
+            {
+                // reject whole registration
+                registration.status = RegistrationStatus.Rejected.ToString();
+                registration.rejectReason = dto.RejectReason;
+
+                foreach (var camperLink in registration.RegistrationCampers)
+                {
+                    if (camperLink.status == RegistrationCamperStatus.PendingApproval.ToString())
+                    {
+                        camperLink.status = RegistrationCamperStatus.Rejected.ToString();
+                        camperLink.rejectReason = dto.RejectReason;
+                        await _unitOfWork.RegistrationCampers.UpdateAsync(camperLink);
+                    }
+                }
+            }
+
+            await _unitOfWork.Registrations.UpdateAsync(registration);
+            await _unitOfWork.CommitAsync();
+
+            return await GetRegistrationByIdAsync(dto.RegistrationId);
+        }
+
         public async Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request)
         {
-            var existingRegistration = await _unitOfWork.Registrations.GetQueryable()
-                .Include(r => r.RegistrationCampers) // Include link table
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.registrationId == id);
+            var existingRegistration = await _unitOfWork.Registrations.GetForUpdateAsync(id);
 
-            if (existingRegistration == null) throw new KeyNotFoundException($"Registration with ID {id} not found.");
+            if (existingRegistration == null) throw new NotFoundException($"Không tìm thấy đơn ID {id}.");
 
-            if (existingRegistration.status != RegistrationStatus.PendingApproval.ToString() &&
-                existingRegistration.status != RegistrationStatus.Approved.ToString())
+            if (existingRegistration.status != RegistrationStatus.PendingApproval.ToString() && existingRegistration.status != RegistrationStatus.Approved.ToString() &&
+                    existingRegistration.status != RegistrationStatus.Rejected.ToString())
             {
-                throw new InvalidOperationException($"Cannot update registration with status '{existingRegistration.status}'. Only 'PendingApproval' or 'Approved' registrations can be modified.");
+                throw new BusinessRuleException($"Không thể cập nhật đơn ở trạng thái '{existingRegistration.status}'.");
             }
+
+            // mark this regis as resubmission if previously rejected
+            bool isResubmit = existingRegistration.status == RegistrationStatus.Rejected.ToString();
+
+            // mark this regis as requiring re-approval if previously approved
             bool requiresReApproval = existingRegistration.status == RegistrationStatus.Approved.ToString();
 
             // Access DbContext directly for complex M-to-M entity tracking
             var dbContext = (CampEaseDatabaseContext)_unitOfWork.GetDbContext();
+            dbContext.Registrations.Attach(existingRegistration);
 
             // get existing link
             var oldCamperLinks = await dbContext.RegistrationCampers
                 .Where(rc => rc.registrationId == id)
                 .ToListAsync();
 
-            // remove links for Campers excluded from the updated list
+            // delete camper links that are removed in the request
             var linksToRemove = oldCamperLinks
                 .Where(rc => !request.CamperIds.Contains(rc.camperId)).ToList();
+            dbContext.RegistrationCampers.RemoveRange(linksToRemove);
 
             dbContext.RegistrationCampers.RemoveRange(linksToRemove);
 
@@ -163,22 +220,33 @@ namespace SummerCampManagementSystem.BLL.Services
                 // use private to check campers
                 await ValidateCamperNotAlreadyRegisteredAsync(request.CampId, camperId);
 
-                // Create new link entity
+                // create new link
                 var newLink = new RegistrationCamper
                 {
                     registrationId = id,
                     camperId = camperId,
-                    // Status is Pending if it was Approved before, ensuring re-approval if changes are made
-                    status = requiresReApproval ? "Pending" : "Pending"
+                    status = RegistrationCamperStatus.PendingApproval.ToString(), 
+                    rejectReason = null
                 };
                 dbContext.RegistrationCampers.Add(newLink);
             }
 
-            // update main Registration entity
-            dbContext.Registrations.Attach(existingRegistration);
+            // keep existing camper(s) if that camper is approved 
+            if (requiresReApproval)
+            {
+                var linksToKeep = oldCamperLinks.Where(rc => request.CamperIds.Contains(rc.camperId)).ToList();
+                foreach (var link in linksToKeep)
+                {
+                    link.status = RegistrationCamperStatus.PendingApproval.ToString();
+                    // delete reject reason to renew approval
+                    link.rejectReason = null;
+
+                    dbContext.RegistrationCampers.Update(link);
+                }
+            }
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
-                ?? throw new KeyNotFoundException($"Camp with ID {request.CampId} not found.");
+                ?? throw new NotFoundException($"Camp with ID {request.CampId} not found.");
 
             existingRegistration.campId = request.CampId;
             existingRegistration.appliedPromotionId = request.appliedPromotionId;
@@ -188,6 +256,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // if it already approved, return to pending approval status
                 existingRegistration.status = RegistrationStatus.PendingApproval.ToString();
+                existingRegistration.rejectReason = null; 
             }
 
             await _unitOfWork.CommitAsync();
@@ -196,14 +265,7 @@ namespace SummerCampManagementSystem.BLL.Services
         }
         public async Task<RegistrationResponseDto?> GetRegistrationByIdAsync(int id)
         {
-            var registrationEntity = await _unitOfWork.Registrations.GetQueryable()
-                .Where(r => r.registrationId == id)
-                .Include(r => r.camp)
-                // include through the RegistrationCampers junction table
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .Include(r => r.RegistrationOptionalActivities)
-                .FirstOrDefaultAsync();
+            var registrationEntity = await _unitOfWork.Registrations.GetFullDetailsAsync(id);
 
             if (registrationEntity == null) return null;
 
@@ -219,20 +281,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RegistrationResponseDto>> GetAllRegistrationsAsync()
         {
-            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
-                .Include(r => r.camp)
-                // include through the RegistrationCampers junction table
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .Include(r => r.RegistrationOptionalActivities)
-                .ToListAsync();
+            var registrationEntities = await _unitOfWork.Registrations.GetAllWithDetailsAsync();
 
-            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
+            // convert to list to use index in loop
+            var entityList = registrationEntities.ToList();
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(entityList).ToList();
 
-            // Get final price for each registration
-            for (int i = 0; i < registrationEntities.Count; i++)
+            for (int i = 0; i < entityList.Count; i++)
             {
-                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+                responseDtos[i].FinalPrice = CalculateFinalPrice(entityList[i]);
             }
 
             return responseDtos;
@@ -250,7 +307,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var registration = await _unitOfWork.Registrations.GetByIdAsync(registrationId);
             if (registration == null)
             {
-                throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
+                throw new NotFoundException($"Registration with ID {registrationId} not found.");
             }
 
             if (registration.userId != currentUserId.Value)
@@ -264,7 +321,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 registration.status == RegistrationStatus.Refunded.ToString() ||
                 registration.status == RegistrationStatus.Canceled.ToString()) 
             {
-                throw new InvalidOperationException($"Cannot cancel registration with status '{registration.status}'.");
+                throw new BusinessRuleException($"Cannot cancel registration with status '{registration.status}'.");
             }
 
             // soft delete 
@@ -278,26 +335,24 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RegistrationResponseDto>> GetRegistrationByStatusAsync(RegistrationStatus? status = null)
         {
-            IQueryable<Registration> query = _unitOfWork.Registrations.GetQueryable();
+            IEnumerable<Registration> registrationEntities;
+
             if (status.HasValue)
             {
-                string statusString = status.Value.ToString();
-                query = query.Where(r => r.status == statusString);
+                registrationEntities = await _unitOfWork.Registrations.GetByStatusAsync(status.Value.ToString());
+            }
+            else
+            {
+                // fallback to GetAll if no status
+                registrationEntities = await _unitOfWork.Registrations.GetAllWithDetailsAsync();
             }
 
-            var registrationEntities = await query
-                .Include(r => r.camp)
-                // FIX: Include through the RegistrationCampers junction table
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .ToListAsync();
+            var entityList = registrationEntities.ToList();
+            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(entityList).ToList();
 
-            var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
-
-            // Get final price for each registration
-            for (int i = 0; i < registrationEntities.Count; i++)
+            for (int i = 0; i < entityList.Count; i++)
             {
-                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+                responseDtos[i].FinalPrice = CalculateFinalPrice(entityList[i]);
             }
 
             return responseDtos;
@@ -306,22 +361,22 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request, bool isMobile)
         {
             // load registration
-            var registration = await GetRegistrationForPaymentAsync(registrationId);
+            var registration = await _unitOfWork.Registrations.GetForPaymentAsync(registrationId);
 
-            if (registration == null) throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
+            if (registration == null) throw new NotFoundException($"Registration with ID {registrationId} not found.");
 
             // validate Status
             if (registration.status != RegistrationStatus.Approved.ToString() &&
                 registration.status != RegistrationStatus.PendingPayment.ToString())
             {
-                throw new InvalidOperationException("Payment link can only be generated for 'Approved' or 'PendingPayment' registrations.");
+                throw new BusinessRuleException("Payment link can only be generated for 'Approved' or 'PendingPayment' registrations.");
             }
 
             // validate Campers
             if (!registration.RegistrationCampers.Any() ||
                 !registration.RegistrationCampers.All(rc => rc.status == RegistrationCamperStatus.Approved.ToString()))
             {
-                throw new InvalidOperationException("All campers must be in 'Approved' state.");
+                throw new BusinessRuleException("All campers must be in 'Approved' state.");
             }
 
 
@@ -335,7 +390,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     if (!validCamperIds.Contains(choice.CamperId))
                     {
-                        throw new InvalidOperationException($"Camper ID {choice.CamperId} không thuộc đơn đăng ký này (Registration ID: {registrationId}).");
+                        throw new BusinessRuleException($"Camper ID {choice.CamperId} không thuộc đơn đăng ký này (Registration ID: {registrationId}).");
                     }
                 }
             }
@@ -362,31 +417,31 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     if (!validCamperIds.Contains(choice.CamperId))
                     {
-                        throw new InvalidOperationException($"Camper ID {choice.CamperId} trong danh sách đưa đón không thuộc đơn đăng ký này.");
+                        throw new BusinessRuleException($"Camper ID {choice.CamperId} trong danh sách đưa đón không thuộc đơn đăng ký này.");
                     }
 
                     // validate Schedule
                     var schedule = schedules.FirstOrDefault(s => s.transportScheduleId == choice.TransportScheduleId);
                     if (schedule == null)
-                        throw new KeyNotFoundException($"Không tìm thấy lịch trình vận chuyển ID {choice.TransportScheduleId}.");
+                        throw new NotFoundException($"Không tìm thấy lịch trình vận chuyển ID {choice.TransportScheduleId}.");
 
                     if (schedule.campId != registration.campId)
-                        throw new InvalidOperationException($"Lịch trình vận chuyển {choice.TransportScheduleId} không thuộc về trại của đơn đăng ký.");
+                        throw new BusinessRuleException($"Lịch trình vận chuyển {choice.TransportScheduleId} không thuộc về trại của đơn đăng ký.");
 
                     // validate location (pickup point)
                     var location = locations.FirstOrDefault(l => l.locationId == choice.LocationId);
                     if (location == null)
-                        throw new KeyNotFoundException($"Không tìm thấy điểm đón ID {choice.LocationId}.");
+                        throw new NotFoundException($"Không tìm thấy điểm đón ID {choice.LocationId}.");
 
                     // check if location in transportSchedule route
                     var isValidStop = schedule.route?.RouteStops.Any(rs => rs.locationId == choice.LocationId) ?? false;
                     if (!isValidStop)
-                        throw new InvalidOperationException($"Điểm đón {location.name} không nằm trong tuyến đường của lịch trình {choice.TransportScheduleId}.");
+                        throw new BusinessRuleException($"Điểm đón {location.name} không nằm trong tuyến đường của lịch trình {choice.TransportScheduleId}.");
 
                     // check capacity
                     if (schedule.vehicle != null && schedule.vehicle.capacity <= schedule.CamperTransports.Count)
                     {
-                        throw new InvalidOperationException($"Lịch trình {choice.TransportScheduleId} đã hết chỗ.");
+                        throw new BusinessRuleException($"Lịch trình {choice.TransportScheduleId} đã hết chỗ.");
                     }
                 }
             }
@@ -457,10 +512,10 @@ namespace SummerCampManagementSystem.BLL.Services
                         foreach (var choice in request.OptionalChoices)
                         {
                             var schedule = allSchedules.FirstOrDefault(s => s.activityScheduleId == choice.ActivityScheduleId)
-                                ?? throw new KeyNotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
+                                ?? throw new NotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
 
                             if (!schedule.isOptional)
-                                throw new InvalidOperationException($"Schedule {choice.ActivityScheduleId} is not optional.");
+                                throw new BusinessRuleException($"Schedule {choice.ActivityScheduleId} is not optional.");
 
                             // check if record is in db
                             var existingRecord = existingActivities
@@ -474,7 +529,7 @@ namespace SummerCampManagementSystem.BLL.Services
                                 {
                                     // slot capacity check
                                     if (schedule.currentCapacity >= schedule.maxCapacity)
-                                        throw new InvalidOperationException($"Activity {schedule.activityScheduleId} is full.");
+                                        throw new BusinessRuleException($"Activity {schedule.activityScheduleId} is full.");
 
                                     schedule.currentCapacity = (schedule.currentCapacity ?? 0) + 1;
                                     await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
@@ -492,7 +547,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             {
                                 // slot capacity check
                                 if (schedule.currentCapacity >= schedule.maxCapacity)
-                                    throw new InvalidOperationException($"Activity {schedule.activityScheduleId} is full.");
+                                    throw new BusinessRuleException($"Activity {schedule.activityScheduleId} is full.");
 
                                 schedule.currentCapacity = (schedule.currentCapacity ?? 0) + 1;
                                 await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
@@ -598,7 +653,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         // use Mobile URLs
                         string baseApiUrl = _configuration["ApiBaseUrl"]
-                            ?? throw new InvalidOperationException("ApiBaseUrl is not configured.");
+                            ?? throw new BusinessRuleException("ApiBaseUrl is not configured.");
 
                         returnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
                             ?? $"{baseApiUrl}/api/payment/mobile-callback";
@@ -650,23 +705,18 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (!campExist)
             {
-                throw new KeyNotFoundException($"Camp with ID {campId} not found.");
+                throw new NotFoundException($"Camp with ID {campId} not found.");
             }
 
-            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
-                .Where(r => r.campId == campId)
-                .Include(r => r.camp)
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .Include(r => r.RegistrationOptionalActivities)
-                .ToListAsync();
+            var registrationEntities = await _unitOfWork.Registrations.GetByCampIdAsync(campId);
+            var entityList = registrationEntities.ToList();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
 
             // get final price for each registration
-            for (int i = 0; i < registrationEntities.Count; i++)
+            for (int i = 0; i < entityList.Count; i++)
             {
-                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+                responseDtos[i].FinalPrice = CalculateFinalPrice(entityList[i]);
             }
 
             return responseDtos;
@@ -681,21 +731,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new UnauthorizedAccessException("Không thể lấy thông tin người dùng từ token. Xin hãy đăng nhập lại!");
             }
 
-            var registrationEntities = await _unitOfWork.Registrations.GetQueryable()
-                .Where(r => r.userId == currentUserId.Value)
-                .OrderByDescending(r => r.registrationCreateAt)
-                .Include(r => r.camp)
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .Include(r => r.RegistrationOptionalActivities)
-                .ToListAsync();
+            var registrationEntities = await _unitOfWork.Registrations.GetHistoryByUserIdAsync(currentUserId.Value);
+            var entityList = registrationEntities.ToList();
 
             var responseDtos = _mapper.Map<IEnumerable<RegistrationResponseDto>>(registrationEntities).ToList();
 
             // get final price
-            for (int i = 0; i < registrationEntities.Count; i++)
+            for (int i = 0; i < entityList.Count; i++)
             {
-                responseDtos[i].FinalPrice = CalculateFinalPrice(registrationEntities[i]);
+                responseDtos[i].FinalPrice = CalculateFinalPrice(entityList[i]);
             }
 
             return responseDtos;
@@ -703,37 +747,17 @@ namespace SummerCampManagementSystem.BLL.Services
 
         #region Private Methods
 
-        private async Task<Registration> GetRegistrationForPaymentAsync(int registrationId)
-        {
-            var registration = await _unitOfWork.Registrations.GetQueryable()
-                .Include(r => r.camp)
-                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
-                .Include(r => r.appliedPromotion)
-                .Include(r => r.RegistrationOptionalActivities)
-                    .ThenInclude(roa => roa.activitySchedule)
-                .FirstOrDefaultAsync(r => r.registrationId == registrationId);
-
-            if (registration == null) throw new KeyNotFoundException($"Registration with ID {registrationId} not found.");
-            return registration;
-        }
-
         private async Task ValidateCamperNotAlreadyRegisteredAsync(int campId, int camperId)
         {
             // check if camper available to register
-            var isAlreadyRegistered = await _unitOfWork.Registrations.GetQueryable()
-                .Where(r => r.campId == campId &&
-                            r.RegistrationCampers.Any(rc => rc.camperId == camperId) &&
-                            (r.status == RegistrationStatus.Approved.ToString() ||
-                             r.status == RegistrationStatus.PendingApproval.ToString() ||
-                             r.status == RegistrationStatus.PendingPayment.ToString()))
-                .AnyAsync();
+            var isAlreadyRegistered = await _unitOfWork.Registrations.IsCamperRegisteredAsync(campId, camperId);
 
             if (isAlreadyRegistered)
             {
                 // get camper name for more detail errors
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId);
                 var camperName = camper?.camperName ?? $"ID {camperId}";
-                throw new InvalidOperationException($"Camper {camperName} đã được đăng ký tham gia trại này hoặc đang có đơn chờ duyệt.");
+                throw new BusinessRuleException($"Camper {camperName} đã được đăng ký tham gia trại này hoặc đang có đơn chờ duyệt.");
             }
         }
 

@@ -31,6 +31,8 @@ public partial class Registration
 
     public int? userId { get; set; }
 
+    public string rejectReason { get; set; }
+
     [InverseProperty("registration")]
     public virtual ICollection<Feedback> Feedbacks { get; set; } = new List<Feedback>();
 
