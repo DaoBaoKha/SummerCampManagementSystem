@@ -746,6 +746,8 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
+                                        bool locationConflict = await _unitOfWork.ActivitySchedules
+                                            .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
 
         public async Task<CreateScheduleBatchResult> CreateRestingScheduleAsync(RestingScheduleCreateDto dto)
         {
