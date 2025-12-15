@@ -746,6 +746,132 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
+                                        bool locationConflict = await _unitOfWork.ActivitySchedules
+                                            .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
+
+        public async Task<CreateScheduleBatchResult> CreateRestingScheduleAsync(RestingScheduleCreateDto dto)
+        {
+            var result = new CreateScheduleBatchResult();
+
+            // 1. Validate & Lấy thông tin cơ bản
+            var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
+                ?? throw new KeyNotFoundException("Activity not found");
+
+            // Đảm bảo đúng loại Resting
+            if (activity.activityType != ActivityType.Resting.ToString())
+                throw new InvalidOperationException("Activity ID cung cấp không phải là loại Resting.");
+
+            var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
+                ?? throw new KeyNotFoundException("Camp not found");
+
+            // Validate giờ
+            if (dto.StartTime >= dto.EndTime)
+                throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
+
+           
+
+            // 3. TÍNH CAPACITY & LẤY LIST ACCOMMODATION
+            // Logic: Resting áp dụng cho toàn trại -> Tự động lấy tất cả Accommodation trong trại
+            var accommodations = await _unitOfWork.Accommodations.GetByCampId(camp.campId);
+            if (accommodations == null || !accommodations.Any())
+                throw new InvalidOperationException("Trại chưa có khu lưu trú (Accommodation) nào để tạo lịch nghỉ ngơi.");
+
+
+            // 4. CHUẨN HÓA THỜI GIAN (Logic Timezone VN -> UTC)
+            var campStartVn = camp.startDate.Value.ToVietnamTime();
+            var campEndVn = camp.endDate.Value.ToVietnamTime();
+
+            // Ép kiểu về Unspecified (Giờ VN) để tính toán loop
+            var dtoStartVn = DateTime.SpecifyKind(dto.StartTime, DateTimeKind.Unspecified);
+            var dtoEndVn = DateTime.SpecifyKind(dto.EndTime, DateTimeKind.Unspecified);
+
+            var loopStart = dto.IsRepeat ? campStartVn.Date : dtoStartVn.Date;
+            var loopEnd = dto.IsRepeat ? campEndVn.Date : dtoStartVn.Date;
+
+            var datesToProcess = new List<DateTime>();
+            for (var date = loopStart; date <= loopEnd; date = date.AddDays(1))
+            {
+                datesToProcess.Add(date);
+            }
+
+            var dbContext = _unitOfWork.GetDbContext();
+
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                foreach (var dateVn in datesToProcess)
+                {
+                    // Tính thời điểm bắt đầu/kết thúc cho ngày hiện tại (Giờ VN)
+                    var currentStartVn = dateVn.Add(dtoStartVn.TimeOfDay);
+                    var currentEndVn = dateVn.Add(dtoEndVn.TimeOfDay);
+
+                    // Chuyển sang UTC để query DB và Lưu
+                    var startTimeUtc = currentStartVn.ToUtcForStorage();
+                    var endTimeUtc = currentEndVn.ToUtcForStorage();
+
+                    // === BẮT ĐẦU VALIDATE TỪNG NGÀY ===
+
+                    // Rule 1: Check thời gian nằm trong trại
+                    if (startTimeUtc < camp.startDate.Value || endTimeUtc > camp.endDate.Value)
+                    {
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Nằm ngoài thời gian trại.");
+                        continue;
+                    }
+
+                    // Rule 2: Check Conflict (QUAN TRỌNG)
+                    // Logic: Resting không được đè lên BẤT KỲ hoạt động nào khác (Core, Optional, Resting khác...)
+                    bool hasConflict = await dbContext.ActivitySchedules
+                        .Include(s => s.activity)
+                        .AnyAsync(s =>
+                            s.activity.campId == camp.campId &&
+                            (s.startTime < endTimeUtc && s.endTime > startTimeUtc) // Logic overlap
+                        );
+
+                    if (hasConflict)
+                    {
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Đã bị trùng với một hoạt động khác.");
+                        continue;
+                    }
+
+                    // === TẠO MỚI ===
+
+                    // Map DTO sang Entity
+                    var schedule = _mapper.Map<ActivitySchedule>(dto);
+                    schedule.startTime = startTimeUtc;
+                    schedule.endTime = endTimeUtc;
+
+                    // Set các trường đặc thù của Resting                   
+
+                    await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
+                    await _unitOfWork.CommitAsync(); // Save để lấy ID
+
+                    // === TỰ ĐỘNG PHÂN ACCOMMODATION ===
+                    foreach (var acc in accommodations)
+                    {
+                        var accActivity = new AccommodationActivitySchedule
+                        {
+                            accommodationId = acc.accommodationId,
+                            activityScheduleId = schedule.activityScheduleId
+                        };
+                        await _unitOfWork.AccommodationActivities.CreateAsync(accActivity);
+                    }
+                    await _unitOfWork.CommitAsync(); // Save các bảng phụ
+
+                    // Thêm vào list thành công
+                    var createdEntity = await _unitOfWork.ActivitySchedules.GetScheduleById(schedule.activityScheduleId);
+                    result.Successes.Add(_mapper.Map<ActivityScheduleResponseDto>(createdEntity));
+                }
+
+                await transaction.CommitAsync();
+                return result;
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
 
         public async Task<ActivityScheduleResponseDto> UpdateCoreScheduleAsync(int id, ActivityScheduleCreateDto dto)
         {
