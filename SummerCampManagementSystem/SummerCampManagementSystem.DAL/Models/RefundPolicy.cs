@@ -8,23 +8,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace SummerCampManagementSystem.DAL.Models;
 
-[Table("CampBadge", Schema = "dbo")]
-[Index("badgeId", Name = "IX_CampBadge_badgeId")]
-[Index("campId", Name = "IX_CampBadge_campId")]
-public partial class CampBadge
+[Table("RefundPolicy", Schema = "dbo")]
+public partial class RefundPolicy
 {
     [Key]
-    public int campBadgeId { get; set; }
-
-    public int? badgeId { get; set; }
+    public int refundPolictyId { get; set; }
 
     public int? campId { get; set; }
 
-    [ForeignKey("badgeId")]
-    [InverseProperty("CampBadges")]
-    public virtual Badge badge { get; set; }
+    [Column(TypeName = "datetime")]
+    public DateTime? daysBeforeStart { get; set; }
+
+    [Column(TypeName = "decimal(18, 0)")]
+    public decimal? refundPercentage { get; set; }
+
+    public string description { get; set; }
+
+    public bool? isActive { get; set; }
 
     [ForeignKey("campId")]
-    [InverseProperty("CampBadges")]
+    [InverseProperty("RefundPolicies")]
     public virtual Camp camp { get; set; }
 }

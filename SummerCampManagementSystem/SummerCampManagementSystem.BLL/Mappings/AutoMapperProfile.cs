@@ -233,9 +233,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //Registration mapping
             CreateMap<Registration, RegistrationResponseDto>()
                 .ForMember(dest => dest.Camp, opt => opt.MapFrom(src => src.camp))
+                .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.user))
+                .ForMember(dest => dest.RejectReason, opt => opt.MapFrom(src => src.rejectReason))
                 .ForMember(dest => dest.Campers, opt => opt.MapFrom(src => src.RegistrationCampers))
                 .ForMember(dest => dest.AppliedPromotion, opt => opt.MapFrom(src => src.appliedPromotion))
-                .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities)); 
+                .ForMember(dest => dest.OptionalChoices, opt => opt.MapFrom(src => src.RegistrationOptionalActivities));
 
             CreateMap<RegistrationOptionalActivity, OptionalActivityChoiceSummaryDto>()
                 .ForMember(dest => dest.ActivityName, opt => opt.MapFrom(src => src.activitySchedule.activity.name));
@@ -408,6 +410,9 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     opt => opt.MapFrom(src => src.dob) // UserAccount
                 );
             CreateMap<UserProfileUpdateDto, UserAccount>();
+            CreateMap<UserAccount, UserAccountSummaryDto>()
+                .ForMember(dest => dest.FullName,
+                           opt => opt.MapFrom(src => src.lastName + " " + src.firstName));
 
             //Report mappings
             CreateMap<Report, ReportResponseDto>();

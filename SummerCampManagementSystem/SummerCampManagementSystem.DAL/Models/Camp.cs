@@ -79,13 +79,13 @@ public partial class Camp
     public virtual ICollection<Album> Albums { get; set; } = new List<Album>();
 
     [InverseProperty("camp")]
-    public virtual ICollection<CampBadge> CampBadges { get; set; } = new List<CampBadge>();
-
-    [InverseProperty("camp")]
     public virtual ICollection<CampStaffAssignment> CampStaffAssignments { get; set; } = new List<CampStaffAssignment>();
 
     [InverseProperty("camp")]
     public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+
+    [InverseProperty("camp")]
+    public virtual ICollection<RefundPolicy> RefundPolicies { get; set; } = new List<RefundPolicy>();
 
     [InverseProperty("camp")]
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();

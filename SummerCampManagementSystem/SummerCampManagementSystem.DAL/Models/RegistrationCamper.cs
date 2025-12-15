@@ -24,6 +24,8 @@ public partial class RegistrationCamper
 
     public bool? requestTransport { get; set; }
 
+    public string rejectReason { get; set; }
+
     [ForeignKey("camperId")]
     [InverseProperty("RegistrationCampers")]
     public virtual Camper camper { get; set; }

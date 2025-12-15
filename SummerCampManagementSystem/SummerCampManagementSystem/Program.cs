@@ -115,6 +115,7 @@ builder.Services.AddScoped<ICampTypeService, CampTypeService>();
 builder.Services.AddScoped<ICampTypeRepository, CampTypeRepository>();
 builder.Services.AddScoped<ITransactionRepository, TransactionRepository>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddScoped<IPromotionRepository, PromotionRepository>();
 builder.Services.AddScoped<IPromotionService, PromotionService>();
 builder.Services.AddScoped<IPromotionTypeRepository, PromotionTypeRepository>();
@@ -477,6 +478,16 @@ if (dashboardEnabled)
     };
     app.UseHangfireDashboard("/hangfire", dashboardOptions);
 }
+
+// Register recurring jobs
+RecurringJob.AddOrUpdate<PreloadCampFaceDbJob>(
+    "preload-camp-face-db-daily",
+    job => job.ExecuteAsync(),
+    "0 19 * * *", // Run daily at 19:00 UTC (02:00 UTC+7)
+    new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.Utc
+    });
 
 app.UseMiddleware<ExceptionMiddleware>();
 

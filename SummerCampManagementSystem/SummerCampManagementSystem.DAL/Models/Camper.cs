@@ -36,9 +36,6 @@ public partial class Camper
     public virtual ICollection<CamperActivity> CamperActivities { get; set; } = new List<CamperActivity>();
 
     [InverseProperty("camper")]
-    public virtual ICollection<CamperBadge> CamperBadges { get; set; } = new List<CamperBadge>();
-
-    [InverseProperty("camper")]
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 
     [InverseProperty("camper")]
@@ -61,7 +58,4 @@ public partial class Camper
 
     [InverseProperty("camper")]
     public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
-
-    [InverseProperty("camper")]
-    public virtual ICollection<Visitation> Visitations { get; set; } = new List<Visitation>();
 }

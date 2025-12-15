@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummerCampManagementSystem.API", "SummerCampManagementSystem\SummerCampManagementSystem.API.csproj", "{345141CE-A681-46EB-A993-F2EACDB2B1A2}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummerCampManagementSystem.DAL", "SummerCampManagementSystem.DAL\SummerCampManagementSystem.DAL.csproj", "{BB606969-7429-485B-B3BE-0CDDF7BCEC7B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummerCampManagementSystem.Core", "SummerCampManagementSystem.Core\SummerCampManagementSystem.Core.csproj", "{9C461347-9012-4270-92D7-D9AFF3A70AF5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SummerCampManagementSystem.BLL.Tests", "SummerCampManagementSystem.BLL.Tests\SummerCampManagementSystem.BLL.Tests.csproj", "{2352238E-98DB-42AB-8D0C-FCDECC084E16}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{9C461347-9012-4270-92D7-D9AFF3A70AF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C461347-9012-4270-92D7-D9AFF3A70AF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C461347-9012-4270-92D7-D9AFF3A70AF5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2352238E-98DB-42AB-8D0C-FCDECC084E16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2352238E-98DB-42AB-8D0C-FCDECC084E16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2352238E-98DB-42AB-8D0C-FCDECC084E16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2352238E-98DB-42AB-8D0C-FCDECC084E16}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

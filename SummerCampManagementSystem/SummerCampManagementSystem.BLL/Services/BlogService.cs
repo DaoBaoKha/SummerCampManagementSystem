@@ -28,7 +28,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new ArgumentException("The blog post title cannot be empty.");
             }
 
-            if (blogPost.Title.Length > 255) 
+            if (blogPost.Title.Length > 255)
             {
                 throw new ArgumentException("The blog post title cannot exceed 255 characters.");
             }
@@ -64,7 +64,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 title = blogPost.Title,
                 content = blogPost.Content,
-                authorId = authorId, 
+                authorId = authorId,
                 createAt = DateTime.UtcNow,
                 isActive = true,
             };
@@ -108,12 +108,13 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             // use Include() to load Author and project to DTO
             var blogs = await _unitOfWork.Blogs.GetQueryable()
-                .Include(b => b.author) 
+                .Include(b => b.author)
                 .Select(b => new BlogResponseDto
                 {
                     Id = b.blogId,
                     Title = b.title,
                     Content = b.content,
+                    ImageUrl = b.imageUrl,
                     CreatedAt = b.createAt ?? DateTime.MinValue,
                     AuthorId = b.authorId ?? 0,
                     AuthorName = b.author != null ? $"{b.author.firstName} {b.author.lastName}" : "N/A"
@@ -132,6 +133,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     Id = b.blogId,
                     Title = b.title,
                     Content = b.content,
+                    ImageUrl = b.imageUrl,
                     CreatedAt = b.createAt ?? DateTime.MinValue,
                     AuthorId = b.authorId ?? 0,
                     AuthorName = b.author != null ? $"{b.author.firstName} {b.author.lastName}" : "N/A"

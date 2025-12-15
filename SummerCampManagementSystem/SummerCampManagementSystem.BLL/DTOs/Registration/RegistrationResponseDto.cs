@@ -1,17 +1,20 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.Promotion;
+using SummerCampManagementSystem.BLL.DTOs.UserAccount;
 
 namespace SummerCampManagementSystem.BLL.DTOs.Registration
 {
     public class RegistrationResponseDto
     {
         public int registrationId { get; set; }
+        public UserAccountSummaryDto? User { get; set; }
         public CampSummaryDto? Camp { get; set; }
         public DateTime RegistrationCreateAt { get; set; }
         public string? Note { get; set; }
         public string? Status { get; set; }
         public decimal FinalPrice { get; set; }
+        public string? RejectReason { get; set; }
         public PromotionSummaryDto? AppliedPromotion { get; set; }
         public List<RegistrationCamperDetailDto> Campers { get; set; } = new List<RegistrationCamperDetailDto>();
         public List<OptionalActivityChoiceSummaryDto> OptionalChoices { get; set; } = new List<OptionalActivityChoiceSummaryDto>();

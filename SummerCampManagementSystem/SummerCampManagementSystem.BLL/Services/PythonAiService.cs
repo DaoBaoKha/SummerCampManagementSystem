@@ -199,12 +199,24 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new Exception($"Camp {campId} has no end date set");
                 }
 
-                // Calculate expireAt: camp end date + 1 day (24 hours)
-                var expireAt = camp.endDate.Value.AddDays(1);
-                var expireAtUnix = new DateTimeOffset(expireAt).ToUnixTimeSeconds();
+                // CRITICAL FIX: Database stores DateTime without timezone (assumed UTC)
+                // Convert to UTC+7 (Vietnamese time) before calculating Redis expiration
+                // This ensures Redis cache doesn't expire before the last attendance session
+                var vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"); // UTC+7
 
-                _logger.LogInformation("Camp {CampId} ends at {EndDate}, Redis TTL expires at {ExpireAt} (Unix: {ExpireAtUnix})",
-                    campId, camp.endDate, expireAt, expireAtUnix);
+                // Treat DB datetime as UTC, then convert to Vietnam time
+                var campEndDateUtc = DateTime.SpecifyKind(camp.endDate.Value, DateTimeKind.Utc);
+                var campEndDateVietnam = TimeZoneInfo.ConvertTimeFromUtc(campEndDateUtc, vietnamTimeZone);
+
+                // Calculate expireAt: camp end date (Vietnam time) + 1 day (24 hours)
+                var expireAtVietnam = campEndDateVietnam.AddDays(1);
+
+                // Convert back to UTC for Unix timestamp (Redis uses UTC internally)
+                var expireAtUtc = TimeZoneInfo.ConvertTimeToUtc(expireAtVietnam, vietnamTimeZone);
+                var expireAtUnix = new DateTimeOffset(expireAtUtc).ToUnixTimeSeconds();
+
+                _logger.LogInformation("Camp {CampId} ends at {EndDate} UTC, which is {EndDateVietnam} Vietnam time. Redis TTL expires at {ExpireAt} UTC ({ExpireAtVietnam} Vietnam) (Unix: {ExpireAtUnix})",
+                    campId, campEndDateUtc, campEndDateVietnam, expireAtUtc, expireAtVietnam, expireAtUnix);
 
                 var requestBody = new
                 {
@@ -467,6 +479,41 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 _logger.LogError(ex, "Error getting loaded camps statistics");
                 return new Dictionary<int, int>();
+            }
+        }
+
+        public async Task<bool> CheckCampLoadedAsync(int campId, string authToken)
+        {
+            try
+            {
+                _logger.LogInformation("Checking if camp {CampId} is loaded in Redis", campId);
+
+                var request = CreateAuthenticatedRequest(HttpMethod.Get, $"/api/face-db/status/{campId}", authToken);
+                var response = await _httpClient.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var status = JsonSerializer.Deserialize<Dictionary<string, object>>(content, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    if (status != null && status.ContainsKey("is_loaded"))
+                    {
+                        var isLoaded = status["is_loaded"].ToString()?.ToLower() == "true";
+                        _logger.LogInformation("Camp {CampId} loaded status: {IsLoaded}", campId, isLoaded);
+                        return isLoaded;
+                    }
+                }
+
+                _logger.LogWarning("Failed to check camp {CampId} loaded status. Status: {StatusCode}", campId, response.StatusCode);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking if camp {CampId} is loaded", campId);
+                return false;
             }
         }
     }

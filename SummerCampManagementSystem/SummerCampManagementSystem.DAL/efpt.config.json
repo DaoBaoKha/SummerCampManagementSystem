@@ -51,10 +51,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[Badge]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[BankUser]",
          "ObjectType": 0
       },
@@ -67,10 +63,6 @@
          "ObjectType": 0
       },
       {
-         "Name": "[dbo].[CampBadge]",
-         "ObjectType": 0
-      },
-      {
          "Name": "[dbo].[Camper]",
          "ObjectType": 0
       },
@@ -80,10 +72,6 @@
       },
       {
          "Name": "[dbo].[CamperActivity]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[CamperBadge]",
          "ObjectType": 0
       },
       {
@@ -187,6 +175,10 @@
          "ObjectType": 0
       },
       {
+         "Name": "[dbo].[RefundPolicy]",
+         "ObjectType": 0
+      },
+      {
          "Name": "[dbo].[Registration]",
          "ObjectType": 0
       },
@@ -236,10 +228,6 @@
       },
       {
          "Name": "[dbo].[VehicleType]",
-         "ObjectType": 0
-      },
-      {
-         "Name": "[dbo].[Visitation]",
          "ObjectType": 0
       }
    ],
