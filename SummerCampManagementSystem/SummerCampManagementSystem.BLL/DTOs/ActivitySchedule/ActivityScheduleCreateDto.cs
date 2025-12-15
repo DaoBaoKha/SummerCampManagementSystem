@@ -26,9 +26,14 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
     {
         public int ActivityId { get; set; }
         public int? StaffId { get; set; }
-        public int? MaxCapacity { get; set; }
         public int? LocationId { get; set; }
+
+        [Required(ErrorMessage = "Ngày Giờ bắt đầu là bắt buộc.")]
+        public DateTime StartTime { get; set; }
+        [Required(ErrorMessage = "Ngày Giờ kết thúc là bắt buộc.")]
+        public DateTime EndTime { get; set; }
         public bool? IsLiveStream { get; set; }
+        public bool IsRepeat { get; set; } = false;
 
     }
 

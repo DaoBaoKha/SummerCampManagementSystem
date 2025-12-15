@@ -97,14 +97,14 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPost("optional/{coreScheduleId}")]
-        public async Task<IActionResult> CreateOptional(int coreScheduleId, [FromBody] OptionalScheduleCreateDto dto)
+        [HttpPost("optional")]
+        public async Task<IActionResult> CreateOptional([FromBody] OptionalScheduleCreateDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             try
             {
-                var result = await _service.CreateOptionalScheduleAsync(dto, coreScheduleId);
+                var result = await _service.CreateOptionalScheduleAsync(dto);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)
