@@ -21,6 +21,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<RegistrationResponseDto?> UpdateRegistrationAsync(int id, UpdateRegistrationRequestDto request);
 
+        Task<RegistrationResponseDto> RejectRegistrationAsync(RejectRegistrationRequestDto dto);
+
         Task<bool> DeleteRegistrationAsync(int id);
 
         Task<GeneratePaymentLinkResponseDto> GeneratePaymentLinkAsync(int registrationId, GeneratePaymentLinkRequestDto request, bool isMobile = false);

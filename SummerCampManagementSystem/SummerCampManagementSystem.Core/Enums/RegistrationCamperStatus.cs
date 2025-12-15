@@ -10,6 +10,7 @@
         Transporting = 6,
         Transported = 7,
         CheckedIn = 8,
-        CheckedOut = 9
+        CheckedOut = 9,
+        Rejected = 10
     }
 }

@@ -58,7 +58,6 @@ namespace SummerCampManagementSystem.BLL.HostedServices
 
                 _logger.LogInformation("Found {CampCount} camps in database", allCamps.Count());
 
-                int preloadJobsScheduled = 0;
                 int cleanupJobsScheduled = 0;
                 int attendanceFolderJobsScheduled = 0;
 
@@ -94,34 +93,10 @@ namespace SummerCampManagementSystem.BLL.HostedServices
                             }
                         }
 
-                        // 2. Schedule preload job (if camp hasn't started yet)
-                        var preloadTime = startDate.AddMinutes(-_preloadBufferMinutes);
-                        if (preloadTime > now)
-                        {
-                            var preloadJobId = PreloadCampFaceDbJob.ScheduleForCamp(camp.campId, startDate, _preloadBufferMinutes);
-                            if (preloadJobId != null)
-                            {
-                                _logger.LogInformation(
-                                    "Scheduled PreloadCampFaceDbJob for Camp {CampId} at {PreloadTime}. JobId: {JobId}",
-                                    camp.campId, preloadTime, preloadJobId);
-                                preloadJobsScheduled++;
-                            }
-                            else
-                            {
-                                _logger.LogDebug("PreloadCampFaceDbJob already exists for Camp {CampId}, skipping", camp.campId);
-                            }
-                        }
-                        else if (startDate > now && endDate > now)
-                        {
-                            // Camp is starting soon but preload time passed - trigger immediately
-                            var immediateJobId = PreloadCampFaceDbJob.TriggerImmediately(camp.campId, forceReload: false);
-                            _logger.LogInformation(
-                                "Triggered immediate PreloadCampFaceDbJob for Camp {CampId} (preload time passed). JobId: {JobId}",
-                                camp.campId, immediateJobId);
-                            preloadJobsScheduled++;
-                        }
+                        // Note: Preload job now runs as daily recurring job at 19:00 UTC (02:00 UTC+7)
+                        // No need to schedule per-camp preload jobs anymore
 
-                        // 3. Schedule cleanup job (for all camps, including ongoing ones)
+                        // 2. Schedule cleanup job (for all camps, including ongoing ones)
                         if (endDate > now)
                         {
                             var cleanupJobId = CleanupCampFaceDbJob.ScheduleForCamp(camp.campId, endDate);
@@ -153,8 +128,8 @@ namespace SummerCampManagementSystem.BLL.HostedServices
                 }
 
                 _logger.LogInformation(
-                    "CampBackgroundInitializer completed. Scheduled: {AttendanceFolderJobs} attendance folder jobs, {PreloadJobs} preload jobs, {CleanupJobs} cleanup jobs",
-                    attendanceFolderJobsScheduled, preloadJobsScheduled, cleanupJobsScheduled);
+                    "CampBackgroundInitializer completed. Scheduled: {AttendanceFolderJobs} attendance folder jobs, {CleanupJobs} cleanup jobs (preload jobs run on daily schedule)",
+                    attendanceFolderJobsScheduled, cleanupJobsScheduled);
             }
             catch (Exception ex)
             {

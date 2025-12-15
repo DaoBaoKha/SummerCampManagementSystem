@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.Registration
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SummerCampManagementSystem.BLL.DTOs.Registration
 {
     public class RegistrationRequestDto
     {
@@ -41,5 +43,18 @@
         public List<OptionalChoiceDto>? OptionalChoices { get; set; }
 
         public List<TransportChoiceDto>? TransportChoices { get; set; }
+    }
+
+    public class RejectRegistrationRequestDto
+    {
+        [Required(ErrorMessage = "ID đơn đăng ký là bắt buộc.")]
+        public int RegistrationId { get; set; }
+
+        [Required(ErrorMessage = "Lý do từ chối là bắt buộc.")]
+        [StringLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự.")]
+        public string RejectReason { get; set; } = string.Empty;
+
+        // if null reject all
+        public List<int>? CamperIds { get; set; }
     }
 }

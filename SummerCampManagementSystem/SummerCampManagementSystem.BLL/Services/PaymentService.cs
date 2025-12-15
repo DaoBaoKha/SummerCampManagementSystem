@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Net.payOS;
 using Net.payOS.Types;
 using SummerCampManagementSystem.BLL.DTOs.PayOS;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -14,14 +13,14 @@ namespace SummerCampManagementSystem.BLL.Services
     public class PaymentService : IPaymentService
     {
         private readonly IUnitOfWork _unitOfWork;
-        private readonly PayOS _payOS;
+        private readonly IPayOSService _payOSService;
         private readonly IConfiguration _configuration;
         private readonly string _checksumKey;
 
-        public PaymentService(IUnitOfWork unitOfWork, PayOS payOS, IConfiguration configuration)
+        public PaymentService(IUnitOfWork unitOfWork, IPayOSService payOSService, IConfiguration configuration)
         {
             _unitOfWork = unitOfWork;
-            _payOS = payOS;
+            _payOSService = payOSService;
             _configuration = configuration;
             // checksumkey from config
             _checksumKey = _configuration["PayOS:ChecksumKey"] ??
@@ -62,7 +61,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 );
 
                 // verify the webhook using PayOS SDK
-                WebhookData verifiedData = _payOS.verifyPaymentWebhookData(webhookToVerify);
+                WebhookData verifiedData = _payOSService.VerifyPaymentWebhookData(webhookToVerify);
 
                 // find transaction by using transactionCode column
                 string orderCodeString = verifiedData.orderCode.ToString();
@@ -251,7 +250,7 @@ namespace SummerCampManagementSystem.BLL.Services
             try
             {
                 // call getPaymentLinkInformation from PayOS
-                PaymentLinkInformation linkInfo = await _payOS.getPaymentLinkInformation(orderCode);
+                PaymentLinkInformation linkInfo = await _payOSService.GetPaymentLinkInformation(orderCode);
 
                 // check status
                 if (linkInfo.status == "PAID")
@@ -285,7 +284,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // this method to confirm URL Notification/Callback
             // return a string
-            string confirmationResult = await _payOS.confirmWebhook(url);
+            string confirmationResult = await _payOSService.ConfirmWebhook(url);
 
             return confirmationResult;
         }
@@ -306,7 +305,7 @@ namespace SummerCampManagementSystem.BLL.Services
             try
             {
                 // use getpaymentLinkInformation
-                PaymentLinkInformation linkInfo = await _payOS.getPaymentLinkInformation(orderCode);
+                PaymentLinkInformation linkInfo = await _payOSService.GetPaymentLinkInformation(orderCode);
 
                 // check status of PayOS Server
                 if (linkInfo.status == "PAID" && linkInfo.amountPaid > 0)
