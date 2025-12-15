@@ -126,38 +126,27 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+
+        /// <summary>
+        /// Update registration or resubmit for approval
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto registration)
+        [Authorize] 
+        public async Task<IActionResult> UpdateRegistration(int id, [FromBody] UpdateRegistrationRequestDto request)
         {
-            if (!ModelState.IsValid) 
-                return BadRequest(ModelState);
-            try
-            {
-                var updatedRegistration = await _registrationService.UpdateRegistrationAsync(id, registration);
+            var result = await _registrationService.UpdateRegistrationAsync(id, request);
+            return Ok(result);
+        }
 
-                if (updatedRegistration == null)
-                {
-                    return NotFound(new { message = $"Registration with ID {id} not found" });
-                }
-
-                return Ok(updatedRegistration);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ khi cập nhật đơn đăng ký.", detail = ex.Message });
-            }
+        /// <summary>
+        /// Reject registration or specific camper within the registration
+        /// </summary>
+        [HttpPost("reject")]
+        [Authorize(Roles = "Admin,Manager")] 
+        public async Task<IActionResult> RejectRegistration([FromBody] RejectRegistrationRequestDto request)
+        {
+            var result = await _registrationService.RejectRegistrationAsync(request);
+            return Ok(result);
         }
 
         [HttpPut("{id}/approve")]

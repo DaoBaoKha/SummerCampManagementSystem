@@ -26,4 +26,10 @@
         public int UserId { get; set; }
         public string FullName { get; set; }
     }   
+
+    public class UserAccountSummaryDto
+    {
+        public int UserId { get; set; }
+        public string FullName { get; set; }
+    }
 }
