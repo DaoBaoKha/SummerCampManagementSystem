@@ -54,10 +54,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Registration
         [StringLength(500, ErrorMessage = "Lý do không được vượt quá 500 ký tự.")]
         public string RejectReason { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Nếu null: Từ chối cả đơn.
-        /// Nếu có giá trị: Chỉ từ chối camper này (nhưng đơn vẫn bị treo).
-        /// </summary>
-        public int? CamperId { get; set; }
+        // if null reject all
+        public List<int>? CamperIds { get; set; }
     }
 }
