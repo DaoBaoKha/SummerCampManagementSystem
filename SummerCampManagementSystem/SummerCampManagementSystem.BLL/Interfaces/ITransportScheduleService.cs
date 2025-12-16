@@ -7,6 +7,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public interface ITransportScheduleService
     {
         Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto);
+        Task<List<TransportScheduleResponseDto>> CreateScheduleBulkAsync(List<TransportScheduleRequestDto> requestDtos);
         Task<TransportScheduleResponseDto> GetScheduleByIdAsync(int id);
         Task<IEnumerable<TransportScheduleResponseDto>> GetDriverSchedulesAsync();
         Task<TransportScheduleResponseDto> UpdateScheduleAsync(int id, TransportScheduleRequestDto requestDto);
