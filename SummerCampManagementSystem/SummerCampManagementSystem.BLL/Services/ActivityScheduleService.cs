@@ -253,6 +253,9 @@ namespace SummerCampManagementSystem.BLL.Services
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
                 ?? throw new KeyNotFoundException("Activity not found");
 
+            if (activity.activityType != ActivityType.Core.ToString())
+                throw new InvalidOperationException("Activity ID cung cấp không phải là loại Core.");
+
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
@@ -745,9 +748,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw;
             }
         }
-
-                                        bool locationConflict = await _unitOfWork.ActivitySchedules
-                                            .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
 
         public async Task<CreateScheduleBatchResult> CreateRestingScheduleAsync(RestingScheduleCreateDto dto)
         {
