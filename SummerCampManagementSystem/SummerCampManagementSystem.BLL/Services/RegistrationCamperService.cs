@@ -57,11 +57,19 @@ namespace SummerCampManagementSystem.BLL.Services
         private IQueryable<RegistrationCamper> GetRegistrationCampersWithIncludes()
         {
             return _context.RegistrationCampers
+                .AsSplitQuery() // <--- THÊM DÒNG NÀY
                 .Include(rc => rc.registration)
                     .ThenInclude(r => r.camp) // load camp for campid
+                 .Include(rc => rc.registration)
+                    .ThenInclude(r => r.user)
                 .Include(rc => rc.camper)    // load camper
                     .ThenInclude(c => c.CamperGroups) // load camper list
-                        .ThenInclude(cg => cg.group);  // load group 
+                        .ThenInclude(cg => cg.group)  // load group 
+                            .ThenInclude(g => g.supervisor) // <--- THÊM DÒNG NÀY ĐỂ LẤY SUPERVISOR
+                .Include(rc => rc.camper)    // load camper
+                    .ThenInclude(c => c.CamperAccommodations)
+                        .ThenInclude(ca => ca.accommodation)
+                             .ThenInclude(g => g.supervisor); // <--- THÊM DÒNG NÀY ĐỂ LẤY SUPERVISOR
         }
         #endregion
     }

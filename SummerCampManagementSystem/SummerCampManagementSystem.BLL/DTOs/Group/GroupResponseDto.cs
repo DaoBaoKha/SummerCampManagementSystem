@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.Group
+﻿using SummerCampManagementSystem.BLL.DTOs.UserAccount;
+
+namespace SummerCampManagementSystem.BLL.DTOs.Group
 {
     public class GroupResponseDto
     {
@@ -30,7 +32,7 @@
         public int GroupId { get; set; }
 
         public string GroupName { get; set; }
-
+        public SupervisorDto supervisor { get; set; }
         public int CurrentSize { get; set; }
 
     }

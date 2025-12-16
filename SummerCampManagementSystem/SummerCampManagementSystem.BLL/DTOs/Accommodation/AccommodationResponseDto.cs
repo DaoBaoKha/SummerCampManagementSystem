@@ -23,4 +23,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.Accommodation
 
         public SupervisorDto supervisor { get; set; }
     }
+
+    public class AccommodationSummaryDto
+    {
+        public int accommodationId { get; set; }
+        public string name { get; set; }
+        public SupervisorDto supervisor { get; set; }
+        
+    }
 }

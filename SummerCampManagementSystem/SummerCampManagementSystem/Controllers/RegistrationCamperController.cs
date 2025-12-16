@@ -8,7 +8,7 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/registrationcamper")]
     [ApiController]
-    [Authorize]
+    //[Authorize]
     public class RegistrationCamperController : ControllerBase
     {
         private readonly IRegistrationCamperService _registrationCamperService;
