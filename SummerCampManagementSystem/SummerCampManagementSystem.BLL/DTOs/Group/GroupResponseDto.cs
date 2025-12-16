@@ -30,7 +30,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Group
     public class GroupNameDto
     {
         public int GroupId { get; set; }
-
         public string GroupName { get; set; }
         public SupervisorDto supervisor { get; set; }
         public int CurrentSize { get; set; }

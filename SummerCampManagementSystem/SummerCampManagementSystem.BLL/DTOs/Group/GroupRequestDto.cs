@@ -25,4 +25,11 @@ namespace SummerCampManagementSystem.BLL.DTOs.Group
         [Required, Range(1, 18)] 
         public int MaxAge { get; set; }
     }
+
+    public class GetAvailableGroupRequestDto
+    {
+        public int CampId { get; set; }
+        public DateTime StartTime { get; set; } 
+        public DateTime EndTime { get; set; } 
+    }
 }
