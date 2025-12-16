@@ -778,7 +778,116 @@ namespace SummerCampManagementSystem.BLL.Services
             }
         }
 
+        public async Task<ActivityScheduleResponseDto> CreateCheckInCheckOutScheduleAsync(CreateCheckInCheckOutRequestDto dto)
+        {
+            // 1. Lấy thông tin Activity và Camp
+            var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
+                ?? throw new KeyNotFoundException("Activity not found");
 
+            var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
+                ?? throw new KeyNotFoundException("Camp not found");
+
+            // Vì Check-in/Check-out chỉ diễn ra 1 lần duy nhất trong trại.
+                bool alreadyExists = await _unitOfWork.GetDbContext()
+                    .ActivitySchedules
+                    .Include(s => s.activity)
+                    .AnyAsync(s => s.activity.activityType == activity.activityType
+                                && s.activity.campId == activity.campId);
+
+            if (alreadyExists)
+            {
+                throw new InvalidOperationException($"Lịch trình cho hoạt động '{activity.activityType}' đã tồn tại rồi, không thể tạo thêm.");
+            }
+
+            if (!camp.startDate.HasValue || !camp.endDate.HasValue)
+                throw new InvalidOperationException("Trại chưa có ngày bắt đầu hoặc kết thúc.");
+
+            // 2. Xác định khung giờ dựa trên Loại Activity
+            DateTime startTimeUtc;
+            DateTime endTimeUtc;
+
+            // Lưu ý: Camp Start/End trong DB đã là UTC
+            if (activity.activityType == ActivityType.Checkin.ToString())
+            {
+                // Check-in: 1 tiếng tính từ lúc bắt đầu trại (Start -> Start + 1h)
+                startTimeUtc = camp.startDate.Value;
+                endTimeUtc = camp.startDate.Value.AddHours(1);
+            }
+            else if (activity.activityType == ActivityType.Checkout.ToString())
+            {
+                // Check-out: 1 tiếng trước khi kết thúc trại (End - 1h -> End)
+                startTimeUtc = camp.endDate.Value.AddHours(-1);
+                endTimeUtc = camp.endDate.Value;
+            }
+            else
+            {
+                throw new InvalidOperationException("Activity này không phải loại CheckIn hoặc CheckOut.");
+            }
+
+            // 3. Validate Location và Conflict
+            var dbContext = _unitOfWork.GetDbContext();
+
+            // Check xem địa điểm có bận không
+            bool locationConflict = await dbContext.ActivitySchedules
+                .AnyAsync(s =>
+                    s.locationId == dto.LocationId &&
+                    (s.startTime < endTimeUtc && s.endTime > startTimeUtc)
+                );
+
+            if (locationConflict)
+                throw new InvalidOperationException("Địa điểm này đã có hoạt động khác trong khung giờ Check-in/Check-out.");
+
+            // 4. Lấy tất cả Group Active để gán tự động
+            var allGroups = await dbContext.Groups
+                .Include(g => g.CamperGroups) // Include để tính capacity nếu cần
+                .Where(g => g.campId == camp.campId)
+                .ToListAsync();
+
+            int totalCapacity = allGroups.Sum(g => g.CamperGroups?.Count ?? 0);
+
+            using var transaction = await _unitOfWork.BeginTransactionAsync();
+            try
+            {
+                // 5. Tạo Schedule
+                var schedule = new ActivitySchedule
+                {
+                    activityId = dto.ActivityId,
+                    locationId = dto.LocationId,
+                    startTime = startTimeUtc,
+                    endTime = endTimeUtc,
+                    status = ActivityScheduleStatus.Draft.ToString(),
+                    currentCapacity = totalCapacity,
+                };
+
+                await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
+                await _unitOfWork.CommitAsync();
+
+                // 6. Gán Group
+                if (allGroups.Any())
+                {
+                    foreach (var group in allGroups)
+                    {
+                        await _unitOfWork.GroupActivities.CreateAsync(new GroupActivity
+                        {
+                            groupId = group.groupId,
+                            activityScheduleId = schedule.activityScheduleId
+                        });
+                    }
+                    await _unitOfWork.CommitAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                // 7. Return Result
+                var createdEntity = await _unitOfWork.ActivitySchedules.GetScheduleById(schedule.activityScheduleId);
+                return _mapper.Map<ActivityScheduleResponseDto>(createdEntity);
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
         public async Task<ActivityScheduleResponseDto> UpdateCoreScheduleAsync(int id, ActivityScheduleCreateDto dto)
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(id)

@@ -169,6 +169,29 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [HttpPost("checkin-checkout")]
+        public async Task<IActionResult> CreateCheckInCheckOut([FromBody] CreateCheckInCheckOutRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            try
+            {
+                var result = await _service.CreateCheckInCheckOutScheduleAsync(dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
         /// <summary>
         /// Get activity schedules with status "PendingAttendance" by campid and staffid
         /// </summary>
