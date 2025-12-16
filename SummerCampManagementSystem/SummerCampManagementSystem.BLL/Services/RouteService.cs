@@ -2,9 +2,9 @@
 using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Route;
-using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
@@ -40,6 +40,189 @@ namespace SummerCampManagementSystem.BLL.Services
             newRoute.camp = camp;
 
             return _mapper.Map<RouteResponseDto>(newRoute); 
+        }
+
+        public async Task<List<RouteResponseDto>> CreateRouteCompositeAsync(CreateRouteCompositeRequestDto requestDto)
+        {
+            // validation camp
+            var camp = await _unitOfWork.Camps.GetByIdAsync(requestDto.CampId);
+            if (camp == null) throw new NotFoundException($"Camp ID {requestDto.CampId} not found.");
+
+            // take camp location
+            if (camp.locationId <= 0)
+            {
+                throw new BusinessRuleException($"Camp ID {requestDto.CampId} chưa được thiết lập địa điểm (LocationId trống). Vui lòng cập nhật thông tin Trại trước.");
+            }
+
+            // take location info
+            var campLocation = await _unitOfWork.Locations.GetByIdAsync((int)camp.locationId);
+
+            if (campLocation == null)
+            {
+                throw new NotFoundException($"Không tìm thấy dữ liệu địa điểm với ID {camp.locationId} (được gán trong Camp).");
+            }
+
+            // validate location type
+            if (campLocation.locationType != LocationType.Camp.ToString())
+            {
+                throw new BusinessRuleException($"Địa điểm gán cho Camp (ID: {camp.locationId}) không hợp lệ. Yêu cầu LocationType phải là 'Camp', hiện tại là '{campLocation.locationType}'.");
+            }
+
+            var createdRoutes = new List<Route>();
+
+            // create pickup route
+            var forwardRoute = new Route
+            {
+                campId = requestDto.CampId,
+                routeName = requestDto.RouteName,
+                routeType = !string.IsNullOrWhiteSpace(requestDto.RouteType) ? requestDto.RouteType : "PickUp",
+                estimateDuration = requestDto.EstimateDuration,
+                status = "Active",
+                isActive = true,
+                RouteStops = new List<RouteStop>()
+            };
+
+            var sortedStopsInput = requestDto.RouteStops.OrderBy(s => s.stopOrder).ToList();
+            int currentOrder = 1;
+
+            // logic pickup
+            // stop point and then camp
+            if (forwardRoute.routeType == "PickUp")
+            {
+                // add stop points
+                for (int i = 0; i < sortedStopsInput.Count; i++)
+                {
+                    forwardRoute.RouteStops.Add(new RouteStop
+                    {
+                        locationId = sortedStopsInput[i].locationId,
+                        stopOrder = currentOrder++,
+                        estimatedTime = sortedStopsInput[i].estimatedTime,
+                        status = "Active"
+                    });
+                }
+
+                // auto add camp location at the end
+                forwardRoute.RouteStops.Add(new RouteStop
+                {
+                    locationId = campLocation.locationId,
+                    stopOrder = currentOrder,
+                    estimatedTime = requestDto.EstimateDuration,
+                    status = "Active"
+                });
+            }
+            else //case create dropoff
+            {
+                // auto add camp location at the beginning
+                forwardRoute.RouteStops.Add(new RouteStop
+                {
+                    locationId = campLocation.locationId,
+                    stopOrder = currentOrder++,
+                    estimatedTime = 0,
+                    status = "Active"
+                });
+
+                // add stop points
+                for (int i = 0; i < sortedStopsInput.Count; i++)
+                {
+                    forwardRoute.RouteStops.Add(new RouteStop
+                    {
+                        locationId = sortedStopsInput[i].locationId,
+                        stopOrder = currentOrder++,
+                        estimatedTime = sortedStopsInput[i].estimatedTime,
+                        status = "Active"
+                    });
+                }
+            }
+
+            await _unitOfWork.Routes.CreateAsync(forwardRoute);
+            createdRoutes.Add(forwardRoute);
+
+            // create return route
+            if (requestDto.CreateReturnRoute)
+            {
+                string returnName = !string.IsNullOrWhiteSpace(requestDto.ReturnRouteName)
+                    ? requestDto.ReturnRouteName
+                    : requestDto.RouteName;
+
+                string returnType = forwardRoute.routeType == "PickUp" ? "DropOff" : "PickUp";
+
+                var returnRoute = new Route
+                {
+                    campId = requestDto.CampId,
+                    routeName = returnName,
+                    routeType = returnType,
+                    estimateDuration = requestDto.EstimateDuration,
+                    status = "Active",
+                    isActive = true,
+                    RouteStops = new List<RouteStop>()
+                };
+
+                currentOrder = 1;
+
+                // camp -> stop points
+                if (returnType == "DropOff")
+                {
+                    // auto add camp location at the beginning
+                    returnRoute.RouteStops.Add(new RouteStop
+                    {
+                        locationId = campLocation.locationId,
+                        stopOrder = currentOrder++,
+                        estimatedTime = 0,
+                        status = "Active"
+                    });
+
+                    // reverse stop points
+                    var locationsReversed = sortedStopsInput.Select(s => s.locationId).Reverse().ToList();
+                    var timesReversed = sortedStopsInput.Select(s => s.estimatedTime).Reverse().ToList();
+
+                    for (int i = 0; i < locationsReversed.Count; i++)
+                    {
+                        returnRoute.RouteStops.Add(new RouteStop
+                        {
+                            locationId = locationsReversed[i],
+                            stopOrder = currentOrder++,
+                            estimatedTime = timesReversed[i], 
+                            status = "Active"
+                        });
+                    }
+                }
+                // logic pickup
+                // stop points -> camp
+                else
+                {
+                    var locationsReversed = sortedStopsInput.Select(s => s.locationId).Reverse().ToList();
+                    var timesReversed = sortedStopsInput.Select(s => s.estimatedTime).Reverse().ToList();
+
+                    for (int i = 0; i < locationsReversed.Count; i++)
+                    {
+                        returnRoute.RouteStops.Add(new RouteStop
+                        {
+                            locationId = locationsReversed[i],
+                            stopOrder = currentOrder++,
+                            estimatedTime = timesReversed[i], 
+                            status = "Active"
+                        });
+                    }
+
+                    // auto add camp location at the end
+                    returnRoute.RouteStops.Add(new RouteStop
+                    {
+                        locationId = campLocation.locationId,
+                        stopOrder = currentOrder,
+                        estimatedTime = requestDto.EstimateDuration, 
+                        status = "Active"
+                    });
+                }
+
+                await _unitOfWork.Routes.CreateAsync(returnRoute);
+                createdRoutes.Add(returnRoute);
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            foreach (var r in createdRoutes) { r.camp = camp; }
+
+            return _mapper.Map<List<RouteResponseDto>>(createdRoutes);
         }
 
         public async Task<bool> DeleteRouteAsync(int routeId)

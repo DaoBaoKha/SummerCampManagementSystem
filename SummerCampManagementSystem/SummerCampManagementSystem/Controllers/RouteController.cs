@@ -55,6 +55,26 @@ namespace SummerCampManagementSystem.API.Controllers
             return CreatedAtAction(nameof(GetRouteById), new { id = createdRoute.routeId }, createdRoute);
         }
 
+        /// <summary>
+        /// Create composite routes including optional return route
+        /// </summary>
+        /// <param name="requestDto"></param>
+        /// <returns></returns>
+        [HttpPost("composite")]
+        public async Task<ActionResult<List<RouteResponseDto>>> CreateRouteComposite([FromBody] CreateRouteCompositeRequestDto requestDto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var results = await _routeService.CreateRouteCompositeAsync(requestDto);
+
+            return Ok(new
+            {
+                Message = $"Đã tạo thành công {results.Count} tuyến đường.",
+                Data = results
+            });
+        }
+
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateRoute(int id, [FromBody] RouteRequestDto routeRequestDto)
         {
