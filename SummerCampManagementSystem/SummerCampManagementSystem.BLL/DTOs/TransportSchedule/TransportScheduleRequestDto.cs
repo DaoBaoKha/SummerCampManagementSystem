@@ -28,9 +28,22 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
         [Required(ErrorMessage = "End Time is required.")]
         public TimeOnly EndTime { get; set; }
 
-        [Required]
-        //[RegularExpression("PickUp|DropOff", ErrorMessage = "TransportType must be 'PickUp' or 'DropOff'")]
+        [Required(ErrorMessage = "TransportType must be 'PickUp' or 'DropOff'")]
         public string TransportType { get; set; }
+
+        // use to indicate if this is a round trip schedule
+        public bool IsRoundTrip { get; set; } = false;
+
+        // only needed if IsRoundTrip = true
+        public TimeOnly? ReturnStartTime { get; set; }
+        public TimeOnly? ReturnEndTime { get; set; }
+    }
+
+    public class BulkCreateTransportScheduleDto
+    {
+        [Required]
+        [MinLength(1, ErrorMessage = "Danh sách tạo không được để trống.")]
+        public List<TransportScheduleRequestDto> Schedules { get; set; } = new List<TransportScheduleRequestDto>();
     }
 
     public class TransportScheduleSearchDto

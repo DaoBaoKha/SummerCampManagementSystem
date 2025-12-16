@@ -29,34 +29,70 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
         {
-            // basic validation
-            checkTimeBounds(requestDto.StartTime, requestDto.EndTime);
-            checkTransportType(requestDto.TransportType);
-            checkScheduleDate(requestDto.Date);
+            var createdSchedules = new List<TransportSchedule>();
 
-            requestDto.StartTime = requestDto.StartTime.ToUtcForStorageTime();
-            requestDto.EndTime = requestDto.EndTime.ToUtcForStorageTime();
+            // create main schedule
+            var mainSchedule = await PrepareScheduleEntityAsync(requestDto);
+            createdSchedules.Add(mainSchedule);
 
-            await CheckForeignKeyExistence(requestDto);
+            // check round trip
+            // only create return trip when transportType = PickUp
+            if (requestDto.IsRoundTrip && requestDto.TransportType == TransportScheduleType.PickUp.ToString())
+            {
+                if (!requestDto.ReturnStartTime.HasValue || !requestDto.ReturnEndTime.HasValue)
+                {
+                    throw new BusinessRuleException("Vui lòng nhập giờ bắt đầu và giờ kết thúc cho chuyến về (Round Trip).");
+                }
 
-            await CheckScheduleConflicts(
-                requestDto.DriverId,
-                requestDto.VehicleId,
-                requestDto.Date,
-                requestDto.StartTime,
-                requestDto.EndTime
-            );
+                var camp = await _unitOfWork.Camps.GetByIdAsync(requestDto.CampId);
+                if (camp == null || !camp.endDate.HasValue)
+                {
+                    throw new BusinessRuleException("Không tìm thấy ngày kết thúc của trại để tạo chuyến về.");
+                }
 
-            var scheduleEntity = _mapper.Map<TransportSchedule>(requestDto);
-            scheduleEntity.status = TransportScheduleStatus.Draft.ToString();
+                // create dto for return trip
+                var returnDto = new TransportScheduleRequestDto
+                {
+                    CampId = requestDto.CampId,
+                    RouteId = requestDto.RouteId,
+                    DriverId = requestDto.DriverId,
+                    VehicleId = requestDto.VehicleId,
+                    Date = DateOnly.FromDateTime(camp.endDate.Value), // date = camp end date
+                    StartTime = requestDto.ReturnStartTime.Value,
+                    EndTime = requestDto.ReturnEndTime.Value,
+                    TransportType = TransportScheduleType.DropOff.ToString(), 
+                    IsRoundTrip = false 
+                };
 
-            await _unitOfWork.TransportSchedules.CreateAsync(scheduleEntity);
+                var returnSchedule = await PrepareScheduleEntityAsync(returnDto);
+                createdSchedules.Add(returnSchedule);
+            }
+
+            foreach (var schedule in createdSchedules)
+            {
+                await _unitOfWork.TransportSchedules.CreateAsync(schedule);
+            }
             await _unitOfWork.CommitAsync();
 
-            var createdSchedule = await _repository.GetSchedulesWithIncludes()
-                                         .FirstAsync(s => s.transportScheduleId == scheduleEntity.transportScheduleId);
+            var result = await _repository.GetSchedulesWithIncludes()
+                                         .FirstAsync(s => s.transportScheduleId == createdSchedules[0].transportScheduleId);
 
-            return _mapper.Map<TransportScheduleResponseDto>(createdSchedule);
+            return _mapper.Map<TransportScheduleResponseDto>(result);
+        }
+
+        public async Task<List<TransportScheduleResponseDto>> CreateScheduleBulkAsync(List<TransportScheduleRequestDto> requestDtos)
+        {
+            var results = new List<TransportScheduleResponseDto>();
+
+
+            // process each dto sequentially to ensure conflict checks are accurate
+            foreach (var dto in requestDtos)
+            {
+                var result = await CreateScheduleAsync(dto);
+                results.Add(result);
+            }
+
+            return results;
         }
 
         public async Task<TransportScheduleResponseDto> GetScheduleByIdAsync(int id)
@@ -357,6 +393,38 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #region Private Methods
+
+        private async Task<TransportSchedule> PrepareScheduleEntityAsync(TransportScheduleRequestDto requestDto)
+        {
+            // validations
+            checkTimeBounds(requestDto.StartTime, requestDto.EndTime);
+            checkTransportType(requestDto.TransportType);
+            checkScheduleDate(requestDto.Date);
+
+            // convert to UTC for storage
+            var startTimeUtc = requestDto.StartTime.ToUtcForStorageTime();
+            var endTimeUtc = requestDto.EndTime.ToUtcForStorageTime();
+
+            // check FK
+            await CheckForeignKeyExistence(requestDto);
+
+            // check conflict
+            await CheckScheduleConflicts(
+                requestDto.DriverId,
+                requestDto.VehicleId,
+                requestDto.Date,
+                startTimeUtc,
+                endTimeUtc
+            );
+
+            requestDto.StartTime = startTimeUtc;
+            requestDto.EndTime = endTimeUtc;
+
+            var scheduleEntity = _mapper.Map<TransportSchedule>(requestDto);
+            scheduleEntity.status = TransportScheduleStatus.Draft.ToString();
+
+            return scheduleEntity;
+        }
 
         private void checkTimeBounds(TimeOnly startTime, TimeOnly endTime)
         {

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Google.Api;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.TransportSchedule;
@@ -18,6 +19,10 @@ namespace SummerCampManagementSystem.API.Controllers
             _scheduleService = scheduleService;
         }
 
+
+        /// <summary>
+        /// Create transport schedule
+        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> CreateSchedule([FromBody] TransportScheduleRequestDto model)
@@ -30,6 +35,33 @@ namespace SummerCampManagementSystem.API.Controllers
             var response = await _scheduleService.CreateScheduleAsync(model);
 
             return CreatedAtAction(nameof(GetScheduleById), new { id = response.TransportScheduleId }, response);
+        }
+
+
+        /// <summary>
+        /// Create list of transport schedules in bulk
+        /// Support creating recurring schedules and auto-generating additional trips
+        /// </summary>
+        [HttpPost("bulk")]
+        public async Task<IActionResult> CreateScheduleBulk([FromBody] BulkCreateTransportScheduleDto bulkRequest)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var results = await _scheduleService.CreateScheduleBulkAsync(bulkRequest.Schedules);
+
+                return Ok(new
+                {
+                    Message = $"Đã xử lý thành công. Tổng cộng {results.Count} lịch trình được tạo (bao gồm cả các chuyến phát sinh).",
+                    Data = results
+                });
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
 
