@@ -30,13 +30,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.TransportSchedule
 
         [Required(ErrorMessage = "TransportType must be 'PickUp' or 'DropOff'")]
         public string TransportType { get; set; }
-
-        // use to indicate if this is a round trip schedule
-        public bool IsRoundTrip { get; set; } = false;
-
-        // only needed if IsRoundTrip = true
-        public TimeOnly? ReturnStartTime { get; set; }
-        public TimeOnly? ReturnEndTime { get; set; }
     }
 
     public class BulkCreateTransportScheduleDto

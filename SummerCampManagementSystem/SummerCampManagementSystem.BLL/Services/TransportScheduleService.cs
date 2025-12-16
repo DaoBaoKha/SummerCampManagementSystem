@@ -29,53 +29,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<TransportScheduleResponseDto> CreateScheduleAsync(TransportScheduleRequestDto requestDto)
         {
-            var createdSchedules = new List<TransportSchedule>();
+            // validation
+            var schedule = await PrepareScheduleEntityAsync(requestDto);
 
-            // create main schedule
-            var mainSchedule = await PrepareScheduleEntityAsync(requestDto);
-            createdSchedules.Add(mainSchedule);
-
-            // check round trip
-            // only create return trip when transportType = PickUp
-            if (requestDto.IsRoundTrip && requestDto.TransportType == TransportScheduleType.PickUp.ToString())
-            {
-                if (!requestDto.ReturnStartTime.HasValue || !requestDto.ReturnEndTime.HasValue)
-                {
-                    throw new BusinessRuleException("Vui lòng nhập giờ bắt đầu và giờ kết thúc cho chuyến về (Round Trip).");
-                }
-
-                var camp = await _unitOfWork.Camps.GetByIdAsync(requestDto.CampId);
-                if (camp == null || !camp.endDate.HasValue)
-                {
-                    throw new BusinessRuleException("Không tìm thấy ngày kết thúc của trại để tạo chuyến về.");
-                }
-
-                // create dto for return trip
-                var returnDto = new TransportScheduleRequestDto
-                {
-                    CampId = requestDto.CampId,
-                    RouteId = requestDto.RouteId,
-                    DriverId = requestDto.DriverId,
-                    VehicleId = requestDto.VehicleId,
-                    Date = DateOnly.FromDateTime(camp.endDate.Value), // date = camp end date
-                    StartTime = requestDto.ReturnStartTime.Value,
-                    EndTime = requestDto.ReturnEndTime.Value,
-                    TransportType = TransportScheduleType.DropOff.ToString(), 
-                    IsRoundTrip = false 
-                };
-
-                var returnSchedule = await PrepareScheduleEntityAsync(returnDto);
-                createdSchedules.Add(returnSchedule);
-            }
-
-            foreach (var schedule in createdSchedules)
-            {
-                await _unitOfWork.TransportSchedules.CreateAsync(schedule);
-            }
+            await _unitOfWork.TransportSchedules.CreateAsync(schedule);
             await _unitOfWork.CommitAsync();
 
             var result = await _repository.GetSchedulesWithIncludes()
-                                         .FirstAsync(s => s.transportScheduleId == createdSchedules[0].transportScheduleId);
+                                         .FirstAsync(s => s.transportScheduleId == schedule.transportScheduleId);
 
             return _mapper.Map<TransportScheduleResponseDto>(result);
         }
