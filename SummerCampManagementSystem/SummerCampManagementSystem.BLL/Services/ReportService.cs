@@ -1,16 +1,10 @@
 ﻿using AutoMapper;
-using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.Services
 {
@@ -286,6 +280,43 @@ namespace SummerCampManagementSystem.BLL.Services
             await transaction.CommitAsync();
 
             return _mapper.Map<ReportResponseDto>(report);
+        }
+
+        public async Task<IEnumerable<ReportResponseDto>> GetReportsByCamperAsync(int camperId, int? campId = null)
+        {
+            // validate camper exists
+            var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                ?? throw new NotFoundException($"Camper with ID {camperId} not found");
+
+            // validate camp if provided
+            if (campId.HasValue)
+            {
+                var camp = await _unitOfWork.Camps.GetByIdAsync(campId.Value)
+                    ?? throw new NotFoundException($"Camp with ID {campId.Value} not found");
+            }
+
+            var reports = await _unitOfWork.Reports.GetReportsByCamperAsync(camperId, campId);
+            return _mapper.Map<IEnumerable<ReportResponseDto>>(reports);
+        }
+
+        public async Task<IEnumerable<ReportResponseDto>> GetReportsByStaffAsync(int staffId)
+        {
+            // validate staff exists
+            var staff = await _unitOfWork.UserAccounts.GetByIdAsync(staffId)
+                ?? throw new NotFoundException($"Staff with ID {staffId} not found");
+
+            var reports = await _unitOfWork.Reports.GetReportsByStaffAsync(staffId);
+            return _mapper.Map<IEnumerable<ReportResponseDto>>(reports);
+        }
+
+        public async Task<IEnumerable<ReportResponseDto>> GetReportsByCampAsync(int campId)
+        {
+            // validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp with ID {campId} not found");
+
+            var reports = await _unitOfWork.Reports.GetReportsByCampAsync(campId);
+            return _mapper.Map<IEnumerable<ReportResponseDto>>(reports);
         }
     }
 }
