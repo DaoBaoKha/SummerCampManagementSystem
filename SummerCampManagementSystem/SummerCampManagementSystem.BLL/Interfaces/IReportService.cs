@@ -12,5 +12,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<ReportResponseDto> CreateTransportIncidentAsync(TransportIncidentRequestDto dto, int staffId);
         Task<ReportResponseDto> CreateEarlyCheckoutReportAsync(EarlyCheckoutRequestDto dto, int staffId);
         Task<ReportResponseDto> CreateIncidentTicketAsync(IncidentTicketRequestDto dto, int staffId);
+        Task<IEnumerable<ReportResponseDto>> GetReportsByCamperAsync(int camperId, int? campId = null);
+        Task<IEnumerable<ReportResponseDto>> GetReportsByStaffAsync(int staffId);
+        Task<IEnumerable<ReportResponseDto>> GetReportsByCampAsync(int campId);
     }
 }

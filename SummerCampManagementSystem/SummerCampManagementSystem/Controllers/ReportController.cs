@@ -35,6 +35,43 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(report);
         }
 
+        /// <summary>
+        /// Get reports by camper
+        /// </summary>
+        [HttpGet("camper/{camperId}")]
+        public async Task<IActionResult> GetReportsByCamper(int camperId, [FromQuery] int? campId = null)
+        {
+            var reports = await _reportService.GetReportsByCamperAsync(camperId, campId);
+            return Ok(reports);
+        }
+
+        /// <summary>
+        /// Get reports by login staff
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpGet("my-reports")]
+        public async Task<IActionResult> GetMyReports()
+        {
+            var staffId = _userContextService.GetCurrentUserId();
+            if (!staffId.HasValue)
+            {
+                return Unauthorized(new { message = "Unable to identify current user" });
+            }
+
+            var reports = await _reportService.GetReportsByStaffAsync(staffId.Value);
+            return Ok(reports);
+        }
+
+        /// <summary>
+        /// Get all reports by camp
+        /// </summary>
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetReportsByCamp(int campId)
+        {
+            var reports = await _reportService.GetReportsByCampAsync(campId);
+            return Ok(reports);
+        }
+
         [Authorize(Roles = "Staff")]
         [HttpPost]
         public async Task<IActionResult> CreateReport([FromBody] ReportRequestDto report)
