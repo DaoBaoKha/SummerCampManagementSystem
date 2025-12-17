@@ -63,7 +63,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
-                .Where(s => s.activity.campId == campId && s.coreActivityId != null)
+                .Where(s => s.activity.campId == campId && s.activity.activityType == ActivityType.Optional.ToString())
                 .ToListAsync();
         }
 
@@ -74,7 +74,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.staff)
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
-                .Where(s => s.activity.campId == campId && s.coreActivityId == null)
+                .Where(s => s.activity.campId == campId && s.activity.activityType == ActivityType.Core.ToString())
                 .ToListAsync();
         }
 
@@ -154,7 +154,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     a.activity.campId == campId &&
                     (
                         (a.staffId == staffId && a.activity.activityType == ActivityType.Optional.ToString()) ||
-                        (a.staffId == staffId && a.activity.activityType == ActivityType.Resting.ToString()) ||
+                        (a.AccommodationActivitySchedules.Any(aa => aa.accommodation.supervisorId == staffId)) ||
                         (a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
                             && a.activity.activityType != ActivityType.Checkin.ToString()
                             && a.activity.activityType != ActivityType.Checkout.ToString()

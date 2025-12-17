@@ -55,8 +55,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public string? CamperName { get; set; }
         public string? Gender { get; set; }
         public DateOnly? Dob { get; set; }
-        public string? avatar { get; set; }
-        public int AttendanceLogId { get; set; }
+        public string? Avatar { get; set; }
+        public int? AttendanceLogId { get; set; }
         public string Status { get; set; } = null!;
     }
 

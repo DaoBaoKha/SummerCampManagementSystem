@@ -132,6 +132,28 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        [Authorize(Roles = "Staff")]
+        [HttpGet("activitiySchedules/{activityScheduleId}/campers")]
+        public async Task<IActionResult> GetCampersByActivitySchedule(int activityScheduleId)
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+                var campers = await _camperService.GetCampersForAttendanceAsync(activityScheduleId, staffId);
+                return Ok(campers);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+        }
+
         [Authorize(Roles = "User, Admin")]
         [HttpPost]
         public async Task<IActionResult> Create(CamperCreateDto dto)

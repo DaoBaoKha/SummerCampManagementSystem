@@ -24,6 +24,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<CamperAttendanceDto>> GetCampersByCoreScheduleAndStaffAsync(int coreActivityId, int staffId);
         Task<IEnumerable<CamperSummaryDto>> GetCampersByOptionalActivitySchedule(int optionalActivityId);
         Task<IEnumerable<CamperSummaryDto>> GetCampersByCoreActivityIdAsync(int coreActivityId);
+        Task<IEnumerable<CamperAttendanceDto>> GetCampersForAttendanceAsync(int activityScheduleId, int staffId);
         Task<string> UpdateCamperAvatarAsync(int camperId, IFormFile file);
     }
 }

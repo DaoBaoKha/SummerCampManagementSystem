@@ -501,37 +501,46 @@ namespace SummerCampManagementSystem.BLL.Services
             foreach (var camp in closedCamps)
             {
                 // 2. Lấy tất cả activity schedules của camp
-                var activities = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(camp.campId);
+                var schedules = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(camp.campId);
 
-                foreach (var activity in activities)
+                foreach (var schedule in schedules)
                 {
-                    IEnumerable<CamperSummaryDto> campers;
+                    IEnumerable<Camper> campers;
+                    var activityType = schedule.activity.activityType;
 
-                    if (activity.activity.activityType == ActivityType.Core.ToString() || activity.activity.activityType == ActivityType.Checkin.ToString()
-                        ||activity.activity.activityType == ActivityType.Checkout.ToString())
+                    if (activityType == ActivityType.Optional.ToString())
                     {
-                        // Core activity: lấy tất cả camper trong group (API đã xử lý logic optional)
-                        campers = await _camperService.GetCampersByCoreActivityIdAsync(activity.activityScheduleId);
+                        // === OPTIONAL ===
+                        // Lấy tất cả Camper đã đăng ký
+                        campers = await _unitOfWork.Campers
+                            .GetCampersByOptionalActivityId(schedule.activityScheduleId);
                     }
-                    else // Optional
+                    else if (activityType == ActivityType.Resting.ToString())
                     {
-                        campers = await _camperService.GetCampersByOptionalActivitySchedule(activity.activityScheduleId);
+                        // === RESTING ===
+                        campers = await _unitOfWork.Campers
+                            .GetCampersByAccommodationScheduleAsync(schedule.activityScheduleId);
                     }
-
+                    else
+                    {
+                        // === CORE / CHECK-IN / CHECK-OUT ===
+                        campers = await _unitOfWork.Campers
+                            .GetCampersByCoreScheduleIdAsync(schedule.activityScheduleId);
+                    }
                     foreach (var camper in campers)
                     {
                         // Idempotent: kiểm tra log đã tồn tại chưa
                         bool exists = await _unitOfWork.AttendanceLogs.GetQueryable()
                             .AnyAsync(l =>
-                                l.camperId == camper.CamperId &&
-                                l.activityScheduleId == activity.activityScheduleId);
+                                l.camperId == camper.camperId &&
+                                l.activityScheduleId == schedule.activityScheduleId);
 
                         if (!exists)
                         {
                             var log = new AttendanceLog
                             {
-                                camperId = camper.CamperId,
-                                activityScheduleId = activity.activityScheduleId,
+                                camperId = camper.camperId,
+                                activityScheduleId = schedule.activityScheduleId,
                                 participantStatus = ParticipationStatus.NotYet.ToString(),
                                 eventType = "string",
                                 checkInMethod = "SystemGenerated",
