@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SummerCampManagementSystem.BLL.DTOs.Report
+﻿namespace SummerCampManagementSystem.BLL.DTOs.Report
 {
     public class ReportResponseDto
     {
         public int reportId { get; set; }
 
         public int? camperId { get; set; }
+
+        public int? transportScheduleId { get; set; }
+
+        public string reportType { get; set; }
 
         public string note { get; set; }
 
@@ -23,7 +20,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Report
 
         public int? reportedBy { get; set; }
 
-        public int? activityId { get; set; }
+        public int? activityScheduleId { get; set; }
 
         public string level { get; set; }
     }

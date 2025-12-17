@@ -19,5 +19,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(ct => ct.stopLocation)   
                 .ToListAsync();
         }
+
+        public async Task<CamperTransport?> GetCamperTransportByScheduleAndCamperAsync(int transportScheduleId, int camperId)
+        {
+            return await _context.CamperTransports
+                .Where(ct => ct.transportScheduleId == transportScheduleId && ct.camperId == camperId)
+                .Include(ct => ct.camper)
+                .Include(ct => ct.stopLocation)
+                .Include(ct => ct.transportSchedule)
+                .FirstOrDefaultAsync();
+        }
     }
 }
