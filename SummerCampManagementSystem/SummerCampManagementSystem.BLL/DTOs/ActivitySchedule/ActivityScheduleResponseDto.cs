@@ -21,7 +21,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public string Status { get; set; }
         public bool? IsLivestream { get; set; }
         public LivestreamResponseDto LiveStream { get; set; }
-        public bool IsOptional { get; set; }
         public LocationDto Location { get; set; }
         public int? CurrentCapacity { get; set; }
 
