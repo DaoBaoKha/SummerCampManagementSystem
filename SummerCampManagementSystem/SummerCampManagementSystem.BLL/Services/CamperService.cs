@@ -7,6 +7,7 @@ using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
@@ -153,7 +154,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     CamperName = c.camperName,
                     Gender = c.gender,
                     Dob = c.dob,
-                    avatar = c.avatar,
+                    Avatar = c.avatar,
                     AttendanceLogId = log.attendanceLogId,
                     Status = log.participantStatus
                 };
@@ -199,9 +200,71 @@ namespace SummerCampManagementSystem.BLL.Services
                     CamperName = c.camperName,
                     Gender = c.gender,
                     Dob = c.dob,
-                    avatar = c.avatar,
+                    Avatar = c.avatar,
                     AttendanceLogId = log.attendanceLogId,
                     Status = log.participantStatus
+                };
+            });
+
+            return result;
+        }
+
+        public async Task<IEnumerable<CamperAttendanceDto>> GetCampersForAttendanceAsync(int activityScheduleId, int staffId)
+        {
+            // 1. Lấy thông tin Schedule để biết Type
+            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+                ?? throw new KeyNotFoundException("Activity Schedule not found.");
+
+            var activity = await _unitOfWork.Activities.GetByIdAsync(schedule.activityId);
+            var activityType = activity.activityType;
+
+            IEnumerable<Camper> campers = new List<Camper>();
+
+            // 2. PHÂN NHÁNH LOGIC LẤY CAMPER
+
+            if (activityType == ActivityType.Optional.ToString())
+            {
+                // === OPTIONAL ===
+                // Lấy tất cả Camper đã đăng ký
+                campers = await _unitOfWork.Campers
+                    .GetCampersByOptionalActivityId(activityScheduleId);
+            }
+            else if (activityType == ActivityType.Resting.ToString())
+            {
+                // === RESTING ===
+                // Lấy Camper thuộc Accommodation mà Staff này quản lý
+                campers = await _unitOfWork.Campers
+                    .GetCampersByAccommodationScheduleAndStaffAsync(activityScheduleId, staffId);
+            }
+            else
+            {
+                // === CORE / CHECK-IN / CHECK-OUT ===
+                // Logic chung: Lấy danh sách Camper thuộc các Group mà Staff này quản lý.
+                campers = await _unitOfWork.Campers
+                    .GetCampersByCoreScheduleAndStaffAsync(activityScheduleId, staffId);
+            }
+
+            // 3. MAP DỮ LIỆU ĐIỂM DANH (JOIN VỚI LOGS)
+
+            // Lấy toàn bộ log của hoạt động này
+            var logs = await _unitOfWork.AttendanceLogs.GetAttendanceLogsByScheduleId(activityScheduleId);
+
+            // Map kết quả
+            var result = campers.Select(c =>
+            {
+                var log = logs.FirstOrDefault(l => l.camperId == c.camperId);
+
+                return new CamperAttendanceDto
+                {
+                    CamperId = c.camperId,
+                    CamperName = c.camperName,
+                    Gender = c.gender,
+                    Dob = c.dob,
+                    Avatar = c.avatar,
+
+                    // Nếu chưa có log -> Trả về null & "Pending"
+                    AttendanceLogId = log?.attendanceLogId,
+                    Status = log?.participantStatus ?? "NotYet"
                 };
             });
 

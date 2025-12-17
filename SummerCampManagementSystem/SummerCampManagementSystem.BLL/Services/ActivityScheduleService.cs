@@ -1063,7 +1063,6 @@ namespace SummerCampManagementSystem.BLL.Services
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
                 ?? throw new KeyNotFoundException("Staff Not found");
             
-
             var schedules = await _unitOfWork.ActivitySchedules.GetByCampAndStaffAsync(campId, staffId);
 
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);

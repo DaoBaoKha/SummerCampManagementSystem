@@ -17,5 +17,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<IEnumerable<Camper>> GetCampersByOptionalActivityId(int optionalActivityId);
         Task<IEnumerable<Camper>> GetCampersByCoreScheduleAndStaffAsync(int activityScheduleId, int staffId);
         Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId);
+        Task<IEnumerable<Camper>> GetCampersByAccommodationScheduleAsync(int activityScheduleId);
+        Task<IEnumerable<Camper>> GetCampersByAccommodationScheduleAndStaffAsync(int activityScheduleId, int staffId);
     }
 }

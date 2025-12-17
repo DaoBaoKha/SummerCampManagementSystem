@@ -78,6 +78,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Camper>> GetCampersByAccommodationScheduleAndStaffAsync(int activityScheduleId, int staffId)
+        {
+            return await _context.AccommodationActivitySchedules
+                  .Where(ga => ga.activityScheduleId == activityScheduleId
+                               && ga.accommodation.supervisorId == staffId)
+                  .SelectMany(ga => ga.accommodation.CamperAccommodations)
+                  .Select(cg => cg.camper)
+                  .Distinct()   
+                  .ToListAsync();
+        }
         public async Task<IEnumerable<Camper>> GetCampersByCoreScheduleIdAsync(int activityScheduleId)
         {
             return await _context.GroupActivities
@@ -86,6 +96,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(cg => cg.camper) 
                 .Distinct()
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Camper>> GetCampersByAccommodationScheduleAsync(int activityScheduleId)
+        {
+            return await _context.AccommodationActivitySchedules
+                  .Where(ga => ga.activityScheduleId == activityScheduleId)
+                  .SelectMany(ga => ga.accommodation.CamperAccommodations)
+                  .Select(cg => cg.camper)
+                  .Distinct()
+                  .ToListAsync();
         }
     }
 }
