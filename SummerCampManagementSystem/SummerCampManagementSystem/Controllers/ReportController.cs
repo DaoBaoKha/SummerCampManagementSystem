@@ -1,16 +1,12 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SummerCampManagementSystem.BLL.DTOs.Blog;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
-using SummerCampManagementSystem.BLL.Services;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace SummerCampManagementSystem.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/report")]
     [ApiController]
     public class ReportController : ControllerBase
     {
@@ -23,7 +19,6 @@ namespace SummerCampManagementSystem.API.Controllers
             _userContextService = userContextService;
         }
 
-        // GET: api/<ReportController>
         [HttpGet]
         public async Task<IActionResult> GetAllReports()
         {
@@ -32,7 +27,6 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
 
-        // GET api/<ReportController>/5
         [HttpGet("{id}")]
         public async Task<IActionResult> GetReportById(int id)
         {
@@ -41,7 +35,43 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(report);
         }
 
-        // POST api/<ReportController>
+        /// <summary>
+        /// Get reports by camper
+        /// </summary>
+        [HttpGet("camper/{camperId}")]
+        public async Task<IActionResult> GetReportsByCamper(int camperId, [FromQuery] int? campId = null)
+        {
+            var reports = await _reportService.GetReportsByCamperAsync(camperId, campId);
+            return Ok(reports);
+        }
+
+        /// <summary>
+        /// Get reports by login staff
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpGet("my-reports")]
+        public async Task<IActionResult> GetMyReports()
+        {
+            var staffId = _userContextService.GetCurrentUserId();
+            if (!staffId.HasValue)
+            {
+                return Unauthorized(new { message = "Unable to identify current user" });
+            }
+
+            var reports = await _reportService.GetReportsByStaffAsync(staffId.Value);
+            return Ok(reports);
+        }
+
+        /// <summary>
+        /// Get all reports by camp
+        /// </summary>
+        [HttpGet("camp/{campId}")]
+        public async Task<IActionResult> GetReportsByCamp(int campId)
+        {
+            var reports = await _reportService.GetReportsByCampAsync(campId);
+            return Ok(reports);
+        }
+
         [Authorize(Roles = "Staff")]
         [HttpPost]
         public async Task<IActionResult> CreateReport([FromBody] ReportRequestDto report)
@@ -70,7 +100,6 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        // PUT api/<ReportController>/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateBlogPost(int id, [FromForm] ReportRequestDto report)
         {
@@ -112,6 +141,72 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound();
             }
             return NoContent();
+        }
+
+        /// <summary>
+        /// Report transport incident when camper drops out mid-journey
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpPost("transport-incident")]
+        public async Task<IActionResult> CreateTransportIncident([FromBody] TransportIncidentRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var staffId = _userContextService.GetCurrentUserId();
+            if (!staffId.HasValue)
+            {
+                return Unauthorized(new { message = "Unable to identify current user" });
+            }
+
+            var report = await _reportService.CreateTransportIncidentAsync(dto, staffId.Value);
+            return CreatedAtAction(nameof(GetReportById), new { id = report.reportId }, report);
+        }
+
+        /// <summary>
+        /// Report early checkout of camper
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpPost("early-checkout")]
+        public async Task<IActionResult> CreateEarlyCheckout([FromBody] EarlyCheckoutRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var staffId = _userContextService.GetCurrentUserId();
+            if (!staffId.HasValue)
+            {
+                return Unauthorized(new { message = "Unable to identify current user" });
+            }
+
+            var report = await _reportService.CreateEarlyCheckoutReportAsync(dto, staffId.Value);
+            return CreatedAtAction(nameof(GetReportById), new { id = report.reportId }, report);
+        }
+
+        /// <summary>
+        /// Create a general incident ticket
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpPost("incident-ticket")]
+        public async Task<IActionResult> CreateIncidentTicket([FromBody] IncidentTicketRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var staffId = _userContextService.GetCurrentUserId();
+            if (!staffId.HasValue)
+            {
+                return Unauthorized(new { message = "Unable to identify current user" });
+            }
+
+            var report = await _reportService.CreateIncidentTicketAsync(dto, staffId.Value);
+            return CreatedAtAction(nameof(GetReportById), new { id = report.reportId }, report);
         }
     }
 }

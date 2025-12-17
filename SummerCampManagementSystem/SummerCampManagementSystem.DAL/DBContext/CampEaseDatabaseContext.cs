@@ -561,7 +561,7 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
 
-            entity.HasOne(d => d.activity).WithMany(p => p.Reports).HasConstraintName("FK_Report_Activity");
+            entity.HasOne(d => d.activitySchedule).WithMany(p => p.Reports).HasConstraintName("FK_Report_ActivitySchedule");
 
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 

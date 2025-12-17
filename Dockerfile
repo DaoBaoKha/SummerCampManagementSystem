@@ -16,8 +16,9 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     libgdiplus \
-    libc6-dev \
-    libicu-dev \
+    libfontconfig1 \
+    fonts-noto \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 ENV ASPNETCORE_URLS=http://+:8080
