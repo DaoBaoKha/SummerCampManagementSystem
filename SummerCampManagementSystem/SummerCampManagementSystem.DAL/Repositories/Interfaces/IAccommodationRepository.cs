@@ -12,5 +12,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<IEnumerable<Accommodation>> GetByCampId(int campId);
         Task<Accommodation?> GetBySupervisorIdAsync(int supervisorId, int campId);
         Task<bool> isSupervisorOfAccomodation(int supervisorId, int campId);
+        Task<List<(string Name, int Current, int Max)>> GetCapacityAlertsByCampAsync(int campId);
     }
 }
