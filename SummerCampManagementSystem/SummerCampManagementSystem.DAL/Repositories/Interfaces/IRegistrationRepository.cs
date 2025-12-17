@@ -32,5 +32,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<List<(DateTime Date, int Count, decimal Revenue)>> GetRegistrationTrendAsync(int campId);
         Task<Dictionary<string, int>> GetStatusDistributionAsync(int campId);
         Task<List<(int RegistrationId, string CamperName, DateTime RegistrationDate, string Status, decimal Amount, string Avatar)>> GetRecentRegistrationsAsync(int campId, int limit);
+
+        // admin dashboard methods
+        Task<decimal> GetTotalSystemRevenueAsync();
+        Task<decimal> GetPreviousMonthRevenueAsync();
     }
 }
