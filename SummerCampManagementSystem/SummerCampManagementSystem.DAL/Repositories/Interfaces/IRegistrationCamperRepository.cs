@@ -6,5 +6,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
     {
         Task<RegistrationCamper?> GetByCamperId(int camperId);
         Task<RegistrationCamper?> GetByCamperIdAsync(int camperId);
+        Task<IEnumerable<RegistrationCamper>> GetByCampIdAsync(int campId);
     }
 }

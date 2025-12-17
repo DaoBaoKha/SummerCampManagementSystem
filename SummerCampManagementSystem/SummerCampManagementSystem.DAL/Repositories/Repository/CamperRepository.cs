@@ -42,12 +42,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         }
         public async Task<Registration?> GetRegistrationByCamperIdAsync(int camperId)
         {
-            // FIX: Truy vấn thông qua bảng trung gian RegistrationCampers để lấy Registration
             var registrationCamperLink = await _context.RegistrationCampers
-                .Include(rc => rc.registration) // Eager load the Registration object
+                .Include(rc => rc.registration) // eager load the Registration object
                 .FirstOrDefaultAsync(rc => rc.camperId == camperId);
 
-            // Trả về đối tượng Registration từ liên kết
             return registrationCamperLink?.registration;
         }
 
@@ -106,6 +104,40 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                   .Select(cg => cg.camper)
                   .Distinct()
                   .ToListAsync();
+        }
+
+        public async Task<(Dictionary<string, int> Gender, Dictionary<int, int> AgeGroups)> GetCamperProfileByCampAsync(int campId)
+        {
+            // get campers for this camp with confirmed status
+            var validStatuses = new[] { "Confirmed", "Transporting", "Transported", "CheckedIn", "CheckedOut" };
+            
+            var campers = await _context.RegistrationCampers
+                .Where(rc => rc.registration.campId == campId && validStatuses.Contains(rc.status))
+                .Include(rc => rc.camper)
+                .Select(rc => rc.camper)
+                .Distinct()
+                .ToListAsync();
+
+            // calculate gender distribution
+            var genderDistribution = campers
+                .GroupBy(c => c.gender ?? "Unknown")
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // calculate age groups
+            var today = DateTime.Today;
+            var ageGroups = campers
+                .Where(c => c.dob.HasValue)
+                .Select(c =>
+                {
+                    var age = today.Year - c.dob.Value.Year;
+                    if (c.dob.Value.ToDateTime(TimeOnly.MinValue) > today.AddYears(-age))
+                        age--;
+                    return age;
+                })
+                .GroupBy(age => age)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            return (genderDistribution, ageGroups);
         }
     }
 }

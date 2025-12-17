@@ -67,5 +67,26 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(c => c.group)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<List<(string Name, int Current, int Max)>> GetCapacityAlertsByCampAsync(int campId)
+        {
+            var groups = await _context.Groups
+                .Where(g => g.campId == campId && g.maxSize.HasValue && g.maxSize > 0)
+                .Select(g => new
+                {
+                    g.groupName,
+                    Current = g.currentSize ?? 0,
+                    Max = g.maxSize.Value
+                })
+                .ToListAsync();
+
+            // filter groups exceeding 80% capacity
+            var alerts = groups
+                .Where(g => (double)g.Current / g.Max >= 0.8)
+                .Select(g => (g.groupName ?? "Unknown", g.Current, g.Max))
+                .ToList();
+
+            return alerts;
+        }
     }
 }
