@@ -801,25 +801,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (!camp.startDate.HasValue || !camp.endDate.HasValue)
                 throw new InvalidOperationException("Trại chưa có ngày bắt đầu hoặc kết thúc.");
-
-            // 2. Xác định khung giờ dựa trên Loại Activity
-            DateTime startTimeUtc;
-            DateTime endTimeUtc;
-
-            // Lưu ý: Camp Start/End trong DB đã là UTC
-            if (activity.activityType == ActivityType.Checkin.ToString())
-            {
-                // Check-in: 1 tiếng tính từ lúc bắt đầu trại (Start -> Start + 1h)
-                startTimeUtc = camp.startDate.Value;
-                endTimeUtc = camp.startDate.Value.AddHours(1);
-            }
-            else if (activity.activityType == ActivityType.Checkout.ToString())
-            {
-                // Check-out: 1 tiếng trước khi kết thúc trại (End - 1h -> End)
-                startTimeUtc = camp.endDate.Value.AddHours(-1);
-                endTimeUtc = camp.endDate.Value;
-            }
-            else
+          
+            if (activity.activityType != ActivityType.Checkin.ToString() && activity.activityType != ActivityType.Checkout.ToString())
             {
                 throw new InvalidOperationException("Activity này không phải loại CheckIn hoặc CheckOut.");
             }
@@ -827,11 +810,17 @@ namespace SummerCampManagementSystem.BLL.Services
             // 3. Validate Location và Conflict
             var dbContext = _unitOfWork.GetDbContext();
 
+            bool isOverlap = await _unitOfWork.ActivitySchedules
+                   .IsTimeOverlapAsync(camp.campId, dto.StartTime, dto.EndTime);
+
+            if (isOverlap)
+                throw new InvalidOperationException("Thời gian nghỉ ngơi bị trùng với hoạt động khác.");
+
             // Check xem địa điểm có bận không
             bool locationConflict = await dbContext.ActivitySchedules
                 .AnyAsync(s =>
                     s.locationId == dto.LocationId &&
-                    (s.startTime < endTimeUtc && s.endTime > startTimeUtc)
+                    (s.startTime < dto.EndTime && s.endTime > dto.StartTime)
                 );
 
             if (locationConflict)
@@ -853,8 +842,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     activityId = dto.ActivityId,
                     locationId = dto.LocationId,
-                    startTime = startTimeUtc,
-                    endTime = endTimeUtc,
+                    startTime = dto.StartTime,
+                    endTime = dto.EndTime,
                     status = ActivityScheduleStatus.Draft.ToString(),
                     currentCapacity = totalCapacity,
                 };

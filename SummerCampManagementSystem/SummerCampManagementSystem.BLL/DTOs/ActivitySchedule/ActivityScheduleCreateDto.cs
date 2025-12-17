@@ -50,6 +50,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
     public class CreateCheckInCheckOutRequestDto
     {
         public int ActivityId { get; set; }
+        [Required(ErrorMessage = "Ngày Giờ bắt đầu là bắt buộc.")]
+        public DateTime StartTime { get; set; }
+        [Required(ErrorMessage = "Ngày Giờ kết thúc là bắt buộc.")]
+        public DateTime EndTime { get; set; }
         public int LocationId { get; set; }
     }
 
