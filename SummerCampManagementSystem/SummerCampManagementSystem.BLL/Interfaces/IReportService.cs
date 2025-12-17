@@ -1,9 +1,4 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Report;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -14,5 +9,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<ReportResponseDto>> GetAllReportsAsync();
         Task<ReportResponseDto?> UpdateReportAsync(int reportId, ReportRequestDto reportRequestDto);
         Task<bool> DeleteReportAsync(int reportId);
+        Task<ReportResponseDto> CreateTransportIncidentAsync(TransportIncidentRequestDto dto, int staffId);
+        Task<ReportResponseDto> CreateEarlyCheckoutReportAsync(EarlyCheckoutRequestDto dto, int staffId);
+        Task<ReportResponseDto> CreateIncidentTicketAsync(IncidentTicketRequestDto dto, int staffId);
     }
 }
