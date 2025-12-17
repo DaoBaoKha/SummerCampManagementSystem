@@ -1,5 +1,6 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Activity;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
+using SummerCampManagementSystem.BLL.DTOs.Group;
 using SummerCampManagementSystem.Core.Enums;
 using System;
 using System.Collections.Generic;
@@ -11,10 +12,11 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 {
     public interface IActivityScheduleService
     {
-        //Task<ActivityScheduleResponseDto> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
         Task<CreateScheduleBatchResult> CreateCoreScheduleAsync(ActivityScheduleCreateDto dto);
         Task<CreateScheduleBatchResult> CreateOptionalScheduleAsync(OptionalScheduleCreateDto dto);
         Task<CreateScheduleBatchResult> CreateRestingScheduleAsync(RestingScheduleCreateDto dto);
+        Task<ActivityScheduleResponseDto> CreateCheckInCheckOutScheduleAsync(CreateCheckInCheckOutRequestDto dto);
+        Task<IEnumerable<GroupNameDto>> GetAvailableGroupsForCoreAsync(GetAvailableGroupRequestDto request);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync();
         Task<ActivityScheduleResponseDto?> GetScheduleByIdAsync(int id);
         Task<IEnumerable<ActivityScheduleResponseDto>> GetByCampAndStaffAsync(int campId, int staffId);

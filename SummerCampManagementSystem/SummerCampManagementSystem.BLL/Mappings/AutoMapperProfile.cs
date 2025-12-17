@@ -59,6 +59,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                                }
                                : null));
 
+            CreateMap<Accommodation, AccommodationSummaryDto>();
+
             CreateMap<UserAccount, SupervisorDto>()
                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.userId))
                .ForMember(dest => dest.FullName, opt => opt.MapFrom(src => src.lastName + " " + src.firstName));
@@ -127,9 +129,6 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));  
             CreateMap<CamperGroupRequestDto, CamperGroup>();
 
-            CreateMap<CamperGroup, CamperGroupDto>()
-                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper))
-                .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));
 
             // Driver mappings
 
@@ -270,8 +269,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
 
             //ActivitySchedule mappings
-            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>()
-                .ForMember(dest => dest.CoreActivityId, opt => opt.MapFrom(src => src.coreActivityId)); // add coreActivityId
+            CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
+               
 
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
                 .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>()
@@ -331,11 +330,19 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // RegistrationCamper mappings
             CreateMap<RegistrationCamperResponseDto, RegistrationCamper>();
             CreateMap<RegistrationCamper, RegistrationCamperResponseDto>()
-                   .ForMember(dest => dest.CamperGroup,
-                   opt => opt.MapFrom(src =>src.camper.CamperGroups.FirstOrDefault(cg => cg.group.campId == src.registration.campId)))
-
                 .ForMember(dest => dest.Camp, opt => opt.MapFrom(src => src.registration.camp))
-                .ForMember(dest => dest.RequestTransport, opt => opt.MapFrom(src => src.requestTransport));
+                .ForMember(dest => dest.UserAccount, opt => opt.MapFrom(src => src.registration.user))
+                .ForMember(dest => dest.RequestTransport, opt => opt.MapFrom(src => src.requestTransport))
+                .ForMember(dest => dest.GroupName, opt => opt.MapFrom(src =>
+                            src.camper.CamperGroups
+                                .Where(cg => cg.group != null && cg.group.campId == src.registration.campId)
+                                .Select(cg => cg.group)
+                                .FirstOrDefault()))
+                .ForMember(dest => dest.Accommodation, opt => opt.MapFrom(src =>
+                    src.camper.CamperAccommodations
+                        .Where(ca => ca.accommodation != null && ca.accommodation.campId == src.registration.campId)
+                        .Select(ca => ca.accommodation)
+                        .FirstOrDefault())); 
 
             CreateMap<RegistrationCamper, RegistrationCamperDetailDto>()
                 .IncludeMembers(src => src.camper)

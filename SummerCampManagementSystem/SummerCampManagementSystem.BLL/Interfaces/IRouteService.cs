@@ -16,6 +16,9 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<RouteResponseDto> CreateRouteAsync(RouteRequestDto routeRequestDto);
 
+        Task<List<RouteResponseDto>> CreateRouteCompositeAsync(CreateRouteCompositeRequestDto requestDto);
+
+
         Task<RouteResponseDto> UpdateRouteAsync(int routeId, RouteRequestDto routeRequestDto);
 
         Task<bool> DeleteRouteAsync(int routeId);

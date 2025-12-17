@@ -10,11 +10,4 @@ namespace SummerCampManagementSystem.BLL.DTOs.CamperGroup
         public GroupNameDto? groupName { get; set; }  
         public string? status { get; set; }
     }
-
-    public class CamperGroupDto
-    {
-        public CamperNameDto? camperName {  get; set; }
-
-        public GroupNameDto? groupName { get; set; }
-    }
 }

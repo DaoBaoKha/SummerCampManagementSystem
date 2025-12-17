@@ -47,6 +47,12 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public bool IsRepeat { get; set; } = false;
     }
 
+    public class CreateCheckInCheckOutRequestDto
+    {
+        public int ActivityId { get; set; }
+        public int LocationId { get; set; }
+    }
+
     public enum RepeatDayOfWeek
     {
         Sunday = 0,
