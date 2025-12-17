@@ -153,7 +153,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(a =>
                     a.activity.campId == campId &&
                     (
-                        (a.staffId == staffId && a.coreActivityId != null) ||
+                        (a.staffId == staffId && a.activity.activityType == ActivityType.Optional.ToString()) ||
                         (a.staffId == staffId && a.activity.activityType == ActivityType.Resting.ToString()) ||
                         (a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
                             && a.activity.activityType != ActivityType.Checkin.ToString()
@@ -198,6 +198,27 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                  .ToListAsync();
         }
 
+
+        public async Task<IEnumerable<ActivitySchedule>> GetAllTypeSchedulesByStaffAsync(int campId, int staffId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(a => a.activity)
+                .Include(a => a.staff)
+                .Include(s => s.livestream)
+                .Include(a => a.GroupActivities)
+                    .ThenInclude(ga => ga.group)
+                .Include(a => a.AccommodationActivitySchedules)
+                .Where(a =>
+                        a.activity.campId == campId &&
+                        (
+                        a.staffId == staffId
+                        || a.AccommodationActivitySchedules.Any(aa => aa.accommodation.supervisorId == staffId)
+                        || a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)  
+                        )
+                      )
+                 .ToListAsync();
+        }
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
         {
             return await _context.ActivitySchedules

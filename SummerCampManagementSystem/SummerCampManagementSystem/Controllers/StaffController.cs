@@ -59,6 +59,27 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [Authorize(Roles = "Staff, Manager")]
+        [HttpGet("camps/{campId}/all-schedules")]
+        public async Task<IActionResult> GetAllSchedulesByStaffId(int campId)
+        {
+            try
+            {
+                var staffId = _userContextService.GetCurrentUserId()
+                    ?? throw new UnauthorizedAccessException("User is not authenticated.");
+                var result = await _activityScheduleService.GetAllTypeSchedulesByStaffAsync(campId, staffId);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException knfEx)
+            {
+                return NotFound(new { message = knfEx.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/group-staff-activities")]
         public async Task<IActionResult> GetSchedulesByGroupStaffAsync(int campId)
         {
