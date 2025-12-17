@@ -711,6 +711,11 @@ namespace SummerCampManagementSystem.BLL.Services
                     var currentStartVn = dateVn.Add(dtoStartVn.TimeOfDay);
                     var currentEndVn = dateVn.Add(dtoEndVn.TimeOfDay);
 
+                    if (dtoEndVn.TimeOfDay < dtoStartVn.TimeOfDay)
+                    {
+                        currentEndVn = currentEndVn.AddDays(1); // Cộng thêm 1 ngày cho giờ kết thúc
+                    }
+
                     // Chuyển sang UTC để query DB và Lưu
                     var startTimeUtc = currentStartVn.ToUtcForStorage();
                     var endTimeUtc = currentEndVn.ToUtcForStorage();
@@ -787,26 +792,41 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
-            // Vì Check-in/Check-out chỉ diễn ra 1 lần duy nhất trong trại.
-                bool alreadyExists = await _unitOfWork.GetDbContext()
-                    .ActivitySchedules
-                    .Include(s => s.activity)
-                    .AnyAsync(s => s.activity.activityType == activity.activityType
-                                && s.activity.campId == activity.campId);
-
-            if (alreadyExists)
-            {
-                throw new InvalidOperationException($"Lịch trình cho hoạt động '{activity.activityType}' đã tồn tại rồi, không thể tạo thêm.");
-            }
+            // Vì Check-in/Check-out chỉ diễn ra 1 lần duy nhất trong trại
 
             if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
             {
                 throw new InvalidOperationException("Thời gian Check-in/Check-out phải nằm trong thời gian diễn ra trại.");
             }
 
-            if (activity.activityType != ActivityType.Checkin.ToString() && activity.activityType != ActivityType.Checkout.ToString())
+            if (activity.activityType == ActivityType.Checkin.ToString())
+            {
+                if(dto.StartTime != camp.startDate)
+                {
+                    throw new InvalidOperationException("Thời gian bắt đầu Check-in phải trùng với thời gian trại bắt đầu .");
+                }
+            }
+            else if (activity.activityType == ActivityType.Checkout.ToString())
+            {
+                if (dto.EndTime != camp.endDate)
+                {
+                    throw new InvalidOperationException("Thời gian kết thúc Check-out phải trùng với thời gian trại kết thúc.");
+                }
+            }
+            else
             {
                 throw new InvalidOperationException("Activity này không phải loại CheckIn hoặc CheckOut.");
+            }
+
+            bool alreadyExists = await _unitOfWork.GetDbContext()
+                  .ActivitySchedules
+                  .Include(s => s.activity)
+                  .AnyAsync(s => s.activity.activityType == activity.activityType
+                              && s.activity.campId == activity.campId);
+
+            if (alreadyExists)
+            {
+                throw new InvalidOperationException($"Lịch trình cho hoạt động '{activity.activityType}' đã tồn tại rồi, không thể tạo thêm.");
             }
 
             // 3. Validate Location và Conflict

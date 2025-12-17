@@ -160,7 +160,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                             && a.activity.activityType != ActivityType.Checkout.ToString()
                         )
                     )
-                    && a.status.ToLower() == "pendingattendance" || a.status.ToLower() == "attendancechecked"
+                    && (a.status.ToLower() == "pendingattendance" || a.status.ToLower() == "attendancechecked")
                     )
                 .ToListAsync();
         }
