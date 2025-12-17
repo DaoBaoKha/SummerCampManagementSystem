@@ -53,6 +53,17 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public int LocationId { get; set; }
     }
 
+    public class ActivityScheduleUpdateDto
+    {
+        public int ActivityScheduleId { get; set; } 
+        public DateTime StartTime { get; set; }     
+        public DateTime EndTime { get; set; }       
+
+        public int? LocationId { get; set; }
+        public int? StaffId { get; set; }
+        public bool? IsLiveStream { get; set; }
+    }
+
     public enum RepeatDayOfWeek
     {
         Sunday = 0,

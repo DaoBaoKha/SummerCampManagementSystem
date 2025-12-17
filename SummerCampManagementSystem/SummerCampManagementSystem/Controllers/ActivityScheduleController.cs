@@ -337,14 +337,18 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpPut("core/{id}")]
-        public async Task<IActionResult> UpdateCoreSchedule(int id, [FromBody] ActivityScheduleCreateDto dto)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateSchedule(int id, [FromBody] ActivityScheduleUpdateDto dto)
         {
+            if (id != dto.ActivityScheduleId)
+            {
+                return BadRequest(new { message = "ID trên URL không trùng khớp với ID trong dữ liệu."});
+            }
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             try
             {
-                var result = await _service.UpdateCoreScheduleAsync(id, dto);
+                var result = await _service.UpdateScheduleAsync(dto);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)
