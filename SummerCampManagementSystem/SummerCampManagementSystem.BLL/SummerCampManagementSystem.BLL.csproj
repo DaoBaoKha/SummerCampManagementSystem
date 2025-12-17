@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.73.0" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
     <PackageReference Include="Hangfire.Core" Version="1.8.22" />
@@ -27,6 +28,7 @@
     <PackageReference Include="Microsoft.AspNetCore.HttpOverrides" Version="2.3.7" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.10" />
     <PackageReference Include="payOS" Version="1.0.9" />
+    <PackageReference Include="QuestPDF" Version="2025.12.0" />
     <PackageReference Include="Supabase" Version="1.1.1" />
     <PackageReference Include="Supabase.Storage" Version="2.4.1" />
   </ItemGroup>
@@ -34,6 +36,10 @@
   <ItemGroup>
     <ProjectReference Include="..\SummerCampManagementSystem.Core\SummerCampManagementSystem.Core.csproj" />
     <ProjectReference Include="..\SummerCampManagementSystem.DAL\SummerCampManagementSystem.DAL.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DTOs\StatisticalReport\" />
   </ItemGroup>
 
 </Project>

@@ -56,6 +56,9 @@ public partial class ActivitySchedule
     [InverseProperty("activitySchedule")]
     public virtual ICollection<RegistrationOptionalActivity> RegistrationOptionalActivities { get; set; } = new List<RegistrationOptionalActivity>();
 
+    [InverseProperty("activitySchedule")]
+    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
+
     [ForeignKey("activityId")]
     [InverseProperty("ActivitySchedules")]
     public virtual Activity activity { get; set; }
