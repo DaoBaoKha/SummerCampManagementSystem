@@ -25,5 +25,26 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                               && c.startDate <= endDate && c.endDate >= startDate     
                          );
         }
+
+        // ADMIN DASHBOARD METHODS
+        public async Task<List<(int LocationId, string Name, int CampCount, int ActiveCamps)>> GetTopLocationsByCampCountAsync(int limit)
+        {
+            var inactiveStatuses = new[] { "Draft", "PendingApproval", "Rejected", "UnderEnrolled", "Canceled" };
+
+            var locationStats = await _context.Locations
+                .Where(l => l.Camps.Any())
+                .Select(l => new
+                {
+                    LocationId = l.locationId,
+                    Name = l.name,
+                    CampCount = l.Camps.Count(),
+                    ActiveCamps = l.Camps.Count(c => !inactiveStatuses.Contains(c.status))
+                })
+                .OrderByDescending(x => x.CampCount)
+                .Take(limit)
+                .ToListAsync();
+
+            return locationStats.Select(x => (x.LocationId, x.Name, x.CampCount, x.ActiveCamps)).ToList();
+        }
     }
 }
