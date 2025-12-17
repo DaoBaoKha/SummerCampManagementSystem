@@ -26,5 +26,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         IQueryable<ActivitySchedule> GetQueryableWithBaseIncludes();
         Task<IEnumerable<ActivitySchedule>> GetCheckInCheckoutByCampAndStaffAsync(int campId, int staffId);
         Task<IEnumerable<int>> GetBusyStaffIdsInActivityAsync(DateTime startUtc, DateTime endUtc);
+        Task<IEnumerable<ActivitySchedule>> GetAllTypeSchedulesByStaffAsync(int campId, int staffId);
     }
 }
