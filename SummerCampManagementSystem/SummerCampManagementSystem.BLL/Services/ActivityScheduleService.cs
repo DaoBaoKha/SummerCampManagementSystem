@@ -799,9 +799,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException($"Lịch trình cho hoạt động '{activity.activityType}' đã tồn tại rồi, không thể tạo thêm.");
             }
 
-            if (!camp.startDate.HasValue || !camp.endDate.HasValue)
-                throw new InvalidOperationException("Trại chưa có ngày bắt đầu hoặc kết thúc.");
-          
+            if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
+            {
+                throw new InvalidOperationException("Thời gian Check-in/Check-out phải nằm trong thời gian diễn ra trại.");
+            }
+
             if (activity.activityType != ActivityType.Checkin.ToString() && activity.activityType != ActivityType.Checkout.ToString())
             {
                 throw new InvalidOperationException("Activity này không phải loại CheckIn hoặc CheckOut.");
@@ -814,17 +816,14 @@ namespace SummerCampManagementSystem.BLL.Services
                    .IsTimeOverlapAsync(camp.campId, dto.StartTime, dto.EndTime);
 
             if (isOverlap)
-                throw new InvalidOperationException("Thời gian nghỉ ngơi bị trùng với hoạt động khác.");
+                throw new InvalidOperationException("Thời gian checkin/checkout bị trùng với hoạt động khác.");
 
             // Check xem địa điểm có bận không
-            bool locationConflict = await dbContext.ActivitySchedules
-                .AnyAsync(s =>
-                    s.locationId == dto.LocationId &&
-                    (s.startTime < dto.EndTime && s.endTime > dto.StartTime)
-                );
+            bool locationBusy = await _unitOfWork.ActivitySchedules
+                    .ExistsInSameTimeAndLocationAsync(dto.LocationId, dto.StartTime, dto.EndTime);
 
-            if (locationConflict)
-                throw new InvalidOperationException("Địa điểm này đã có hoạt động khác trong khung giờ Check-in/Check-out.");
+            if (locationBusy)
+                throw new InvalidOperationException("Địa điểm này đã có hoạt động khác trong khung giờ bạn chọn.");
 
             // 4. Lấy tất cả Group Active để gán tự động
             var allGroups = await dbContext.Groups
