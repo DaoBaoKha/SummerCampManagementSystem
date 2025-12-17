@@ -229,5 +229,40 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return result;
         }
+
+        // ADMIN DASHBOARD METHODS  
+        public async Task<decimal> GetTotalSystemRevenueAsync()
+        {
+            var confirmedRevenue = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString())
+                .SumAsync(t => t.amount ?? 0);
+
+            var refundedAmount = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Refunded.ToString())
+                .SumAsync(t => t.amount ?? 0);
+
+            return confirmedRevenue - refundedAmount;
+        }
+
+        public async Task<decimal> GetPreviousMonthRevenueAsync()
+        {
+            var now = DateTime.UtcNow;
+            var firstDayOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var firstDayOfPreviousMonth = firstDayOfCurrentMonth.AddMonths(-1);
+
+            var confirmedRevenue = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.transactionTime >= firstDayOfPreviousMonth &&
+                           t.transactionTime < firstDayOfCurrentMonth)
+                .SumAsync(t => t.amount ?? 0);
+
+            var refundedAmount = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Refunded.ToString() &&
+                           t.transactionTime >= firstDayOfPreviousMonth &&
+                           t.transactionTime < firstDayOfCurrentMonth)
+                .SumAsync(t => t.amount ?? 0);
+
+            return confirmedRevenue - refundedAmount;
+        }
     }
 }

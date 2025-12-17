@@ -196,6 +196,7 @@ builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivi
 builder.Services.AddScoped<ITransportStaffAssignmentRepository, TransportStaffAssignmentRepository>();
 builder.Services.AddScoped<ITransportStaffAssignmentService, TransportStaffAssignmentService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IAdminDashboardService, AdminDashboardService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Attendance webhook services (new - for real-time updates)
