@@ -1115,9 +1115,7 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
 
-
-
-        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetSchedulesByCamperAndCampAsync(int campId, int camperId)
+        public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetCamperSchedulesAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                 ?? throw new KeyNotFoundException("Camper not found.");
@@ -1131,26 +1129,13 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!isCamperInCamp)
                 throw new InvalidOperationException("Camper is not enrolled in the camp.");
 
-            var coreSchedules = await _unitOfWork.ActivitySchedules
-                .GetAllWithActivityAndAttendanceAsync(campId, camperId);
+            var (groupIds, accommodationIds) = await _unitOfWork.ActivitySchedules.GetCamperGroupAndAccommodationIdsAsync(campId, camperId);
 
-            var optionalSchedules = await _unitOfWork.ActivitySchedules.GetOptionalSchedulesByCamperAsync(camperId);
+            // 3. Gọi Repository để lấy lịch dựa trên context đó
+            var schedules = await _unitOfWork.ActivitySchedules
+                .GetPersonalSchedulesAsync(campId, camperId, groupIds, accommodationIds);
 
-            var all = coreSchedules
-                      .Union(optionalSchedules)
-                      .ToList();
-
-            // Optional override Core
-            var overriddenCoreIds = optionalSchedules
-                .Where(s => s.coreActivityId != null)
-                .Select(s => s.coreActivityId)
-                .ToHashSet();
-
-            var filteredSchedules = all
-               .Where(s => !overriddenCoreIds.Contains(s.activityScheduleId));
-
-            // return filter result
-            return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(filteredSchedules);
+            return _mapper.Map<IEnumerable<ActivityScheduleByCamperResponseDto>>(schedules);
         }
 
 
