@@ -96,7 +96,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // NOW CamperActivities is populated, so we can check counts accurately
                 var optionalActivitySchedules = await _unitOfWork.ActivitySchedules
                     .GetQueryable()
-                    .Where(asc => asc.isOptional && asc.activity.campId == campId)
+                    .Where(asc => asc.isOptional == true && asc.activity.campId == campId)
                     .Include(asc => asc.activity)
                     .Include(asc => asc.CamperActivities)
                     .ToListAsync();
@@ -268,7 +268,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     // Get list of camper IDs registered for this activity
                     var camperIds = new List<int>();
 
-                    if (schedule.isOptional)
+                    if (schedule.isOptional == true)
                     {
                         // Optional activity: use CamperActivities
                         camperIds = schedule.CamperActivities?
@@ -374,7 +374,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Get optional activities with registrations (NOW CamperActivities should be populated)
                 var optionalActivities = await _unitOfWork.ActivitySchedules
                     .GetQueryable()
-                    .Where(asc => asc.isOptional && asc.activity.campId == campId)
+                    .Where(asc => asc.isOptional == true && asc.activity.campId == campId)
                     .Include(asc => asc.activity)
                     .Include(asc => asc.CamperActivities)
                     .ToListAsync();

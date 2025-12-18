@@ -9,6 +9,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Report
 {
     public class ReportRequestDto
     {
+        public int campId { get; set; }
+
         public int camperId { get; set; }
 
         public string note { get; set; } = string.Empty;

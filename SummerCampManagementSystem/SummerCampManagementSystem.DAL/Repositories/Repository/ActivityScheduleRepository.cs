@@ -262,9 +262,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<ActivitySchedule?> GetOptionalByCoreAsync(int coreActivityId)
         {
             return await _context.ActivitySchedules
-                .FirstOrDefaultAsync(a => a.isOptional && a.coreActivityId == coreActivityId);
+                .FirstOrDefaultAsync(a => a.isOptional == true && a.coreActivityId == coreActivityId);
         }
-
+        
         public async Task<bool> IsCamperofCamp(int campId, int camperId)
         {
             return await _context.RegistrationCampers
