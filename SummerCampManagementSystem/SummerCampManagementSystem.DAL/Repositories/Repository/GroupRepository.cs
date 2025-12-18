@@ -60,6 +60,17 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<List<int?>> GetGroupIdsWithSchedulesAsync(int campId)
+        {
+            // Logic: Join GroupActivity -> ActivitySchedule -> Activity -> Check CampId
+            return await _context.GroupActivities
+                .Include(ga => ga.activitySchedule).ThenInclude(s => s.activity)
+                .Where(ga => ga.activitySchedule.activity.campId == campId)
+                .Select(ga => ga.groupId)
+                .Distinct()
+                .ToListAsync();
+        }
+
         public async Task<Group?> GetGroupByCamperAndCamp(int camperId, int campId)
         {
             return await _context.CamperGroups

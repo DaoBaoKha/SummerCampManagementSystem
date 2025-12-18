@@ -86,6 +86,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
                 .Where(s => s.activity.campId == campId)
+                .OrderBy(s => s.startTime)
                 .ToListAsync();
         }
 

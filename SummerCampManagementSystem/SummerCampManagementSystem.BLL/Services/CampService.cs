@@ -731,5 +731,161 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #endregion
+
+
+        public async Task<CampValidationResponseDto> ValidateCampReadinessAsync(int campId)
+        {
+            var response = new CampValidationResponseDto { IsValid = true };
+            var dbContext = _unitOfWork.GetDbContext();
+
+            // 1. LẤY DỮ LIỆU TRẠI
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null) throw new KeyNotFoundException("Không tìm thấy trại.");
+
+            if (!camp.startDate.HasValue || !camp.endDate.HasValue)
+            {
+                response.Errors.Add("Trại chưa thiết lập ngày bắt đầu và kết thúc.");
+                response.IsValid = false;
+                return response; // Dừng ngay vì không check được lịch
+            }
+
+            // 2. VALIDATE GROUP (Capacity & Assignment)
+            var groups = await _unitOfWork.Groups.GetByCampIdAsync(campId);
+
+            // a. Check Assignment (Có Supervisor chưa?)
+            var unassignedGroups = groups.Where(g => g.supervisorId == null).Select(g => $"{g.groupName} (ID: {g.groupId})").ToList();
+            if (unassignedGroups.Any())
+            {
+                response.Errors.Add($"Các nhóm sau chưa có Staff phụ trách: {string.Join(", ", unassignedGroups)}.");
+            }
+
+            var assignedGroupIds = await _unitOfWork.Groups.GetGroupIdsWithSchedulesAsync(campId);
+
+            // Tìm các nhóm KHÔNG nằm trong danh sách đã có lịch
+            var groupsWithoutSchedule = groups
+                .Where(g => !assignedGroupIds.Contains(g.groupId))
+                .Select(g => $"{g.groupName} (ID: {g.groupId})")
+                .ToList();
+
+            if (groupsWithoutSchedule.Any())
+            {
+                response.Errors.Add($"Các nhóm sau chưa được phân công bất kỳ hoạt động nào: {string.Join(", ", groupsWithoutSchedule)}.");
+            }
+
+            // b. Check Capacity (Tổng sức chứa nhóm vs Sức chứa trại)
+            // Giả sử mỗi Group có field 'capacity' hoặc 'maxCampers'
+            // Nếu bạn dùng logic đếm số lượng Camper thực tế đã add vào thì đổi sum thành count
+            int totalGroupCap = groups.Sum(g => g.maxSize ?? 0);
+
+            // Giả sử logic: Tổng sức chứa nhóm phải >= Sức chứa trại (để đảm bảo đủ chỗ)
+            if (totalGroupCap < camp.minParticipants)
+            {
+                response.Errors.Add($"Tổng sức chứa của các nhóm ({totalGroupCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
+            } else if (totalGroupCap > camp.maxParticipants)
+            {
+                response.Errors.Add($"Tổng sức chứa của các nhóm ({totalGroupCap}) vượt quá sức chứa tối đa của trại ({camp.maxParticipants}).");
+            }
+
+            // 3. VALIDATE ACCOMMODATION
+            var accommodations = await _unitOfWork.Accommodations.GetByCampId(campId);
+
+            // a. Check Assignment (Có Manager chưa?)
+            var unassignedAccs = accommodations.Where(a => a.supervisorId == null).Select(a => $"{a.name} (ID: {a.accommodationId})").ToList();
+            if (unassignedAccs.Any())
+            {
+                response.Errors.Add($"Các khu chỗ ở sau chưa có Staff quản lý: {string.Join(", ", unassignedAccs)}.");
+            }
+
+            var assignedAccIds = await _unitOfWork.Accommodations.GetAccommodationIdsWithSchedulesAsync(campId);
+
+            // Tìm các phòng chưa có lịch
+            var accsWithoutSchedule = accommodations
+                .Where(a => !assignedAccIds.Contains(a.accommodationId))
+                .Select(a => $"{a.name} (ID: {a.accommodationId})")
+                .ToList();
+
+            if (accsWithoutSchedule.Any())
+            {
+                response.Errors.Add($"Các khu chỗ ở sau chưa được xếp lịch (Resting): {string.Join(", ", accsWithoutSchedule)}.");
+            }
+
+            // b. Check Capacity
+            int totalAccCap = accommodations.Sum(a => a.capacity ?? 0);
+
+            if (totalAccCap < camp.minParticipants)
+            {
+                response.Errors.Add($"Tổng sức chứa chỗ ở ({totalAccCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
+            } else if (totalAccCap > camp.maxParticipants)
+            {
+                response.Errors.Add($"Tổng sức chứa chỗ ở ({totalAccCap}) vượt quá sức chứa tối đa của trại ({camp.maxParticipants}).");
+            }
+
+            // 4. VALIDATE SCHEDULE (Lịch trình)
+            var schedules = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(campId);
+
+            if (!schedules.Any())
+            {
+                response.Errors.Add("Trại chưa có bất kỳ lịch trình nào.");
+                response.IsValid = false;
+                return response;
+            }
+
+            // a. Check Đầu/Cuối là CheckIn/CheckOut
+            var firstActivity = schedules.First();
+            var lastActivity = schedules.Last();
+
+            if (firstActivity.activity.activityType != ActivityType.Checkin.ToString())
+            {
+                response.Errors.Add($"Hoạt động đầu tiên phải là 'CheckIn'. Hiện tại đang là: '{firstActivity.activity.name}' ({firstActivity.activity.activityType}).");
+            }
+
+            if (lastActivity.activity.activityType != ActivityType.Checkout.ToString())
+            {
+                response.Errors.Add($"Hoạt động cuối cùng phải là 'CheckOut'. Hiện tại đang là: '{lastActivity.activity.name}' ({lastActivity.activity.activityType}).");
+            }
+
+            // b. Check Coverage (Tất cả các ngày đều có hoạt động)
+            // Duyệt từng ngày từ Start đến End
+            int daysCount = 0;
+
+            // [FIX]: Lọc trước các lịch hợp lệ (có đầy đủ Start/End) để tránh lỗi null
+            var validSchedules = schedules
+                .Where(s => s.startTime.HasValue && s.endTime.HasValue)
+                .ToList();
+
+            var loopEndDate = camp.endDate.Value.Date;
+
+            // Nếu giờ kết thúc là đúng 00:00:00 (Midnight), 
+            // nghĩa là ngày đó chỉ là mốc kết thúc, không dùng để tổ chức hoạt động.
+            // -> Ta lùi lại 1 ngày kiểm tra.
+            if (camp.endDate.Value.TimeOfDay == TimeSpan.Zero)
+            {
+                loopEndDate = loopEndDate.AddDays(-1);
+            }
+
+            for (var date = camp.startDate.Value.Date; date <= loopEndDate; date = date.AddDays(1))
+            {
+                // Check xem có hoạt động nào diễn ra vào ngày này (hoặc vắt qua ngày này) không
+                bool hasActivity = validSchedules.Any(s => s.startTime.Value.Date <= date && s.endTime.Value.Date >= date);
+
+                if (!hasActivity)
+                {
+                    response.Errors.Add($"Ngày {date:dd/MM/yyyy} chưa có bất kỳ hoạt động nào.");
+                }
+                else
+                {
+                    daysCount++;
+                }
+            }
+
+            // 5. KẾT LUẬN
+            if (response.Errors.Any())
+            {
+                response.IsValid = false;
+            }
+
+            return response;
+        }
+
     }
 }

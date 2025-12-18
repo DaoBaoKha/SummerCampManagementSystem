@@ -168,5 +168,42 @@ namespace SummerCampManagementSystem.API.Controllers
             var updatedCamp = await _campService.UpdateCampStatusNoValidationAsync(campId, statusUpdate.Status);
             return Ok(updatedCamp);
         }
+
+        [HttpGet("validate/{campId}")]
+        public async Task<IActionResult> ValidateCamp(int campId)
+        {
+            try
+            {
+                var result = await _campService.ValidateCampReadinessAsync(campId);
+
+                if (result.IsValid)
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Trại hợp lệ, sẵn sàng hoạt động.",
+                        data = result
+                    });
+                }
+                else
+                {
+                    // Vẫn trả về 200 OK nhưng success = false để Frontend hiển thị list lỗi
+                    return Ok(new
+                    {
+                        success = false,
+                        message = "Trại chưa đạt yêu cầu.",
+                        data = result
+                    });
+                }
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
+        }
     }
 }
