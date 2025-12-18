@@ -202,7 +202,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<List<(int RegistrationId, string CamperName, DateTime RegistrationDate, string Status, decimal Amount, string Avatar)>> GetRecentRegistrationsAsync(int campId, int limit)
         {
             var recentRegistrations = await _context.Registrations
-                .Where(r => r.campId == campId)
+                .Where(r => r.campId == campId && r.status != RegistrationStatus.PendingApproval.ToString())
                 .OrderByDescending(r => r.registrationCreateAt)
                 .Take(limit)
                 .Include(r => r.RegistrationCampers)
@@ -233,12 +233,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         // ADMIN DASHBOARD METHODS  
         public async Task<decimal> GetTotalSystemRevenueAsync()
         {
+            // get current month revenue
+            var now = DateTime.UtcNow;
+            var firstDayOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
+            var firstDayOfNextMonth = firstDayOfCurrentMonth.AddMonths(1);
+
             var confirmedRevenue = await _context.Transactions
-                .Where(t => t.status == TransactionStatus.Confirmed.ToString())
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.transactionTime >= firstDayOfCurrentMonth &&
+                           t.transactionTime < firstDayOfNextMonth)
                 .SumAsync(t => t.amount ?? 0);
 
             var refundedAmount = await _context.Transactions
-                .Where(t => t.status == TransactionStatus.Refunded.ToString())
+                .Where(t => t.status == TransactionStatus.Refunded.ToString() &&
+                           t.transactionTime >= firstDayOfCurrentMonth &&
+                           t.transactionTime < firstDayOfNextMonth)
                 .SumAsync(t => t.amount ?? 0);
 
             return confirmedRevenue - refundedAmount;
@@ -246,6 +255,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<decimal> GetPreviousMonthRevenueAsync()
         {
+            // get previous month revenue
             var now = DateTime.UtcNow;
             var firstDayOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var firstDayOfPreviousMonth = firstDayOfCurrentMonth.AddMonths(-1);
