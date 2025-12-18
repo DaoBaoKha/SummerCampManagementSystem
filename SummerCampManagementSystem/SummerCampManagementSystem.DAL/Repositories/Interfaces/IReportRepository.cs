@@ -13,5 +13,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
         Task<IEnumerable<Report>> GetReportsByCamperAsync(int camperId, int? campId = null);
         Task<IEnumerable<Report>> GetReportsByStaffAsync(int staffId);
         Task<IEnumerable<Report>> GetReportsByCampAsync(int campId);
+        Task<IEnumerable<Report>> GetReportsByTypeAsync(string reportType);
     }
 }

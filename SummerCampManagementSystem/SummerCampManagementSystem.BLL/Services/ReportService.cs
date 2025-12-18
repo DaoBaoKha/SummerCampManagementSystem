@@ -95,6 +95,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
         }
 
+        public async Task<IEnumerable<ReportResponseDto>> GetReportsByTypeAsync(ReportType reportType)
+        {
+            var reports = await _unitOfWork.Reports.GetReportsByTypeAsync(reportType.ToString());
+            return _mapper.Map<IEnumerable<ReportResponseDto>>(reports);
+        }
+
         public async Task<ReportResponseDto?> UpdateReportAsync(int reportId, ReportRequestDto reportRequestDto)
         {
             var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
@@ -193,7 +199,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 campId = dto.campId,
                 camperId = dto.camperId,
                 transportScheduleId = dto.transportScheduleId,
-                reportType = "Transport",
+                reportType = ReportType.Transport.ToString(),
                 level = "3",
                 note = dto.note,
                 reportedBy = staffId,
@@ -256,7 +262,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 campId = dto.campId,
                 camperId = dto.camperId,
-                reportType = "CheckOut",
+                reportType = ReportType.CheckOut.ToString(),
                 level = "3",
                 note = dto.note,
                 reportedBy = staffId,
@@ -337,7 +343,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 campId = dto.campId,
                 camperId = dto.camperId,
                 activityScheduleId = dto.activityScheduleId,
-                reportType = "Incident",
+                reportType = ReportType.Incident.ToString(),
                 level = dto.level.ToString(),
                 note = dto.note,
                 reportedBy = staffId,

@@ -22,6 +22,8 @@
 
         public int? activityScheduleId { get; set; }
 
+        public int? campId { get; set; }
+
         public string level { get; set; }
     }
 }

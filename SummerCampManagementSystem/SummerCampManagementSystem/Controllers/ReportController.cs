@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -44,6 +45,18 @@ namespace SummerCampManagementSystem.API.Controllers
             var reports = await _reportService.GetReportsByCamperAsync(camperId, campId);
             return Ok(reports);
         }
+
+
+        /// <summary>
+        /// Get reports by type
+        /// </summary>
+        [HttpGet("type/{reportType}")]
+        public async Task<IActionResult> GetReportsByType(ReportType reportType)
+        {
+            var reports = await _reportService.GetReportsByTypeAsync(reportType);
+            return Ok(reports);
+        }
+
 
         /// <summary>
         /// Get reports by login staff
