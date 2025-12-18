@@ -22,7 +22,7 @@ namespace SummerCampManagementSystem.Controllers
         /// Get total summary statistics for a specific camp
         /// </summary>
         [HttpGet("manager/{campId}/summary")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetDashboardSummary(int campId)
         {
             var summary = await _dashboardService.GetDashboardSummaryAsync(campId);
@@ -33,7 +33,7 @@ namespace SummerCampManagementSystem.Controllers
         /// Get Dashboard Analytics for a specific camp
         /// </summary>
         [HttpGet("manager/{campId}/analytics")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetDashboardAnalytics(int campId)
         {
             var analytics = await _dashboardService.GetDashboardAnalyticsAsync(campId);
@@ -45,7 +45,7 @@ namespace SummerCampManagementSystem.Controllers
         /// </summary>
 
         [HttpGet("manager/{campId}/operations")]
-        [Authorize(Roles = "Manager")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> GetDashboardOperations(int campId)
         {
             var operations = await _dashboardService.GetDashboardOperationsAsync(campId);
