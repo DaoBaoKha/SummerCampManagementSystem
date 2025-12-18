@@ -37,15 +37,4 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
     {
         public List<AttendanceLogNewResponseDto> AttendanceLogs { get; set; }
     }
-
-    public class CampValidationResponseDto
-    {
-        public bool IsValid { get; set; }
-        public List<string> Errors { get; set; } = new List<string>();
-
-        // Thêm vài thông số thống kê để hiển thị trên UI cho đẹp
-        public int TotalGroupCapacity { get; set; }
-        public int TotalAccommodationCapacity { get; set; }
-        public int DaysWithSchedule { get; set; }
-    }
 }

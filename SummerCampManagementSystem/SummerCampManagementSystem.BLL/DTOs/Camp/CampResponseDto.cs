@@ -39,4 +39,10 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
     }
+
+    public class CampValidationResponseDto
+    {
+        public bool IsValid { get; set; }
+        public List<string> Errors { get; set; } = new List<string>();      
+    }
 }

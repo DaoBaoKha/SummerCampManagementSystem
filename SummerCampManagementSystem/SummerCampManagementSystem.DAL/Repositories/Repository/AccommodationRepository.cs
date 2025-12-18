@@ -56,5 +56,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return alerts;
         }
+
+        public async Task<List<int?>> GetAccommodationIdsWithSchedulesAsync(int campId)
+        {
+            // Logic: Join AccommodationActivity -> ActivitySchedule -> Activity -> Check CampId
+            return await _context.AccommodationActivitySchedules
+                .Include(aa => aa.activitySchedule).ThenInclude(s => s.activity)
+                .Where(aa => aa.activitySchedule.activity.campId == campId)
+                .Select(aa => aa.accommodationId)
+                .Distinct()
+                .ToListAsync();
+        }
     }
 }
