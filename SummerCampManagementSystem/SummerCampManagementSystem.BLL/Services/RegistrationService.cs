@@ -546,7 +546,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             var schedule = allSchedules.FirstOrDefault(s => s.activityScheduleId == choice.ActivityScheduleId)
                                 ?? throw new NotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
 
-                            if (!schedule.isOptional)
+                            if (!schedule.isOptional == true)
                                 throw new BusinessRuleException($"Schedule {choice.ActivityScheduleId} is not optional.");
 
                             // check if record is in db

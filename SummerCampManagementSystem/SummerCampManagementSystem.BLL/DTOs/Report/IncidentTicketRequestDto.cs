@@ -2,6 +2,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Report
 {
     public class IncidentTicketRequestDto
     {
+        public int campId { get; set; }
+
         public int camperId { get; set; }
         
         public int? activityScheduleId { get; set; }

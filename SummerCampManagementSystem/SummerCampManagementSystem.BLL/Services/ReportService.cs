@@ -23,11 +23,29 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ReportResponseDto> CreateReportAsync(ReportRequestDto reportRequestDto, int staffId)
         {
-            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
-                ?? throw new KeyNotFoundException("Camper not found");
+            // validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(reportRequestDto.campId)
+                ?? throw new NotFoundException($"Camp with ID {reportRequestDto.campId} not found");
 
+            // validate camper 
+            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
+                ?? throw new NotFoundException("Camper not found");
+
+            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAndCampIdAsync(reportRequestDto.camperId, reportRequestDto.campId);
+            if (registrationCamper == null)
+            {
+                throw new BadRequestException($"Camper {reportRequestDto.camperId} is not registered for camp {reportRequestDto.campId}");
+            }
+
+            // validate activity exists
             var activity = await _unitOfWork.Activities.GetByIdAsync(reportRequestDto.activityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new NotFoundException("Activity not found");
+
+            // validate activity belongs to the specified camp
+            if (activity.campId != reportRequestDto.campId)
+            {
+                throw new BadRequestException($"Activity {reportRequestDto.activityId} does not belong to camp {reportRequestDto.campId}");
+            }
 
             if(!await _unitOfWork.Reports.IsCamperOfActivityAsync(camper.camperId, activity.activityId))
             {
@@ -38,6 +56,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var report = _mapper.Map<Report>(reportRequestDto);
             report.reportedBy = staffId;
+            report.campId = reportRequestDto.campId;
             await _unitOfWork.Reports.CreateAsync(report);
 
             if (reportRequestDto.image != null)
@@ -81,11 +100,29 @@ namespace SummerCampManagementSystem.BLL.Services
             var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
             if (report == null) return null;
 
-            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
-              ?? throw new KeyNotFoundException("Camper not found");
+            // Validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(reportRequestDto.campId)
+                ?? throw new NotFoundException($"Camp with ID {reportRequestDto.campId} not found");
 
+            // validate camper
+            var camper = await _unitOfWork.Campers.GetByIdAsync(reportRequestDto.camperId)
+              ?? throw new NotFoundException("Camper not found");
+
+            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAndCampIdAsync(reportRequestDto.camperId, reportRequestDto.campId);
+            if (registrationCamper == null)
+            {
+                throw new BadRequestException($"Camper {reportRequestDto.camperId} is not registered for camp {reportRequestDto.campId}");
+            }
+
+            // validate activity exists
             var activity = await _unitOfWork.Activities.GetByIdAsync(reportRequestDto.activityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new NotFoundException("Activity not found");
+
+            // validate activity belongs to the specified camp
+            if (activity.campId != reportRequestDto.campId)
+            {
+                throw new BadRequestException($"Activity {reportRequestDto.activityId} does not belong to camp {reportRequestDto.campId}");
+            }
 
             if (!await _unitOfWork.Reports.IsCamperOfActivityAsync(camper.camperId, activity.activityId))
             {
@@ -97,6 +134,7 @@ namespace SummerCampManagementSystem.BLL.Services
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             _mapper.Map(reportRequestDto, report);
             report.reportedBy = oldReportedBy;
+            report.campId = reportRequestDto.campId;
             await _unitOfWork.Reports.UpdateAsync(report);
 
             if (reportRequestDto.image != null)
@@ -113,6 +151,10 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ReportResponseDto> CreateTransportIncidentAsync(TransportIncidentRequestDto dto, int staffId)
         {
+            // validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(dto.campId)
+                ?? throw new NotFoundException($"Camp with ID {dto.campId} not found");
+
             // validate camper exists
             var camper = await _unitOfWork.Campers.GetByIdAsync(dto.camperId)
                 ?? throw new NotFoundException($"Camper with ID {dto.camperId} not found");
@@ -120,6 +162,12 @@ namespace SummerCampManagementSystem.BLL.Services
             // validate transport schedule exists
             var transportSchedule = await _unitOfWork.TransportSchedules.GetByIdAsync(dto.transportScheduleId)
                 ?? throw new NotFoundException($"Transport schedule with ID {dto.transportScheduleId} not found");
+
+            // validate transport schedule belongs to the specified camp
+            if (transportSchedule.campId != dto.campId)
+            {
+                throw new BadRequestException($"Transport schedule {dto.transportScheduleId} does not belong to camp {dto.campId}");
+            }
 
             // find the CamperTransport record
             var camperTransport = await _unitOfWork.CamperTransports.GetCamperTransportByScheduleAndCamperAsync(
@@ -131,10 +179,10 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // find the RegistrationCamper record
-            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAsync(dto.camperId);
+            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAndCampIdAsync(dto.camperId, dto.campId);
             if (registrationCamper == null)
             {
-                throw new NotFoundException($"Registration camper record not found for camper {dto.camperId}");
+                throw new BadRequestException($"Camper {dto.camperId} is not registered for camp {dto.campId}");
             }
 
             using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -142,6 +190,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // create the report
             var report = new Report
             {
+                campId = dto.campId,
                 camperId = dto.camperId,
                 transportScheduleId = dto.transportScheduleId,
                 reportType = "Transport",
@@ -179,15 +228,19 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<ReportResponseDto> CreateEarlyCheckoutReportAsync(EarlyCheckoutRequestDto dto, int staffId)
         {
+            // validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(dto.campId)
+                ?? throw new NotFoundException($"Camp with ID {dto.campId} not found");
+
             // validate camper exists
             var camper = await _unitOfWork.Campers.GetByIdAsync(dto.camperId)
                 ?? throw new NotFoundException($"Camper with ID {dto.camperId} not found");
 
             // find the RegistrationCamper record
-            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAsync(dto.camperId);
+            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAndCampIdAsync(dto.camperId, dto.campId);
             if (registrationCamper == null)
             {
-                throw new NotFoundException($"Registration camper record not found for camper {dto.camperId}");
+                throw new BadRequestException($"Camper {dto.camperId} is not registered for camp {dto.campId}");
             }
 
             // validate current status is CheckedIn
@@ -201,6 +254,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // create the report
             var report = new Report
             {
+                campId = dto.campId,
                 camperId = dto.camperId,
                 reportType = "CheckOut",
                 level = "3",
@@ -239,17 +293,39 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new BadRequestException("Incident level must be between 1 and 3");
             }
 
+            // validate camp exists
+            var camp = await _unitOfWork.Camps.GetByIdAsync(dto.campId)
+                ?? throw new NotFoundException($"Camp with ID {dto.campId} not found");
+
             // validate camper exists
             var camper = await _unitOfWork.Campers.GetByIdAsync(dto.camperId)
                 ?? throw new NotFoundException($"Camper with ID {dto.camperId} not found");
 
-            // validate activity schedule if provided
+            // validate camper is registered for this camp
+            var registrationCamper = await _unitOfWork.RegistrationCampers.GetByCamperIdAndCampIdAsync(dto.camperId, dto.campId);
+            if (registrationCamper == null)
+            {
+                throw new BadRequestException($"Camper {dto.camperId} is not registered for camp {dto.campId}");
+            }
+
+            // validate activity schedule 
             if (dto.activityScheduleId.HasValue)
             {
                 var activitySchedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(dto.activityScheduleId.Value);
                 if (activitySchedule == null)
                 {
                     throw new NotFoundException($"Activity schedule with ID {dto.activityScheduleId.Value} not found");
+                }
+
+                var activity = await _unitOfWork.Activities.GetByIdAsync(activitySchedule.activityId);
+                if (activity == null)
+                {
+                    throw new NotFoundException($"Activity not found for activity schedule {dto.activityScheduleId.Value}");
+                }
+
+                if (activity.campId != dto.campId)
+                {
+                    throw new BadRequestException($"Activity schedule {dto.activityScheduleId.Value} does not belong to camp {dto.campId}");
                 }
             }
 
@@ -258,6 +334,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // create the report
             var report = new Report
             {
+                campId = dto.campId,
                 camperId = dto.camperId,
                 activityScheduleId = dto.activityScheduleId,
                 reportType = "Incident",

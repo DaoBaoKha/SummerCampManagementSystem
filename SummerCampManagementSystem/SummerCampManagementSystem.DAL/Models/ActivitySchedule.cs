@@ -16,7 +16,7 @@ public partial class ActivitySchedule
 
     public int activityId { get; set; }
 
-    public bool isOptional { get; set; }
+    public bool? isOptional { get; set; }
 
     public int? staffId { get; set; }
 

@@ -21,6 +21,8 @@ public partial class Report
 
     public int? transportScheduleId { get; set; }
 
+    public int? campId { get; set; }
+
     [StringLength(50)]
     public string reportType { get; set; }
 
@@ -45,6 +47,10 @@ public partial class Report
     [ForeignKey("activityScheduleId")]
     [InverseProperty("Reports")]
     public virtual ActivitySchedule activitySchedule { get; set; }
+
+    [ForeignKey("campId")]
+    [InverseProperty("Reports")]
+    public virtual Camp camp { get; set; }
 
     [ForeignKey("camperId")]
     [InverseProperty("Reports")]

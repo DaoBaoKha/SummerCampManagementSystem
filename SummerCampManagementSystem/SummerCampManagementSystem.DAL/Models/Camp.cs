@@ -91,6 +91,9 @@ public partial class Camp
     public virtual ICollection<Registration> Registrations { get; set; } = new List<Registration>();
 
     [InverseProperty("camp")]
+    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
+
+    [InverseProperty("camp")]
     public virtual ICollection<Route> Routes { get; set; } = new List<Route>();
 
     [InverseProperty("camp")]
