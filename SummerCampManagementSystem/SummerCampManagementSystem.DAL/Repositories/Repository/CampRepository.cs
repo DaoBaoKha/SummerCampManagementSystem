@@ -17,32 +17,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<Camp>> GetCampsByStaffIdAsync(int staffId)
         {
-            var activityCampIds = await _context.ActivitySchedules
-                .Where(a => a.staffId == staffId)
-                .Select(a => a.activity.campId)
-                .ToListAsync();
-
-            var groupCampIds = await _context.Groups
-                .Where(g => g.supervisorId == staffId) 
-                .Select(g => g.campId)
-                .ToListAsync();
-
-            var accommodationCampIds = await _context.Accommodations
-                .Where(a => a.supervisorId == staffId)
-                .Select(a => a.campId)
-                .ToListAsync();
-
-            var allCampIds = activityCampIds
-                .Concat(groupCampIds)
-                .Concat(accommodationCampIds)
+            return await _context.Camps
+                .Where(c =>
+                    c.status != CampStatus.Draft.ToString()
+                    && c.status != CampStatus.PendingApproval.ToString()
+                    &&
+                    (
+                        c.Activities.Any(a =>
+                            a.ActivitySchedules.Any(s => s.staffId == staffId)
+                        )
+                        || c.Groups.Any(g => g.supervisorId == staffId)
+                        || c.Accommodations.Any(a => a.supervisorId == staffId)
+                    )
+                )
                 .Distinct()
-                .ToList();
-
-            var allCamps = await _context.Camps
-                .Where(c => allCampIds.Contains(c.campId))
                 .ToListAsync();
-
-            return allCamps;
         }
 
         // ADMIN DASHBOARD METHODS

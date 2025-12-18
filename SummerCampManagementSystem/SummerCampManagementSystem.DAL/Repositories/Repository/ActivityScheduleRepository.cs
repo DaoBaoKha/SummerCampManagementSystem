@@ -180,7 +180,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     && a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
                     &&
                     ( a.activity.activityType == ActivityType.Checkin.ToString() || a.activity.activityType == ActivityType.Checkout.ToString())
-                    && a.status.ToLower() == "pendingattendance"
+                    && (a.status.ToLower() == "pendingattendance" || a.status.ToLower() == "attendancechecked")
                     )
                 .ToListAsync();
         }
@@ -210,15 +210,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(a => a.GroupActivities)
                     .ThenInclude(ga => ga.group)
                 .Include(a => a.AccommodationActivitySchedules)
+                .Where(a => a.activity.campId == campId)
+                .Where(a => a.status != ActivityScheduleStatus.Draft.ToString())
                 .Where(a =>
-                        a.activity.campId == campId &&
-                        (
-                        a.staffId == staffId
-                        || a.AccommodationActivitySchedules.Any(aa => aa.accommodation.supervisorId == staffId)
-                        || a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)  
-                        )
-                      )
-                 .ToListAsync();
+                    a.staffId == staffId
+                    || a.AccommodationActivitySchedules.Any(aa => aa.accommodation.supervisorId == staffId)
+                    || a.GroupActivities.Any(ga => ga.group.supervisorId == staffId)
+                ).ToListAsync();
         }
         public async Task<IEnumerable<ActivitySchedule>> GetAllWithActivityAndAttendanceAsync(int campId, int camperId)
         {
@@ -228,7 +226,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(s => s.activity)
                 .Include(s => s.livestream)
                 .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
-                .Where(s => s.activity.campId == campId && s.coreActivityId == null)
+                .Where(s => s.activity.campId == campId)
                 .ToListAsync();
         }
 
@@ -285,5 +283,65 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Distinct()
                 .ToListAsync();
         }
+
+        public async Task<(List<int> GroupIds, List<int> AccommodationIds)> GetCamperGroupAndAccommodationIdsAsync(int campId, int camperId)
+        {
+            var camperInfo = await _context.Campers
+                .Include(c => c.CamperGroups)
+                    .ThenInclude(cg => cg.group)
+                .Include(c => c.CamperAccommodations)
+                    .ThenInclude(ca => ca.accommodation)
+                .Where(c => c.camperId == camperId)
+                .Select(c => new
+                {
+                    // 1. Filter Group theo CampId
+                    GroupIds = c.CamperGroups
+                        .Where(cg => cg.status == "Active" && cg.group.campId == campId)
+                        .Select(cg => cg.groupId)
+                        .ToList(),
+
+                    // 2. Filter Accommodation theo CampId
+                    AccommodationIds = c.CamperAccommodations
+                        .Where(ca => ca.status == "Active" && ca.accommodation.campId == campId)
+                        .Select(ca => ca.accommodationId)
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (camperInfo == null)
+                return (new List<int>(), new List<int>());
+
+            return (camperInfo.GroupIds, camperInfo.AccommodationIds);
+        }
+
+        public async Task<IEnumerable<ActivitySchedule>> GetPersonalSchedulesAsync(int campId, int camperId, List<int> groupIds, List<int> accommodationIds)
+        {
+            var query = _context.ActivitySchedules
+                .AsNoTracking() // Tối ưu hiệu năng đọc
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                // [QUAN TRỌNG]: Chỉ lấy Log của chính Camper này để hiển thị trạng thái điểm danh cá nhân
+                .Include(s => s.AttendanceLogs.Where(a => a.camperId == camperId))
+                .Where(s =>
+                    s.activity.campId == campId &&
+                    (
+                        // 1. Lấy lịch Core/CheckIn/CheckOut (Dựa theo Group mà bé tham gia)
+                        s.GroupActivities.Any(ga => groupIds.Contains(ga.groupId.Value))
+                        ||
+                        // 2. Lấy lịch Optional (Dựa theo việc bé có đăng ký cá nhân hay không)
+                        s.CamperActivities.Any(cas => cas.camperId == camperId)
+                        ||
+                        // 3. Lấy lịch Resting (Dựa theo Phòng mà bé đang ở)
+                        s.AccommodationActivitySchedules.Any(aa => accommodationIds.Contains(aa.accommodationId.Value))
+                    )
+                )
+                .OrderBy(s => s.startTime);
+
+            return await query.ToListAsync();
+        }
+
+
     }
 }

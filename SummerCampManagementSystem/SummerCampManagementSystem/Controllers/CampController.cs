@@ -187,7 +187,6 @@ namespace SummerCampManagementSystem.API.Controllers
                 }
                 else
                 {
-                    // Vẫn trả về 200 OK nhưng success = false để Frontend hiển thị list lỗi
                     return Ok(new
                     {
                         success = false,

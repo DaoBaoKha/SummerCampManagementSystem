@@ -58,6 +58,9 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        /// <summary>
+        /// trả về schedule mà staff đó được phân. hoặc schedule của group mà staff đó được phân. với thêm schedule accommodation của staff
+        /// </summary>
         [Authorize(Roles = "Staff, Manager")]
         [HttpGet("camps/{campId}/all-schedules")]
         public async Task<IActionResult> GetAllSchedulesByStaffId(int campId)
@@ -146,11 +149,10 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpGet("my-camps")]
         public async Task<IActionResult> GetMyCamps()
         {
-            var staffId = _userContextService.GetCurrentUserId();
-            if (staffId == null)
-                return Unauthorized();
+            var staffId = _userContextService.GetCurrentUserId()
+                ?? throw new UnauthorizedAccessException("User is not authenticated");
 
-            var result = await _campService.GetCampsByStaffIdAsync(staffId.Value);
+            var result = await _campService.GetCampsByStaffIdAsync(staffId);
             return Ok(result);
         }
 
