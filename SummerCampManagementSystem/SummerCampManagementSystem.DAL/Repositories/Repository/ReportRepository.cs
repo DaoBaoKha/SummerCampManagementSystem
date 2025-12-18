@@ -69,5 +69,17 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .OrderByDescending(r => r.createAt)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<Report>> GetReportsByTypeAsync(string reportType)
+        {
+            return await _context.Reports
+                .Where(r => r.reportType == reportType)
+                .Include(r => r.camper)
+                .Include(r => r.reportedByNavigation)
+                .Include(r => r.activitySchedule)
+                .Include(r => r.transportSchedule)
+                .OrderByDescending(r => r.createAt)
+                .ToListAsync();
+        }
     }
 }
