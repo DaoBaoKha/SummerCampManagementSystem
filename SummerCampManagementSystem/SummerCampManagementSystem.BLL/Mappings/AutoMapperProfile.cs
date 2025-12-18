@@ -413,6 +413,15 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
                 .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.vehicle != null ? src.vehicle : null));
 
+            CreateMap<TransportSchedule, TransportScheduleWithStaffDto>()
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.camp != null ? src.camp : null))
+                .ForMember(dest => dest.RouteName, opt => opt.MapFrom(src => src.route != null ? src.route : null))
+                .ForMember(dest => dest.DriverFullName, opt => opt.MapFrom(src => src.driver != null ? src.driver : null))
+                .ForMember(dest => dest.VehicleName, opt => opt.MapFrom(src => src.vehicle != null ? src.vehicle : null))
+                .ForMember(dest => dest.Staff, opt => opt.Ignore()) // will be populated manually in service
+                .ForMember(dest => dest.StaffCount, opt => opt.Ignore()); // will be populated manually in service
+
+
             // UserAccount mappings
             CreateMap<UserAccount, UserResponseDto>()
                 .ForMember(
