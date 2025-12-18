@@ -21,15 +21,15 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<AdminDashboardSummaryDto> GetDashboardSummaryAsync()
         {
-            // get total system revenue
-            var totalRevenue = await _registrationRepository.GetTotalSystemRevenueAsync();
+            // get current month revenue
+            var currentMonthRevenue = await _registrationRepository.GetTotalSystemRevenueAsync();
             var previousMonthRevenue = await _registrationRepository.GetPreviousMonthRevenueAsync();
 
-            // calculate revenue growth
+            // calculate revenue growth (current month vs previous month)
             double? revenueGrowth = null;
             if (previousMonthRevenue > 0)
             {
-                revenueGrowth = (double)((totalRevenue - previousMonthRevenue) / previousMonthRevenue * 100);
+                revenueGrowth = (double)((currentMonthRevenue - previousMonthRevenue) / previousMonthRevenue * 100);
             }
 
             // get total customers (role = "User")
@@ -46,7 +46,7 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 TotalRevenue = new KpiMetricDto
                 {
-                    Value = totalRevenue,
+                    Value = currentMonthRevenue,
                     Growth = revenueGrowth.HasValue ? Math.Round(revenueGrowth.Value, 2) : null,
                     Label = "so với tháng trước"
                 },

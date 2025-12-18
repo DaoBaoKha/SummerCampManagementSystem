@@ -284,15 +284,12 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
-
             _mockAccomRepo.Setup(r => r.GetByCampId(1)).ReturnsAsync(new List<Accommodation>());
 
-            // mock create
             _mockScheduleRepo.Setup(r => r.CreateAsync(It.IsAny<ActivitySchedule>()))
                 .Callback<ActivitySchedule>(s => s.activityScheduleId = 100)
                 .Returns(Task.CompletedTask);
 
-            // mock retrieve result
             var createdSchedule = new ActivitySchedule
             {
                 activityScheduleId = 100,
@@ -302,7 +299,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
 
             _mockMapper.Setup(m => m.Map<ActivitySchedule>(It.IsAny<ActivityScheduleCreateDto>()))
                 .Returns(new ActivitySchedule());
-            _mockMapper.Setup(m => m.Map<ActivityScheduleResponseDto>(createdSchedule))
+
+            // [SỬA LỖI] Thay 'createdSchedule' thành It.IsAny<ActivitySchedule>() để khớp với object được tạo trong service
+            _mockMapper.Setup(m => m.Map<ActivityScheduleResponseDto>(It.IsAny<ActivitySchedule>()))
                 .Returns(new ActivityScheduleResponseDto { ActivityScheduleId = 100 });
 
             var dto = new ActivityScheduleCreateDto

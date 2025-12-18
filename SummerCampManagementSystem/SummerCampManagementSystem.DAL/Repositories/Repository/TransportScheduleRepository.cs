@@ -49,5 +49,33 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .OrderByDescending(ts => ts.date)
                 .ToListAsync();
         }
+
+        // get schedules for staff by staffId
+        public async Task<IEnumerable<TransportSchedule>> GetSchedulesByStaffIdAsync(int staffId)
+        {
+            return await _context.TransportStaffAssignments
+                .Where(tsa => tsa.staffId == staffId && tsa.status == "Active")
+                .Include(tsa => tsa.transportSchedule).ThenInclude(ts => ts.camp)
+                .Include(tsa => tsa.transportSchedule).ThenInclude(ts => ts.route)
+                .Include(tsa => tsa.transportSchedule).ThenInclude(ts => ts.driver).ThenInclude(d => d.user)
+                .Include(tsa => tsa.transportSchedule).ThenInclude(ts => ts.vehicle)
+                .Select(tsa => tsa.transportSchedule)
+                .Distinct()
+                .OrderByDescending(ts => ts.date)
+                .ToListAsync();
+        }
+
+        // get schedule with staff details
+        public async Task<TransportSchedule?> GetScheduleWithStaffDetailsAsync(int scheduleId)
+        {
+            return await _context.TransportSchedules
+                .Include(s => s.camp)
+                .Include(s => s.route)
+                .Include(s => s.vehicle)
+                .Include(s => s.driver).ThenInclude(d => d.user)
+                .Include(s => s.TransportStaffAssignments.Where(tsa => tsa.status == "Active"))
+                    .ThenInclude(tsa => tsa.staff)
+                .FirstOrDefaultAsync(s => s.transportScheduleId == scheduleId);
+        }
     }
 }
