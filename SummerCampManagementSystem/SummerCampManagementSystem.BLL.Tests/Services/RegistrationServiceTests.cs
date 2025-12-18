@@ -9,6 +9,7 @@ using SummerCampManagementSystem.BLL.Tests.Helpers;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
+using SummerCampManagementSystem.BLL.Exceptions;
 
 namespace SummerCampManagementSystem.BLL.Tests.Services
 {
@@ -78,7 +79,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockCampRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Camp?)null);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.CreateRegistrationAsync(request));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _service.CreateRegistrationAsync(request));
             Assert.Contains("Camp with ID 99 not found", ex.Message);
         }
 
@@ -111,25 +112,13 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUserContext.Setup(u => u.GetCurrentUserId()).Returns(1);
 
             // mock existing registration in DB
-            var existingRegs = new List<Registration>
-            {
-                new Registration
-                {
-                    registrationId = 1, campId = 1, status = "Approved",
-                    RegistrationCampers = new List<RegistrationCamper>
-                    {
-                        new RegistrationCamper { camperId = 100 } // camper 100 already in
-                    }
-                }
-            };
-            var mockSet = MockDbSetHelper.GetQueryableMockDbSet(existingRegs);
-            _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
+            _mockRegistrationRepo.Setup(r => r.IsCamperRegisteredAsync(1, 100)).ReturnsAsync(true);
 
             // mock camper info for error message
             _mockCamperRepo.Setup(r => r.GetByIdAsync(100)).ReturnsAsync(new Camper { camperName = "Be Bi" });
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateRegistrationAsync(request));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _service.CreateRegistrationAsync(request));
             Assert.Contains("đã được đăng ký tham gia", ex.Message);
         }
 
@@ -156,7 +145,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockCamperRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Camper?)null);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.CreateRegistrationAsync(request));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _service.CreateRegistrationAsync(request));
             Assert.Contains("Camper with ID 99 not found", ex.Message);
         }
 
@@ -187,13 +176,28 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockRegistrationRepo.Setup(r => r.CreateAsync(It.IsAny<Registration>()))
                 .Callback<Registration>(r => {
                     r.registrationId = 10;
-                    emptyList.Add(r); // add to list so GetById can find it later
+                    r.status = "PendingApproval"; // Assign status
+                    r.RegistrationCampers = new List<RegistrationCamper>(); // ensure not null
+                    emptyList.Add(r); 
                 })
                 .Returns(Task.CompletedTask);
 
             // mock mapper
             _mockMapper.Setup(m => m.Map<RegistrationResponseDto>(It.IsAny<Registration>()))
                 .Returns(new RegistrationResponseDto { registrationId = 10, Status = "PendingApproval" });
+
+            // mock GetWithCampersAsync for the return
+            // mock GetWithCampersAsync for the return
+            var createdReg = new Registration { registrationId = 10, status = "PendingApproval", RegistrationCampers = new List<RegistrationCamper>() };
+             _mockRegistrationRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(createdReg);
+             _mockRegistrationRepo.Setup(r => r.GetWithCampersAsync(10)).ReturnsAsync(createdReg);
+             // Ensure CreateAsync callback sets the ID on the object passed to it
+             _mockRegistrationRepo.Setup(r => r.CreateAsync(It.IsAny<Registration>()))
+                 .Callback<Registration>(r => {
+                     r.registrationId = 10;
+                     // r.status and campers are set in service
+                 })
+                 .Returns(Task.CompletedTask);
 
             // act
             var result = await _service.CreateRegistrationAsync(request);
@@ -220,7 +224,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.ApproveRegistrationAsync(99));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _service.ApproveRegistrationAsync(99));
             Assert.Contains("Registration with ID 99 not found", ex.Message);
         }
 
@@ -240,9 +244,11 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             };
             var mockSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
+            _mockRegistrationRepo.Setup(r => r.GetWithCampersAsync(1)).ReturnsAsync(regs[0]);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.ApproveRegistrationAsync(1));
+            // act & assert
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _service.ApproveRegistrationAsync(1));
             Assert.Contains("Only 'PendingApproval' registrations can be approved", ex.Message);
         }
 
@@ -251,6 +257,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         public async Task ApproveReg_ValidData_ReturnsApproved()
         {
             // arrange
+            // Ensure ID 1 exists
             var reg = new Registration
             {
                 registrationId = 1,
@@ -261,10 +268,10 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                     new RegistrationCamper { camperId = 102, status = "PendingApproval" }
                 }
             };
-
-            var regs = new List<Registration> { reg };
-            var mockSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
-            _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
+            
+            // Fix: Mock GetByIdAsync specifically
+            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(reg);
+            _mockRegistrationRepo.Setup(r => r.GetWithCampersAsync(1)).ReturnsAsync(reg);
 
             // Mock updates
             _mockRegistrationRepo.Setup(r => r.UpdateAsync(It.IsAny<Registration>())).Returns(Task.CompletedTask);
@@ -306,8 +313,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.UpdateRegistrationAsync(99, request));
-            Assert.Contains("Registration with ID 99 not found", ex.Message);
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _service.UpdateRegistrationAsync(99, request));
+            Assert.Contains("Không tìm thấy đơn ID 99", ex.Message);
         }
 
         // UT14 - TEST CASE 2: Invalid Status (Cannot update Rejected/Cancelled)
@@ -322,9 +329,11 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             };
             var mockSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
+            // Fix: Mock GetByIdAsync explicitly
+            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(regs[0]);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.UpdateRegistrationAsync(1, request));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _service.UpdateRegistrationAsync(1, request));
             Assert.Contains("Cannot update registration with status", ex.Message);
         }
 
@@ -342,6 +351,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // Mock Repo Queryable
             var mockRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockRegSet.Object);
+            // Fix: Mock GetByIdAsync explicitly
+            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(regId)).ReturnsAsync(reg);
 
             // Setup DbContext Mocks for direct access
             var dbRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
@@ -382,6 +393,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // Mock Repo
             var mockRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockRegSet.Object);
+            // Fix: Mock GetByIdAsync explicitly
+            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(regId)).ReturnsAsync(reg);
 
             // Mock DbContext
             var dbRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
@@ -420,7 +433,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockRegistrationRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Registration?)null);
 
             // Act & Assert 
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _service.DeleteRegistrationAsync(99));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _service.DeleteRegistrationAsync(99));
             Assert.Contains("not found", ex.Message);
         }
 
@@ -461,7 +474,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockRegistrationRepo.Setup(r => r.GetByIdAsync(regId)).ReturnsAsync(registration);
 
             // act & assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() => _service.DeleteRegistrationAsync(regId));
+            await Assert.ThrowsAsync<BusinessRuleException>(() => _service.DeleteRegistrationAsync(regId));
         }
 
         // UT19 - TEST CASE 4: Success (soft delete -> Canceled & Return True)
