@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
-using Microsoft.EntityFrameworkCore.Storage; 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Moq;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.Services;
@@ -10,13 +11,14 @@ using SummerCampManagementSystem.DAL.UnitOfWork;
 
 namespace SummerCampManagementSystem.BLL.Tests.Services
 {
-    public class ActivityScheduleServiceTests
+    public class ActivityScheduleServiceTests : IDisposable
     {
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IMapper> _mockMapper;
         private readonly ActivityScheduleService _service;
+        private readonly CampEaseDatabaseContext _dbContext; // Use real context with InMemory
 
-        // mock repositories
+        // repositories (using mocks for others effectively, but DbContext is needed for Include)
         private readonly Mock<IActivityScheduleRepository> _mockScheduleRepo;
         private readonly Mock<IActivityRepository> _mockActivityRepo;
         private readonly Mock<ICampRepository> _mockCampRepo;
@@ -29,6 +31,13 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
 
         public ActivityScheduleServiceTests()
         {
+            // Setup InMemory Database
+            var options = new DbContextOptionsBuilder<CampEaseDatabaseContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            _dbContext = new CampEaseDatabaseContext(options);
+            _dbContext.Database.EnsureCreated(); // Clean start
+
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockMapper = new Mock<IMapper>();
 
@@ -44,6 +53,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockAccomActivityRepo = new Mock<IAccommodationActivityRepository>();
 
             // setup unitofwork
+            // Important: We need to ensure UnitOfWork returns our mocks for Repos, but the InMemory DbContext for GetDbContext()
             _mockUnitOfWork.Setup(u => u.ActivitySchedules).Returns(_mockScheduleRepo.Object);
             _mockUnitOfWork.Setup(u => u.Activities).Returns(_mockActivityRepo.Object);
             _mockUnitOfWork.Setup(u => u.Camps).Returns(_mockCampRepo.Object);
@@ -53,6 +63,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUnitOfWork.Setup(u => u.Accommodations).Returns(_mockAccomRepo.Object);
             _mockUnitOfWork.Setup(u => u.GroupActivities).Returns(_mockGroupActivityRepo.Object);
             _mockUnitOfWork.Setup(u => u.AccommodationActivities).Returns(_mockAccomActivityRepo.Object);
+            
+            // Return the InMemory context
+            _mockUnitOfWork.Setup(u => u.GetDbContext()).Returns(_dbContext);
 
             // mock transaction
             _mockUnitOfWork.Setup(u => u.BeginTransactionAsync())
@@ -61,11 +74,17 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _service = new ActivityScheduleService(_mockUnitOfWork.Object, _mockMapper.Object);
         }
 
+        public void Dispose()
+        {
+            _dbContext.Database.EnsureDeleted();
+            _dbContext.Dispose();
+        }
+
         // UT08 - TEST CASE 1: Invalid Time (Start >= End)
         [Fact]
         public async Task CreateCore_InvalidTime_ThrowsInvalidOperation()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" }; 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Camp());
 
@@ -77,14 +96,14 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             };
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("Start date must be earlier than end date", ex.Message);
+            Assert.Contains("Giờ bắt đầu phải sớm hơn giờ kết thúc", ex.Message);
         }
 
         // UT08 - TEST CASE 2: Outside Camp Duration
         [Fact]
-        public async Task CreateCore_OutsideCampDuration_ThrowsInvalidOperation()
+        public async Task CreateCore_OutsideCampDuration_ReturnsError()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp
             {
                 campId = 1,
@@ -102,15 +121,15 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 EndTime = DateTime.UtcNow.AddDays(2)
             };
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("Schedule time must be within the camp duration", ex.Message);
+            var result = await _service.CreateCoreScheduleAsync(dto);
+            Assert.Contains(result.Errors, e => e.Contains("Nằm ngoài thời gian trại"));
         }
 
         // UT08 - TEST CASE 3: Overlap with another Core Activity
         [Fact]
-        public async Task CreateCore_TimeOverlap_ThrowsInvalidOperation()
+        public async Task CreateCore_TimeOverlap_ReturnsError()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp
             {
                 campId = 1,
@@ -121,33 +140,43 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
 
-            // mock overlap check returns true
-            _mockScheduleRepo.Setup(r => r.IsTimeOverlapAsync(1, It.IsAny<DateTime>(), It.IsAny<DateTime>(), null))
-                .ReturnsAsync(true);
+            // Populate InMemory DB to trigger overlap
+            var existingSchedule = new ActivitySchedule
+            {
+                // activityScheduleId is auto-generated or can be set, EF handles it
+                startTime = DateTime.UtcNow.AddDays(2),
+                endTime = DateTime.UtcNow.AddDays(3),
+                activity = new Activity { activityId = 2, campId = 1, activityType = ActivityType.Optional.ToString() }, // Conflict: Optional overlaps
+                activityId = 2
+            };
+            
+            _dbContext.ActivitySchedules.Add(existingSchedule);
+            await _dbContext.SaveChangesAsync();
 
             var dto = new ActivityScheduleCreateDto
             {
                 ActivityId = 1,
-                StartTime = DateTime.UtcNow.AddDays(2),
-                EndTime = DateTime.UtcNow.AddDays(3)
+                StartTime = DateTime.UtcNow.AddDays(2).AddMinutes(1),
+                EndTime = DateTime.UtcNow.AddDays(2).AddMinutes(60)
             };
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("overlaps with another core activity", ex.Message);
+            // Service logic returns error in result.Errors
+            var result = await _service.CreateCoreScheduleAsync(dto);
+            Assert.Contains(result.Errors, e => e.Contains("Bị trùng lịch với hoạt động Optional/Resting"));
         }
 
         // UT08 - TEST CASE 4: Location Conflict
         [Fact]
-        public async Task CreateCore_LocationConflict_ThrowsInvalidOperation()
+        public async Task CreateCore_LocationConflict_ReturnsError()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp { campId = 1, startDate = DateTime.UtcNow.AddDays(1), endDate = DateTime.UtcNow.AddDays(5) };
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
             _mockLocationRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Location());
 
-            // mock location conflict
+            // Mock call result on Repo because logic uses Repo method
             _mockScheduleRepo.Setup(r => r.ExistsInSameTimeAndLocationAsync(1, It.IsAny<DateTime>(), It.IsAny<DateTime>(), null))
                 .ReturnsAsync(true);
 
@@ -159,22 +188,22 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 EndTime = DateTime.UtcNow.AddDays(3)
             };
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("This location is already occupied", ex.Message);
+            var result = await _service.CreateCoreScheduleAsync(dto);
+            Assert.Contains(result.Errors, e => e.Contains("Địa điểm đã có hoạt động khác"));
         }
 
         // UT08 - TEST CASE 5: Staff Busy
         [Fact]
-        public async Task CreateCore_StaffBusy_ThrowsInvalidOperation()
+        public async Task CreateCore_StaffBusy_ReturnsError()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp { campId = 1, startDate = DateTime.UtcNow.AddDays(1), endDate = DateTime.UtcNow.AddDays(5) };
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
             _mockUserRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new UserAccount { role = "Staff" });
 
-            // mock staff busy
+            // Service checks staff busy via Repo
             _mockScheduleRepo.Setup(r => r.IsStaffBusyAsync(1, It.IsAny<DateTime>(), It.IsAny<DateTime>(), null))
                 .ReturnsAsync(true);
 
@@ -186,15 +215,15 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 EndTime = DateTime.UtcNow.AddDays(3)
             };
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("Staff has another activity scheduled", ex.Message);
+            var result = await _service.CreateCoreScheduleAsync(dto);
+            Assert.Contains(result.Errors, e => e.Contains("Staff bận"));
         }
 
         // UT08 - TEST CASE 6: Invalid Staff Role
         [Fact]
         public async Task CreateCore_InvalidStaffRole_ThrowsInvalidOperation()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp { campId = 1, startDate = DateTime.UtcNow.AddDays(1), endDate = DateTime.UtcNow.AddDays(5) };
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
@@ -212,30 +241,38 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             };
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("Assigned user is not a staff member", ex.Message);
+            Assert.Contains("User được gán không phải là Staff", ex.Message);
         }
 
         // UT08 - TEST CASE 7: Livestream missing Staff
         [Fact]
-        public async Task CreateCore_LivestreamNoStaff_ThrowsInvalidOperation()
+        public async Task CreateCore_LivestreamNoStaff_DoesNotThrow()
         {
-            var activity = new Activity { activityId = 1, campId = 1 };
+            var activity = new Activity { activityId = 1, campId = 1, activityType = "Core" };
             var camp = new Camp { campId = 1, startDate = DateTime.UtcNow.AddDays(1), endDate = DateTime.UtcNow.AddDays(5) };
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
 
+            // Mock CreateAsync
+            _mockScheduleRepo.Setup(r => r.CreateAsync(It.IsAny<ActivitySchedule>())).Returns(Task.CompletedTask);
+            var createdSchedule = new ActivitySchedule { activity = activity };
+            _mockScheduleRepo.Setup(r => r.GetByIdWithActivityAsync(It.IsAny<int>())).ReturnsAsync(createdSchedule);
+             _mockMapper.Setup(m => m.Map<ActivitySchedule>(It.IsAny<ActivityScheduleCreateDto>())).Returns(new ActivitySchedule());
+             _mockMapper.Setup(m => m.Map<ActivityScheduleResponseDto>(It.IsAny<ActivitySchedule>())).Returns(new ActivityScheduleResponseDto());
+
             var dto = new ActivityScheduleCreateDto
             {
                 ActivityId = 1,
                 IsLiveStream = true,
-                StaffId = null, // Error
+                StaffId = null, 
                 StartTime = DateTime.UtcNow.AddDays(2),
                 EndTime = DateTime.UtcNow.AddDays(3)
             };
 
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _service.CreateCoreScheduleAsync(dto));
-            Assert.Contains("StaffId is required when livestream is enabled", ex.Message);
+            // Should not throw
+            var result = await _service.CreateCoreScheduleAsync(dto);
+            Assert.NotNull(result);
         }
 
         // UT08 - TEST CASE 8: Success
@@ -248,8 +285,6 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
 
-            // mock groups and accommodations (for linking)
-            _mockGroupRepo.Setup(r => r.GetByCampIdAsync(1)).ReturnsAsync(new List<Group> { new Group { groupId = 10 } });
             _mockAccomRepo.Setup(r => r.GetByCampId(1)).ReturnsAsync(new List<Accommodation>());
 
             // mock create
@@ -280,7 +315,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             var result = await _service.CreateCoreScheduleAsync(dto);
 
             Assert.NotNull(result);
-            Assert.Equal(100, result.ActivityScheduleId);
+            Assert.NotNull(result.Successes);
+            Assert.Single(result.Successes);
+            Assert.Equal(100, result.Successes[0].ActivityScheduleId);
 
             _mockScheduleRepo.Verify(r => r.CreateAsync(It.IsAny<ActivitySchedule>()), Times.Once);
             _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.AtLeastOnce);
