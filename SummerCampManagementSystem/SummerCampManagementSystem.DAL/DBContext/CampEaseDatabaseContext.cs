@@ -194,6 +194,8 @@ public partial class CampEaseDatabaseContext : DbContext
         {
             entity.HasKey(e => e.activityScheduleId).HasName("PK__Activity__32136F49C26ADD1F");
 
+            entity.Property(e => e.isOptional).HasDefaultValue(false);
+
             entity.HasOne(d => d.activity).WithMany(p => p.ActivitySchedules)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_ActivitySchedule_Activity");
@@ -562,6 +564,8 @@ public partial class CampEaseDatabaseContext : DbContext
             entity.HasKey(e => e.reportId).HasName("PK__Report__1C9B4E2D17DAFC9F");
 
             entity.HasOne(d => d.activitySchedule).WithMany(p => p.Reports).HasConstraintName("FK_Report_ActivitySchedule");
+
+            entity.HasOne(d => d.camp).WithMany(p => p.Reports).HasConstraintName("FK_Report_Camp");
 
             entity.HasOne(d => d.camper).WithMany(p => p.Reports).HasConstraintName("FK__Report__camperId__40F9A68C");
 
