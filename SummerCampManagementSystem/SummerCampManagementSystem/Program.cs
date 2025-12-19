@@ -192,6 +192,8 @@ builder.Services.AddScoped<IRefundService, RefundService>();
 builder.Services.AddScoped<IRegistrationCancelRepository, RegistrationCancelRepository>();
 builder.Services.AddScoped<IFeedbackService, FeedbackService>();
 builder.Services.AddScoped<IFeedbackRepository, FeedbackRepository>();
+builder.Services.AddScoped<IFAQService, FAQService>();
+builder.Services.AddScoped<IFAQRepository, FAQRepository>();
 builder.Services.AddScoped<IAttendanceFolderService, AttendanceFolderService>();
 builder.Services.AddScoped<IAccommodationActivityRepository, AccommodationActivityRepository>();
 builder.Services.AddScoped<ITransportStaffAssignmentRepository, TransportStaffAssignmentRepository>();

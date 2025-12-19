@@ -18,6 +18,7 @@ using SummerCampManagementSystem.BLL.DTOs.CampType;
 using SummerCampManagementSystem.BLL.DTOs.ChatRoom;
 using SummerCampManagementSystem.BLL.DTOs.Driver;
 using SummerCampManagementSystem.BLL.DTOs.Feedback;
+using SummerCampManagementSystem.BLL.DTOs.FAQ;
 using SummerCampManagementSystem.BLL.DTOs.Group;
 using SummerCampManagementSystem.BLL.DTOs.Guardian;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
@@ -458,6 +459,15 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<FeedbackRequestDto, Feedback>()
                 .ForMember(dest => dest.status, opt => opt.MapFrom(src => "Pending"));
             CreateMap<Feedback, FeedbackResponseDto>();
+
+            //FAQ mappings
+            CreateMap<FAQRequestDto, FAQ>()
+                .ForMember(dest => dest.question, opt => opt.MapFrom(src => src.Question))
+                .ForMember(dest => dest.answer, opt => opt.MapFrom(src => src.Answer));
+            CreateMap<FAQ, FAQResponseDto>()
+                .ForMember(dest => dest.FaqId, opt => opt.MapFrom(src => src.faqId))
+                .ForMember(dest => dest.Question, opt => opt.MapFrom(src => src.question))
+                .ForMember(dest => dest.Answer, opt => opt.MapFrom(src => src.answer));
 
             // Message mappings
             CreateMap<SendMessageDto, Message>()

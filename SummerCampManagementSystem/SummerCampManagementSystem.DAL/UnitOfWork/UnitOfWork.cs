@@ -57,6 +57,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public IDriverRepository Drivers { get; }
         public ILiveStreamRepository LiveStreams { get; }
         public IFeedbackRepository Feedbacks { get; }
+        public IFAQRepository FAQs { get; }
         public IMessageRepository Messages { get; }
         public UnitOfWork(CampEaseDatabaseContext context, IUserRepository userRepository, 
             IRefreshTokenRepository refreshTokenRepository, IVehicleRepository vehicles,
@@ -73,7 +74,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
             , IReportRepository reports, ICamperTransportRepository camperTransport, IFeedbackRepository feedbacks, IGroupRepository groups
-            , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages
+            , IChatRoomUserRepository chatRoomUsers, IChatRoomRepository chatRooms, IMessageRepository messages, IFAQRepository faqs
             , IBankUserRepository bankUsers, IAccommodationActivityRepository accommodationActivities
             , IRegistrationCancelRepository registrationCancels, ITransportStaffAssignmentRepository transportStaffAssignments
             )
@@ -105,6 +106,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             ChatRoomUsers = chatRoomUsers;
             Drivers = drivers;
             Feedbacks = feedbacks;
+            FAQs = faqs;
             Guardians = guardians;
             GroupActivities = groupActivities;
             Groups = groups;
