@@ -53,34 +53,71 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<GroupWithCampDetailsResponseDto?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            _logger.LogInformation("[GroupService] GetGroupBySupervisorIdAsync called with SupervisorId={SupervisorId}, CampId={CampId}", 
-                supervisorId, campId);
+            var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+            
+            _logger.LogInformation(
+                "[GroupService] CRITICAL ENDPOINT - GetGroupBySupervisorIdAsync called - SupervisorId={SupervisorId}, CampId={CampId}, MemoryBefore={MemoryMB}MB, ThreadId={ThreadId}", 
+                supervisorId, campId, memoryBefore, Environment.CurrentManagedThreadId);
             
             try
             {
+                // Validate input parameters
+                if (supervisorId <= 0)
+                {
+                    _logger.LogWarning("[GroupService] Invalid SupervisorId={SupervisorId}", supervisorId);
+                    throw new BadRequestException($"Invalid supervisor ID: {supervisorId}");
+                }
+                
+                if (campId <= 0)
+                {
+                    _logger.LogWarning("[GroupService] Invalid CampId={CampId}", campId);
+                    throw new BadRequestException($"Invalid camp ID: {campId}");
+                }
+
+                _logger.LogInformation("[GroupService] Fetching camp with CampId={CampId}", campId);
                 var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
                 if (camp == null)
+                {
+                    _logger.LogWarning("[GroupService] Camp not found - CampId={CampId}", campId);
                     throw new NotFoundException($"Camp with ID {campId} not found.");
+                }
 
+                _logger.LogInformation("[GroupService] Camp found - CampId={CampId}, CampName={CampName}. Fetching group...", 
+                    campId, camp.name);
+                    
                 var group = await _unitOfWork.Groups.GetGroupBySupervisorIdAsync(supervisorId, campId);
+                
                 if (group == null)
                 {
+                    _logger.LogWarning(
+                        "[GroupService] Group NOT FOUND - SupervisorId={SupervisorId}, CampId={CampId}",
+                        supervisorId, campId);
                     throw new NotFoundException($"Camper Group supervised by Staff ID {supervisorId} in Camp ID {campId} not found.");
                 }
                 
-                stopwatch.Stop();
                 _logger.LogInformation(
-                    "[GroupService] Retrieved group for SupervisorId={SupervisorId}, CampId={CampId} in {ElapsedMs}ms",
-                    supervisorId, campId, stopwatch.ElapsedMilliseconds);
+                    "[GroupService] Group found - GroupId={GroupId}, GroupName={GroupName}. Mapping to DTO...",
+                    group.groupId, group.groupName);
+                    
+                var result = _mapper.Map<GroupWithCampDetailsResponseDto>(group);
+                
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogInformation(
+                    "[GroupService] CRITICAL ENDPOINT SUCCESS - GetGroupBySupervisorIdAsync completed - SupervisorId={SupervisorId}, CampId={CampId}, GroupId={GroupId}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, MemoryDelta={MemoryDeltaMB}MB",
+                    supervisorId, campId, group.groupId, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, memoryAfter - memoryBefore);
 
-                return _mapper.Map<GroupWithCampDetailsResponseDto>(group);
+                return result;
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
                 _logger.LogError(ex,
-                    "[GroupService] ERROR in GetGroupBySupervisorIdAsync - SupervisorId={SupervisorId}, CampId={CampId}, ElapsedMs={ElapsedMs}, Error={ErrorMessage}",
-                    supervisorId, campId, stopwatch.ElapsedMilliseconds, ex.Message);
+                    "[GroupService] CRITICAL ERROR in GetGroupBySupervisorIdAsync - SupervisorId={SupervisorId}, CampId={CampId}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, ExceptionType={ExceptionType}, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    supervisorId, campId, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, ex.GetType().Name, ex.Message, ex.StackTrace);
                 throw;
             }
         }
@@ -292,35 +329,60 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private async Task<(UserAccount staff, Camp camp)> RunGroupSupervisorValidation(int? supervisorId, int campId, int? groupId = null)
         {
-            // if supervisorId is null or <= 0, skip validation and return camp only
-            if (!supervisorId.HasValue || supervisorId.Value <= 0)
+            _logger.LogInformation(
+                "[GroupService] RunGroupSupervisorValidation called - SupervisorId={SupervisorId}, CampId={CampId}, GroupId={GroupId}",
+                supervisorId, campId, groupId);
+                
+            try
             {
-                var campOnly = await _unitOfWork.Camps.GetByIdAsync(campId)
+                // if supervisorId is null or <= 0, skip validation and return camp only
+                if (!supervisorId.HasValue || supervisorId.Value <= 0)
+                {
+                    _logger.LogInformation("[GroupService] Skipping supervisor validation (no supervisor assigned)");
+                    var campOnly = await _unitOfWork.Camps.GetByIdAsync(campId)
+                        ?? throw new NotFoundException($"Camp with ID {campId} not found.");
+                    return (null, campOnly);
+                }
+
+                var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                     ?? throw new NotFoundException($"Camp with ID {campId} not found.");
-                return (null, campOnly);
+
+                var staff = await _unitOfWork.Users.GetByIdAsync(supervisorId.Value)
+                    ?? throw new NotFoundException($"Supervisor with ID {supervisorId.Value} not found.");
+
+                // check role
+                if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning(
+                        "[GroupService] Role validation failed - UserId={UserId}, Role={Role}",
+                        supervisorId.Value, staff.role);
+                    throw new BadRequestException($"User with ID {supervisorId.Value} is a '{staff.role}', not a Staff member.");
+                }
+
+                // check if staff is already assigned to another group in the same camp 
+                var existingGroup = await _unitOfWork.Groups.GetGroupBySupervisorIdAsync(supervisorId.Value, campId);
+
+                if (existingGroup != null && existingGroup.groupId != groupId)
+                {
+                    _logger.LogWarning(
+                        "[GroupService] Supervisor already assigned - SupervisorId={SupervisorId}, ExistingGroupId={ExistingGroupId}, CampId={CampId}",
+                        supervisorId.Value, existingGroup.groupId, campId);
+                    throw new BusinessRuleException($"Supervisor ID {supervisorId.Value} is already assigned to Camper Group ID {existingGroup.groupId} in Camp ID {campId}.");
+                }
+
+                _logger.LogInformation(
+                    "[GroupService] Supervisor validation passed - SupervisorId={SupervisorId}, CampId={CampId}",
+                    supervisorId.Value, campId);
+                    
+                return (staff, camp);
             }
-
-            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new NotFoundException($"Camp with ID {campId} not found.");
-
-            var staff = await _unitOfWork.Users.GetByIdAsync(supervisorId.Value)
-                ?? throw new NotFoundException($"Supervisor with ID {supervisorId.Value} not found.");
-
-            // check role
-            if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex)
             {
-                throw new BadRequestException($"User with ID {supervisorId.Value} is a '{staff.role}', not a Staff member.");
+                _logger.LogError(ex,
+                    "[GroupService] ERROR in RunGroupSupervisorValidation - SupervisorId={SupervisorId}, CampId={CampId}, Error={ErrorMessage}",
+                    supervisorId, campId, ex.Message);
+                throw;
             }
-
-            // check if staff is already assigned to another group in the same camp 
-            var existingGroup = await _unitOfWork.Groups.GetGroupBySupervisorIdAsync(supervisorId.Value, campId);
-
-            if (existingGroup != null && existingGroup.groupId != groupId)
-            {
-                throw new BusinessRuleException($"Supervisor ID {supervisorId.Value} is already assigned to Camper Group ID {existingGroup.groupId} in Camp ID {campId}.");
-            }
-
-            return (staff, camp);
         }
 
         #endregion

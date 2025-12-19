@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 
@@ -6,127 +7,359 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
     public class GroupRepository : GenericRepository<Group>, IGroupRepository
     {
-        public GroupRepository(CampEaseDatabaseContext context) : base(context)
+        private readonly ILogger<GroupRepository> _logger;
+
+        public GroupRepository(CampEaseDatabaseContext context, ILogger<GroupRepository> logger) : base(context)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<Group>> GetAllCamperGroups()
         {
-            return await _context.Groups
-                .AsNoTracking()
-                .Include(g => g.supervisor)
-                //.Include(g => g.Campers)
-                .ToListAsync();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("[GroupRepository] GetAllCamperGroups called - MemoryBefore={MemoryMB}MB",
+                GC.GetTotalMemory(false) / 1024 / 1024);
+
+            try
+            {
+                var groups = await _context.Groups
+                    .AsNoTracking()
+                    .Include(g => g.supervisor)
+                    .AsSplitQuery() // prevent Cartesian explosion
+                    .ToListAsync();
+
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "[GroupRepository] GetAllCamperGroups completed - Count={Count}, ElapsedMs={ElapsedMs}, MemoryAfter={MemoryMB}MB",
+                    groups.Count(), stopwatch.ElapsedMilliseconds, GC.GetTotalMemory(false) / 1024 / 1024);
+
+                return groups;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetAllCamperGroups - ElapsedMs={ElapsedMs}, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    stopwatch.ElapsedMilliseconds, ex.Message, ex.StackTrace);
+                throw;
+            }
         }
 
         public async Task<Group?> GetCamperGroupById(int id)
         {
-            return await _context.Groups
-                .Include(g => g.supervisor)
-                .FirstOrDefaultAsync(g => g.groupId == id);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("[GroupRepository] GetCamperGroupById called - GroupId={GroupId}", id);
+
+            try
+            {
+                var group = await _context.Groups
+                    .AsNoTracking()
+                    .Include(g => g.supervisor)
+                    .AsSplitQuery()
+                    .FirstOrDefaultAsync(g => g.groupId == id);
+
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "[GroupRepository] GetCamperGroupById completed - GroupId={GroupId}, Found={Found}, ElapsedMs={ElapsedMs}",
+                    id, group != null, stopwatch.ElapsedMilliseconds);
+
+                return group;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetCamperGroupById - GroupId={GroupId}, ElapsedMs={ElapsedMs}, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    id, stopwatch.ElapsedMilliseconds, ex.Message, ex.StackTrace);
+                throw;
+            }
         }
         public async Task<bool> isSupervisor(int staffId, int campId)
         {
-            return await _context.Groups
-                .AnyAsync(a =>
-                    a.supervisorId == staffId &&
-                    a.campId == campId);
+            _logger.LogInformation("[GroupRepository] isSupervisor called - StaffId={StaffId}, CampId={CampId}", staffId, campId);
+
+            try
+            {
+                var result = await _context.Groups
+                    .AsNoTracking()
+                    .AnyAsync(a =>
+                        a.supervisorId == staffId &&
+                        a.campId == campId);
+
+                _logger.LogInformation("[GroupRepository] isSupervisor result - StaffId={StaffId}, CampId={CampId}, IsSupervisor={Result}",
+                    staffId, campId, result);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in isSupervisor - StaffId={StaffId}, CampId={CampId}, Error={ErrorMessage}",
+                    staffId, campId, ex.Message);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<Group>> GetByCampIdAsync(int campId)
         {
-            return await _context.Groups
-                .AsNoTracking()
-                .Include(g => g.supervisor)
-                //.Include(g => g.Campers)
-                .Where(g => g.campId == campId)
-                .ToListAsync();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("[GroupRepository] GetByCampIdAsync called - CampId={CampId}", campId);
+
+            try
+            {
+                var groups = await _context.Groups
+                    .AsNoTracking()
+                    .Include(g => g.supervisor)
+                    .AsSplitQuery()
+                    .Where(g => g.campId == campId)
+                    .ToListAsync();
+
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "[GroupRepository] GetByCampIdAsync completed - CampId={CampId}, Count={Count}, ElapsedMs={ElapsedMs}",
+                    campId, groups.Count(), stopwatch.ElapsedMilliseconds);
+
+                return groups;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetByCampIdAsync - CampId={CampId}, ElapsedMs={ElapsedMs}, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    campId, stopwatch.ElapsedMilliseconds, ex.Message, ex.StackTrace);
+                throw;
+            }
         }
 
         public async Task<Group?> GetGroupBySupervisorIdAsync(int supervisorId, int campId)
         {
-            return await _context.Groups
-                .Include(g => g.supervisor)
-                .Include(g => g.camp)
-                .FirstOrDefaultAsync(g => g.supervisorId == supervisorId && g.campId == campId);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+            
+            _logger.LogInformation(
+                "[GroupRepository] GetGroupBySupervisorIdAsync called - SupervisorId={SupervisorId}, CampId={CampId}, MemoryBefore={MemoryMB}MB",
+                supervisorId, campId, memoryBefore);
+
+            try
+            {
+                // added AsNoTracking and AsSplitQuery to prevent memory issues
+                var group = await _context.Groups
+                    .AsNoTracking()
+                    .Include(g => g.supervisor)
+                    .Include(g => g.camp)
+                    .AsSplitQuery() // prevents Cartesian explosion warning
+                    .FirstOrDefaultAsync(g => g.supervisorId == supervisorId && g.campId == campId);
+
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogInformation(
+                    "[GroupRepository] GetGroupBySupervisorIdAsync completed - SupervisorId={SupervisorId}, CampId={CampId}, Found={Found}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, MemoryDelta={MemoryDeltaMB}MB",
+                    supervisorId, campId, group != null, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, memoryAfter - memoryBefore);
+
+                return group;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogError(ex,
+                    "[GroupRepository] CRITICAL ERROR in GetGroupBySupervisorIdAsync - SupervisorId={SupervisorId}, CampId={CampId}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, Error={ErrorMessage}, ExceptionType={ExceptionType}, StackTrace={StackTrace}",
+                    supervisorId, campId, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, ex.Message, ex.GetType().Name, ex.StackTrace);
+                throw;
+            }
         }
 
         public async Task<IEnumerable<Group>> GetGroupsByActivityScheduleIdAsync(int activityScheduleId)
         {
-            // use projection to avoid circular references and reduce memory footprint
-            return await _context.GroupActivities
-                .AsNoTracking()
-                .Where(ga => ga.activityScheduleId == activityScheduleId)
-                .Select(ga => new Group
-                {
-                    groupId = ga.group.groupId,
-                    groupName = ga.group.groupName,
-                    description = ga.group.description,
-                    currentSize = ga.group.currentSize,
-                    maxSize = ga.group.maxSize,
-                    supervisorId = ga.group.supervisorId,
-                    campId = ga.group.campId,
-                    minAge = ga.group.minAge,
-                    maxAge = ga.group.maxAge,
-                    supervisor = ga.group.supervisor != null ? new UserAccount
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("[GroupRepository] GetGroupsByActivityScheduleIdAsync called - ActivityScheduleId={ActivityScheduleId}",
+                activityScheduleId);
+
+            try
+            {
+                // use projection to avoid circular references and reduce memory footprint
+                var groups = await _context.GroupActivities
+                    .AsNoTracking()
+                    .Where(ga => ga.activityScheduleId == activityScheduleId)
+                    .Select(ga => new Group
                     {
-                        userId = ga.group.supervisor.userId,
-                        firstName = ga.group.supervisor.firstName,
-                        lastName = ga.group.supervisor.lastName,
-                        email = ga.group.supervisor.email,
-                        role = ga.group.supervisor.role
-                    } : null
-                })
-                .ToListAsync();
+                        groupId = ga.group.groupId,
+                        groupName = ga.group.groupName,
+                        description = ga.group.description,
+                        currentSize = ga.group.currentSize,
+                        maxSize = ga.group.maxSize,
+                        supervisorId = ga.group.supervisorId,
+                        campId = ga.group.campId,
+                        minAge = ga.group.minAge,
+                        maxAge = ga.group.maxAge,
+                        supervisor = ga.group.supervisor != null ? new UserAccount
+                        {
+                            userId = ga.group.supervisor.userId,
+                            firstName = ga.group.supervisor.firstName,
+                            lastName = ga.group.supervisor.lastName,
+                            email = ga.group.supervisor.email,
+                            role = ga.group.supervisor.role
+                        } : null
+                    })
+                    .ToListAsync();
+
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "[GroupRepository] GetGroupsByActivityScheduleIdAsync completed - ActivityScheduleId={ActivityScheduleId}, Count={Count}, ElapsedMs={ElapsedMs}",
+                    activityScheduleId, groups.Count(), stopwatch.ElapsedMilliseconds);
+
+                return groups;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetGroupsByActivityScheduleIdAsync - ActivityScheduleId={ActivityScheduleId}, ElapsedMs={ElapsedMs}, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    activityScheduleId, stopwatch.ElapsedMilliseconds, ex.Message, ex.StackTrace);
+                throw;
+            }
         }
 
         public async Task<List<int?>> GetGroupIdsWithSchedulesAsync(int campId)
         {
-            // Logic: Join GroupActivity -> ActivitySchedule -> Activity -> Check CampId
-            return await _context.GroupActivities
-                .Include(ga => ga.activitySchedule).ThenInclude(s => s.activity)
-                .Where(ga => ga.activitySchedule.activity.campId == campId)
-                .Select(ga => ga.groupId)
-                .Distinct()
-                .ToListAsync();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            _logger.LogInformation("[GroupRepository] GetGroupIdsWithSchedulesAsync called - CampId={CampId}", campId);
+
+            try
+            {
+                // join GroupActivity -> ActivitySchedule -> Activity -> Check CampId
+                var groupIds = await _context.GroupActivities
+                    .AsNoTracking()
+                    .Include(ga => ga.activitySchedule).ThenInclude(s => s.activity)
+                    .AsSplitQuery()
+                    .Where(ga => ga.activitySchedule.activity.campId == campId)
+                    .Select(ga => ga.groupId)
+                    .Distinct()
+                    .ToListAsync();
+
+                stopwatch.Stop();
+                _logger.LogInformation(
+                    "[GroupRepository] GetGroupIdsWithSchedulesAsync completed - CampId={CampId}, Count={Count}, ElapsedMs={ElapsedMs}",
+                    campId, groupIds.Count, stopwatch.ElapsedMilliseconds);
+
+                return groupIds;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetGroupIdsWithSchedulesAsync - CampId={CampId}, ElapsedMs={ElapsedMs}, Error={ErrorMessage}",
+                    campId, stopwatch.ElapsedMilliseconds, ex.Message);
+                throw;
+            }
         }
 
         public async Task<Group?> GetGroupByCamperAndCamp(int camperId, int campId)
         {
-            return await _context.CamperGroups
-                .Where(c => c.camperId == camperId && c.group.campId == campId)
-                .Select(c => c.group)
-                .FirstOrDefaultAsync();
+            _logger.LogInformation("[GroupRepository] GetGroupByCamperAndCamp called - CamperId={CamperId}, CampId={CampId}",
+                camperId, campId);
+
+            try
+            {
+                var group = await _context.CamperGroups
+                    .AsNoTracking()
+                    .Where(c => c.camperId == camperId && c.group.campId == campId)
+                    .Select(c => c.group)
+                    .FirstOrDefaultAsync();
+
+                _logger.LogInformation("[GroupRepository] GetGroupByCamperAndCamp result - CamperId={CamperId}, CampId={CampId}, Found={Found}",
+                    camperId, campId, group != null);
+
+                return group;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetGroupByCamperAndCamp - CamperId={CamperId}, CampId={CampId}, Error={ErrorMessage}",
+                    camperId, campId, ex.Message);
+                throw;
+            }
         }
 
         public async Task<List<(string Name, int Current, int Max)>> GetCapacityAlertsByCampAsync(int campId)
         {
-            var groups = await _context.Groups
-                .Where(g => g.campId == campId && g.maxSize.HasValue && g.maxSize > 0)
-                .Select(g => new
-                {
-                    g.groupName,
-                    Current = g.currentSize ?? 0,
-                    Max = g.maxSize.Value
-                })
-                .ToListAsync();
+            _logger.LogInformation("[GroupRepository] GetCapacityAlertsByCampAsync called - CampId={CampId}", campId);
 
-            // filter groups exceeding 80% capacity
-            var alerts = groups
-                .Where(g => (double)g.Current / g.Max >= 0.8)
-                .Select(g => (g.groupName ?? "Unknown", g.Current, g.Max))
-                .ToList();
+            try
+            {
+                var groups = await _context.Groups
+                    .AsNoTracking()
+                    .Where(g => g.campId == campId && g.maxSize.HasValue && g.maxSize > 0)
+                    .Select(g => new
+                    {
+                        g.groupName,
+                        Current = g.currentSize ?? 0,
+                        Max = g.maxSize.Value
+                    })
+                    .ToListAsync();
 
-            return alerts;
+                // filter groups exceeding 80% capacity
+                var alerts = groups
+                    .Where(g => (double)g.Current / g.Max >= 0.8)
+                    .Select(g => (g.groupName ?? "Unknown", g.Current, g.Max))
+                    .ToList();
+
+                _logger.LogInformation(
+                    "[GroupRepository] GetCapacityAlertsByCampAsync completed - CampId={CampId}, TotalGroups={TotalGroups}, AlertCount={AlertCount}",
+                    campId, groups.Count, alerts.Count);
+
+                return alerts;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetCapacityAlertsByCampAsync - CampId={CampId}, Error={ErrorMessage}",
+                    campId, ex.Message);
+                throw;
+            }
         }
 
         public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
         {
-            return await _context.Groups
-                .Include(g => g.CamperGroups)
-                .Include(g => g.camp)
-                .FirstOrDefaultAsync(g => g.groupId == groupId);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+            
+            _logger.LogInformation(
+                "[GroupRepository] GetByIdWithCamperGroupsAndCampAsync called - GroupId={GroupId}, MemoryBefore={MemoryMB}MB",
+                groupId, memoryBefore);
+
+            try
+            {
+                // added AsNoTracking and AsSplitQuery for multiple includes
+                var group = await _context.Groups
+                    .AsNoTracking()
+                    .Include(g => g.CamperGroups)
+                    .Include(g => g.camp)
+                    .AsSplitQuery() // prevents Cartesian explosion with multiple collections
+                    .FirstOrDefaultAsync(g => g.groupId == groupId);
+
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogInformation(
+                    "[GroupRepository] GetByIdWithCamperGroupsAndCampAsync completed - GroupId={GroupId}, Found={Found}, CamperGroupCount={CamperGroupCount}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, MemoryDelta={MemoryDeltaMB}MB",
+                    groupId, group != null, group?.CamperGroups?.Count ?? 0, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, memoryAfter - memoryBefore);
+
+                return group;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogError(ex,
+                    "[GroupRepository] ERROR in GetByIdWithCamperGroupsAndCampAsync - GroupId={GroupId}, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, Error={ErrorMessage}, StackTrace={StackTrace}",
+                    groupId, stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, ex.Message, ex.StackTrace);
+                throw;
+            }
         }
     }
 }
