@@ -118,16 +118,31 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpPut("{campId}/reject")]
         [Authorize(Roles = "Admin")]  
-        public async Task<IActionResult> RejectCamp(int campId)
+        public async Task<IActionResult> RejectCamp(int campId, [FromBody] CampRejectRequestDto request)
         {
-            var rejectedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Rejected);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var rejectedCamp = await _campService.RejectCampAsync(campId, request);
 
             return Ok(rejectedCamp);
         }
 
+        [HttpPut("{campId}/cancel")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CancelCamp(int campId, [FromBody] CampCancelRequestDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var canceledCamp = await _campService.CancelCampAsync(campId, request);
+
+            return Ok(canceledCamp);
+        }
+
         [HttpPatch("{id}/extend-registration")]
         [Authorize(Roles = "Admin, Manager")]
-        public async Task<IActionResult> ExtendRegistration(int id, [FromBody] CampExtensionRequestDto request)
+        public async Task<IActionResult> ExtendRegistration(int id, [FromBody] CampExtensionDto request)
         {
             if (!ModelState.IsValid) 
                 return BadRequest(ModelState);

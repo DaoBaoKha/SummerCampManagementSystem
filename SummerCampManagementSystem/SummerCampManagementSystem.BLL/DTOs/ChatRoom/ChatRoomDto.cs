@@ -1,4 +1,6 @@
-﻿namespace SummerCampManagementSystem.BLL.DTOs.ChatRoom
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace SummerCampManagementSystem.BLL.DTOs.ChatRoom
 {
     public class ChatRoomDto
     {
@@ -28,5 +30,20 @@
         public string? LastMessage { get; set; }
         public DateTime? LastMessageTime { get; set; }
         public string? AvatarUrl { get; set; } 
+    }
+
+    public class CreateOrGetPrivateRoomRequestDto
+    {
+        [Required(ErrorMessage = "ID người nhận là bắt buộc.")]
+        public int RecipientUserId { get; set; }
+    }
+
+    public class CreateOrGetPrivateRoomResponseDto
+    {
+        public int ChatRoomId { get; set; }
+        public bool IsNewRoom { get; set; }
+        public string RecipientName { get; set; } = string.Empty;
+        public string RecipientAvatar { get; set; } = string.Empty;
+        public int RecipientUserId { get; set; }
     }
 }

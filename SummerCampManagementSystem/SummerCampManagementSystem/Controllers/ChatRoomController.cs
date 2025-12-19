@@ -54,5 +54,28 @@ namespace SummerCampManagementSystem.API.Controllers
             var messages = await _chatRoomService.GetMessagesByRoomIdAsync(userId.Value, roomId);
             return Ok(messages);
         }
+
+        [HttpPost("create-or-get-private")]
+        public async Task<IActionResult> CreateOrGetPrivateRoom([FromBody] CreateOrGetPrivateRoomRequestDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userId = _userContextService.GetCurrentUserId();
+            if (!userId.HasValue) return Unauthorized(new { message = "Không xác định được người dùng." });
+
+            var result = await _chatRoomService.CreateOrGetPrivateRoomAsync(userId.Value, request.RecipientUserId);
+            return Ok(result);
+        }
+
+        [HttpGet("{roomId}/details")]
+        public async Task<IActionResult> GetRoomDetails(int roomId)
+        {
+            var userId = _userContextService.GetCurrentUserId();
+            if (!userId.HasValue) return Unauthorized(new { message = "Không xác định được người dùng." });
+
+            var details = await _chatRoomService.GetRoomDetailsAsync(userId.Value, roomId);
+            return Ok(details);
+        }
     }
 }

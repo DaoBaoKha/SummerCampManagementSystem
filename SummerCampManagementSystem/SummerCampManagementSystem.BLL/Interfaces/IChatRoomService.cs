@@ -7,5 +7,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<ChatRoomMessageDto> SendMessageAsync(int userId, SendMessageDto request);
         Task<IEnumerable<ChatRoomDetailDto>> GetMyChatRoomsAsync(int userId);
         Task<IEnumerable<ChatRoomMessageDto>> GetMessagesByRoomIdAsync(int userId, int chatRoomId);
+        Task<CreateOrGetPrivateRoomResponseDto> CreateOrGetPrivateRoomAsync(int currentUserId, int recipientUserId);
+        Task<ChatRoomDetailDto> GetRoomDetailsAsync(int userId, int chatRoomId);
     }
 }

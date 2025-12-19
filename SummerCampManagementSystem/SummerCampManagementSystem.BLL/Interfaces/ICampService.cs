@@ -15,6 +15,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<bool> DeleteCampAsync(int id);
         Task<CampResponseDto> TransitionCampStatusAsync(int campId, CampStatus newStatus);
         Task<CampResponseDto> SubmitForApprovalAsync(int campId);
+        Task<CampResponseDto> RejectCampAsync(int campId, CampRejectRequestDto request);
+        Task<CampResponseDto> CancelCampAsync(int campId, CampCancelRequestDto request);
         Task<IEnumerable<CampResponseDto>> GetCampsByStaffIdAsync(int staffId);
 
         // workflow automation

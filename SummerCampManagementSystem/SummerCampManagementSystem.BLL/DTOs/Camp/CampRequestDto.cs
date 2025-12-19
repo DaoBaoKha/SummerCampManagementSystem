@@ -66,4 +66,24 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
     {
         public CampStatus Status { get; set; }
     }
+
+    public class CampRejectRequestDto
+    {
+        [Required(ErrorMessage = "Lý do từ chối là bắt buộc.")]
+        [MinLength(10, ErrorMessage = "Lý do từ chối phải có ít nhất 10 ký tự.")]
+        public string Note { get; set; } = string.Empty;
+    }
+
+    public class CampCancelRequestDto
+    {
+        [Required(ErrorMessage = "Lý do hủy trại là bắt buộc.")]
+        [MinLength(10, ErrorMessage = "Lý do hủy trại phải có ít nhất 10 ký tự.")]
+        public string Note { get; set; } = string.Empty;
+    }
+
+    public class CampExtensionDto
+    {
+        [Required(ErrorMessage = "Ngày đóng đăng ký mới là bắt buộc.")]
+        public DateTime NewRegistrationEndDate { get; set; }
+    }
 }
