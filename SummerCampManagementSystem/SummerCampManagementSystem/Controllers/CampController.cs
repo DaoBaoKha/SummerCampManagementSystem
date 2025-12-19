@@ -120,7 +120,7 @@ namespace SummerCampManagementSystem.API.Controllers
         [Authorize(Roles = "Admin")]  
         public async Task<IActionResult> RejectCamp(int campId)
         {
-            var rejectedCamp = await _campService.TransitionCampStatusAsync(campId, CampStatus.Rejected);
+            var rejectedCamp = await _campService.RejectCampAsync(campId);
 
             return Ok(rejectedCamp);
         }
