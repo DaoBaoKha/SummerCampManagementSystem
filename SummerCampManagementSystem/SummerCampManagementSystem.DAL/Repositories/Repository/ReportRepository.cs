@@ -27,6 +27,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             var query = _context.Reports
                 .Where(r => r.camperId == camperId)
                 .Include(r => r.camper)
+                .Include(r => r.camp)
                 .Include(r => r.reportedByNavigation)
                 .Include(r => r.activitySchedule)
                     .ThenInclude(a => a.activity)
@@ -48,8 +49,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Reports
                 .Where(r => r.reportedBy == staffId)
                 .Include(r => r.camper)
+                .Include(r => r.camp)
                 .Include(r => r.reportedByNavigation)
                 .Include(r => r.activitySchedule)
+                    .ThenInclude(a => a.activity)
                 .Include(r => r.transportSchedule)
                 .OrderByDescending(r => r.createAt)
                 .ToListAsync();
@@ -59,6 +62,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.Reports
                 .Include(r => r.camper)
+                .Include(r => r.camp)
                 .Include(r => r.reportedByNavigation)
                 .Include(r => r.activitySchedule)
                     .ThenInclude(a => a.activity)
@@ -75,11 +79,38 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Reports
                 .Where(r => r.reportType == reportType)
                 .Include(r => r.camper)
+                .Include(r => r.camp)
                 .Include(r => r.reportedByNavigation)
                 .Include(r => r.activitySchedule)
+                    .ThenInclude(a => a.activity)
                 .Include(r => r.transportSchedule)
                 .OrderByDescending(r => r.createAt)
                 .ToListAsync();
+        }
+
+        public override async Task<IEnumerable<Report>> GetAllAsync()
+        {
+            return await _context.Reports
+                .Include(r => r.camper)
+                .Include(r => r.camp)
+                .Include(r => r.reportedByNavigation)
+                .Include(r => r.activitySchedule)
+                    .ThenInclude(a => a.activity)
+                .Include(r => r.transportSchedule)
+                .OrderByDescending(r => r.createAt)
+                .ToListAsync();
+        }
+
+        public override async Task<Report?> GetByIdAsync(int id)
+        {
+            return await _context.Reports
+                .Include(r => r.camper)
+                .Include(r => r.camp)
+                .Include(r => r.reportedByNavigation)
+                .Include(r => r.activitySchedule)
+                    .ThenInclude(a => a.activity)
+                .Include(r => r.transportSchedule)
+                .FirstOrDefaultAsync(r => r.reportId == id);
         }
     }
 }

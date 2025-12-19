@@ -10,6 +10,7 @@ using SummerCampManagementSystem.BLL.DTOs.BankUser;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.DTOs.Camper;
 using SummerCampManagementSystem.BLL.DTOs.CamperActivity;
+using SummerCampManagementSystem.BLL.DTOs.CamperAccommodation;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.CamperTransport;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
@@ -129,6 +130,13 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));  
             CreateMap<CamperGroupRequestDto, CamperGroup>();
 
+            // CamperAccommodation mapping
+            CreateMap<CamperAccommodation, CamperAccommodationResponseDto>()
+                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper.camperName))
+                .ForMember(dest => dest.accommodationName, opt => opt.MapFrom(src => src.accommodation.name))
+                .ForMember(dest => dest.campId, opt => opt.MapFrom(src => src.accommodation.campId))
+                .ForMember(dest => dest.campName, opt => opt.MapFrom(src => src.accommodation.camp.name));
+            CreateMap<CamperAccommodationRequestDto, CamperAccommodation>();
 
             // Driver mappings
 
@@ -434,7 +442,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
                            opt => opt.MapFrom(src => src.lastName + " " + src.firstName));
 
             //Report mappings
-            CreateMap<Report, ReportResponseDto>();
+            CreateMap<Report, ReportResponseDto>()
+                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper != null ? src.camper.camperName : null))
+                .ForMember(dest => dest.activityScheduleName, opt => opt.MapFrom(src => src.activitySchedule != null && src.activitySchedule.activity != null ? src.activitySchedule.activity.name : null))
+                .ForMember(dest => dest.campName, opt => opt.MapFrom(src => src.camp != null ? src.camp.name : null))
+                .ForMember(dest => dest.reportedByName, opt => opt.MapFrom(src => src.reportedByNavigation != null ? src.reportedByNavigation.lastName + " " + src.reportedByNavigation.firstName : null));
             CreateMap<ReportRequestDto, Report>()
                 .ForMember(dest => dest.createAt, opt => opt.MapFrom(src => DateTime.UtcNow));
 

@@ -1,14 +1,13 @@
 ﻿using SummerCampManagementSystem.DAL.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Interfaces
 {
-    public interface ICamperAccomodationRepository : IGenericRepository<CamperAccommodation>
+    public interface ICamperAccommodationRepository : IGenericRepository<CamperAccommodation>
     {
+        Task<IEnumerable<CamperAccommodation>> SearchAsync(int? camperId, int? accommodationId, int? campId, string? camperName);
+        Task<CamperAccommodation?> GetByIdWithDetailsAsync(int id);
+        Task<CamperAccommodation?> GetByCamperAndAccommodationAsync(int camperId, int accommodationId);
+        Task<CamperAccommodation?> GetByIdWithAccommodationAndCampAsync(int id);
         Task<bool> IsAccommodationStaffOfCamper(int staffId, int camperId);
     }
 }

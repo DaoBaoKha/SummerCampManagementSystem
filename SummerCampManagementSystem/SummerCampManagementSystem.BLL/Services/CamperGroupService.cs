@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.CamperGroup;
 using SummerCampManagementSystem.BLL.DTOs.RegistrationCamper;
 using SummerCampManagementSystem.BLL.Exceptions;
@@ -14,42 +15,23 @@ namespace SummerCampManagementSystem.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<CamperGroupService> _logger;
 
-        public CamperGroupService(IUnitOfWork unitOfWork, IMapper mapper)
+        public CamperGroupService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<CamperGroupService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<CamperGroupResponseDto>> GetCamperGroupsAsync(CamperGroupSearchDto searchDto)
         {
-            var query = _unitOfWork.CamperGroups.GetQueryable()
-                .Include(cg => cg.camper)
-                .Include(cg => cg.group)
-                .ThenInclude(g => g.camp)
-                .AsNoTracking();
-
-            if (searchDto.CamperId.HasValue)
-            {
-                query = query.Where(cg => cg.camperId == searchDto.CamperId.Value);
-            }
-
-            if (searchDto.GroupId.HasValue)
-            {
-                query = query.Where(cg => cg.groupId == searchDto.GroupId.Value);
-            }
-
-            if (searchDto.CampId.HasValue)
-            {
-                query = query.Where(cg => cg.group.campId == searchDto.CampId.Value);
-            }
-
-            if (searchDto.CamperName != null)
-            {
-                query = query.Where(cg => cg.camper.camperName.Contains(searchDto.CamperName));
-            }
-
-            var entities = await query.ToListAsync();
+            var entities = await _unitOfWork.CamperGroups.SearchAsync(
+                searchDto.CamperId,
+                searchDto.GroupId,
+                searchDto.CampId,
+                searchDto.CamperName
+            );
 
             return _mapper.Map<IEnumerable<CamperGroupResponseDto>>(entities);
         }
@@ -81,14 +63,17 @@ namespace SummerCampManagementSystem.BLL.Services
             var camper = await _unitOfWork.Campers.GetByIdAsync(requestDto.camperId.Value)
                 ?? throw new NotFoundException($"Camper ID {requestDto.camperId} not found.");
 
-            var group = await _unitOfWork.Groups.GetQueryable()
-                .Include(g => g.CamperGroups) // include to check maxSize
-                .FirstOrDefaultAsync(g => g.groupId == requestDto.groupId.Value)
+            var group = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(requestDto.groupId.Value)
                 ?? throw new NotFoundException($"Group ID {requestDto.groupId} not found.");
 
+            // validate camp hasn't started
+            await ValidateCampNotStarted((int)group.campId);
+
             // check if camper already in the group
-            var existing = await _unitOfWork.CamperGroups.GetQueryable()
-                .FirstOrDefaultAsync(cg => cg.camperId == requestDto.camperId && cg.groupId == requestDto.groupId);
+            var existing = await _unitOfWork.CamperGroups.GetByCamperAndGroupAsync(
+                requestDto.camperId.Value,
+                requestDto.groupId.Value
+            );
             if (existing != null)
                 throw new BusinessRuleException($"Camper {camper.camperName} đã thuộc nhóm {group.groupName}.");
 
@@ -124,10 +109,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
 
-            var createdEntity = await _unitOfWork.CamperGroups.GetQueryable()
-                .Include(cg => cg.camper)
-                .Include(cg => cg.group)
-                .FirstOrDefaultAsync(cg => cg.camperGroupId == camperGroup.camperGroupId);
+            var createdEntity = await _unitOfWork.CamperGroups.GetByIdWithDetailsAsync(camperGroup.camperGroupId);
 
             return _mapper.Map<CamperGroupResponseDto>(createdEntity);
         }
@@ -137,18 +119,20 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!requestDto.groupId.HasValue)
                 throw new BadRequestException("GroupId không được để trống khi cập nhật.");
 
-            var currentMapping = await _unitOfWork.CamperGroups.GetQueryable()
-                .Include(cg => cg.camper)
-                .Include(cg => cg.group) // get old group
-                .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
+            var currentMapping = await _unitOfWork.CamperGroups.GetByIdWithGroupAndCampAsync(id);
 
             if (currentMapping == null) throw new NotFoundException("Không tìm thấy thông tin CamperGroup.");
 
             var oldGroup = currentMapping.group;
-            var newGroup = await _unitOfWork.Groups.GetQueryable()
-                .Include(g => g.CamperGroups) // include to check new group currentSize
-                .FirstOrDefaultAsync(g => g.groupId == requestDto.groupId.Value)
+            
+            // validate old camp hasn't started
+            await ValidateCampNotStarted((int)oldGroup.campId);
+            
+            var newGroup = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(requestDto.groupId.Value)
                 ?? throw new NotFoundException("Không tìm thấy nhóm mới.");
+
+            // validate new camp hasn't started
+            await ValidateCampNotStarted((int)newGroup.campId);
 
             if (oldGroup.groupId == newGroup.groupId)
                 throw new BusinessRuleException("Camper đã thuộc nhóm này rồi.");
@@ -168,24 +152,21 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
 
-            var updatedEntity = await _unitOfWork.CamperGroups.GetQueryable()
-                .Include(cg => cg.camper)
-                .Include(cg => cg.group)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
+            var updatedEntity = await _unitOfWork.CamperGroups.GetByIdWithDetailsAsync(id);
 
             return _mapper.Map<CamperGroupResponseDto>(updatedEntity);
         }
 
         public async Task<bool> DeleteCamperGroupAsync(int id)
         {
-            var mapping = await _unitOfWork.CamperGroups.GetQueryable()
-                  .Include(cg => cg.group)
-                  .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
+            var mapping = await _unitOfWork.CamperGroups.GetByIdWithGroupAndCampAsync(id);
 
             if (mapping == null) return false;
 
             var group = mapping.group;
+
+            // validate camp hasn't started
+            await ValidateCampNotStarted((int)group.campId);
 
             // decrease old group currentSize
             group.currentSize = (group.currentSize ?? 0) - 1;
@@ -209,6 +190,19 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #region Private Methods
+
+        // validate camp hasn't started
+        private async Task ValidateCampNotStarted(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp with ID {campId} not found.");
+
+            if (camp.startDate.HasValue && camp.startDate.Value <= DateTime.Now)
+            {
+                throw new BusinessRuleException(
+                    $"Cannot assign/update/remove campers. Camp '{camp.name}' has already started on {camp.startDate.Value:yyyy-MM-dd}.");
+            }
+        }
 
         private async Task<RegistrationCamper?> GetRegistrationCamperAsync(int camperId, int campId)
         {
