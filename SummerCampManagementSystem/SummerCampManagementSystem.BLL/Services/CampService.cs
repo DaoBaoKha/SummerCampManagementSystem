@@ -99,7 +99,21 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await GetCampsWithIncludes()
                 .FirstOrDefaultAsync(c => c.campId == id);
 
-            return _mapper.Map<CampResponseDto>(camp);
+            if (camp == null)
+            {
+                return null;
+            }
+
+            var campResponse = _mapper.Map<CampResponseDto>(camp);
+
+            // calculate current capacity by counting confirmed campers
+            var currentCapacity = await _unitOfWork.RegistrationCampers.GetQueryable()
+                .CountAsync(rc => rc.registration.campId == id 
+                                  && rc.status == RegistrationCamperStatus.Confirmed.ToString());
+
+            campResponse.CurrentCapacity = currentCapacity;
+
+            return campResponse;
         }
 
         public async Task<IEnumerable<CampResponseDto>> GetCampsByTypeAsync(int campTypeId)
@@ -370,18 +384,58 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
     
-        public async Task<CampResponseDto> RejectCampAsync(int campId)
+        public async Task<CampResponseDto> RejectCampAsync(int campId, CampRejectRequestDto request)
         {
+            // get existing camp
             var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Camp with ID {campId} not found.");
+                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
 
+            // validate current status
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 currentStatus != CampStatus.PendingApproval)
             {
                 throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể từ chối phê duyệt khi trại đang ở trạng thái PendingApproval.");
             }
 
+            // save reject note
+            existingCamp.note = request.Note;
+            await _unitOfWork.Camps.UpdateAsync(existingCamp);
+
+            // transition status and reject related schedules
             return await TransitionCampStatusAsync(campId, CampStatus.Rejected);
+        }
+
+        public async Task<CampResponseDto> CancelCampAsync(int campId, CampCancelRequestDto request)
+        {
+            // get existing camp
+            var existingCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+
+            // validate current status - can cancel anytime except Completed or already Canceled
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
+            {
+                throw new BadRequestException("Trạng thái hiện tại của Camp không hợp lệ.");
+            }
+
+            if (currentStatus == CampStatus.Completed)
+            {
+                throw new BadRequestException("Không thể hủy trại đã hoàn thành.");
+            }
+
+            if (currentStatus == CampStatus.Canceled)
+            {
+                throw new BadRequestException("Trại này đã được hủy trước đó.");
+            }
+
+            // save cancel note
+            existingCamp.note = request.Note;
+            await _unitOfWork.Camps.UpdateAsync(existingCamp);
+
+            // cancel all related entities
+            await CancelCampAndRelatedEntitiesAsync(campId);
+
+            // transition camp status to Canceled
+            return await TransitionCampStatusAsync(campId, CampStatus.Canceled);
         }
 
         public async Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate)
@@ -768,9 +822,7 @@ namespace SummerCampManagementSystem.BLL.Services
                                                      .ToListAsync();
 
             var transportSchedules = await _unitOfWork.TransportSchedules.GetQueryable()
-                                         .Where(s => s.routeId.HasValue &&
-                                                     campRouteIds.Contains(s.routeId.Value) &&
-                                                     s.status == rejectedStatus)
+                                         .Where(s => s.routeId.HasValue && campRouteIds.Contains(s.routeId.Value) && s.status == rejectedStatus)
                                          .ToListAsync();
 
             foreach (var schedule in transportSchedules)
@@ -778,6 +830,69 @@ namespace SummerCampManagementSystem.BLL.Services
                 schedule.status = draftStatus;
                 await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
             }
+        }
+
+        private async Task CancelCampAndRelatedEntitiesAsync(int campId)
+        {
+            string canceledStatus = RegistrationStatus.Canceled.ToString();
+            string canceledScheduleStatus = ActivityScheduleStatus.Canceled.ToString();
+            string canceledTransportStatus = TransportScheduleStatus.Canceled.ToString();
+            string canceledCamperStatus = RegistrationCamperStatus.Canceled.ToString();
+
+            // cancel all activity schedules
+            var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                                        .Include(s => s.activity)
+                                        .Where(s => s.activity.campId == campId)
+                                        .ToListAsync();
+
+            foreach (var schedule in activitySchedules)
+            {
+                schedule.status = canceledScheduleStatus;
+                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            }
+
+            // cancel all transport schedules
+            var campRouteIds = await _unitOfWork.Routes.GetQueryable()
+                                                     .Where(r => r.campId == campId)
+                                                     .Select(r => r.routeId)
+                                                     .ToListAsync();
+
+            var transportSchedules = await _unitOfWork.TransportSchedules.GetQueryable()
+                                         .Where(s => s.routeId.HasValue && campRouteIds.Contains(s.routeId.Value))
+                                         .ToListAsync();
+
+            foreach (var schedule in transportSchedules)
+            {
+                schedule.status = canceledTransportStatus;
+                await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
+            }
+
+            // cancel all registrations
+            var registrations = await _unitOfWork.Registrations.GetQueryable()
+                                    .Where(r => r.campId == campId)
+                                    .ToListAsync();
+
+            foreach (var registration in registrations)
+            {
+                registration.status = canceledStatus;
+                await _unitOfWork.Registrations.UpdateAsync(registration);
+            }
+
+            // cancel all registration campers
+            var registrationCampers = await _unitOfWork.RegistrationCampers.GetQueryable()
+                                            .Include(rc => rc.registration)
+                                            .Where(rc => rc.registration.campId == campId)
+                                            .ToListAsync();
+
+            foreach (var regCamper in registrationCampers)
+            {
+                regCamper.status = canceledCamperStatus;
+                await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+            }
+
+            await _unitOfWork.CommitAsync();
+
+            _logger.LogInformation($"Canceled all related entities for Camp {campId}: {activitySchedules.Count} activity schedules, {transportSchedules.Count} transport schedules, {registrations.Count} registrations, {registrationCampers.Count} registration campers.");
         }
 
         #endregion
@@ -788,7 +903,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var response = new CampValidationResponseDto { IsValid = true };
             var dbContext = _unitOfWork.GetDbContext();
 
-            // 1. LẤY DỮ LIỆU TRẠI
+            // get camp data
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
             if (camp == null) throw new KeyNotFoundException("Không tìm thấy trại.");
 
@@ -796,13 +911,13 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 response.Errors.Add("Trại chưa thiết lập ngày bắt đầu và kết thúc.");
                 response.IsValid = false;
-                return response; // Dừng ngay vì không check được lịch
+                return response; // stop here if no dates
             }
 
-            // 2. VALIDATE GROUP (Capacity & Assignment)
+            // validate groups
             var groups = await _unitOfWork.Groups.GetByCampIdAsync(campId);
 
-            // a. Check Assignment (Có Supervisor chưa?)
+            // check staff assignment and activity assignment
             var unassignedGroups = groups.Where(g => g.supervisorId == null).Select(g => $"{g.groupName} (ID: {g.groupId})").ToList();
             if (unassignedGroups.Any())
             {
@@ -811,7 +926,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var assignedGroupIds = await _unitOfWork.Groups.GetGroupIdsWithSchedulesAsync(campId);
 
-            // Tìm các nhóm KHÔNG nằm trong danh sách đã có lịch
+            // find groups without any scheduled activities
             var groupsWithoutSchedule = groups
                 .Where(g => !assignedGroupIds.Contains(g.groupId))
                 .Select(g => $"{g.groupName} (ID: {g.groupId})")
@@ -822,21 +937,19 @@ namespace SummerCampManagementSystem.BLL.Services
                 response.Errors.Add($"Các nhóm sau chưa được phân công bất kỳ hoạt động nào: {string.Join(", ", groupsWithoutSchedule)}.");
             }
 
-            // b. Check Capacity (Tổng sức chứa nhóm vs Sức chứa trại)
-            // Giả sử mỗi Group có field 'capacity' hoặc 'maxCampers'
-            // Nếu bạn dùng logic đếm số lượng Camper thực tế đã add vào thì đổi sum thành count
+            // check total capacity of groups vs camp maxParticipants
             int totalGroupCap = groups.Sum(g => g.maxSize ?? 0);
 
-            // Giả sử logic: Tổng sức chứa nhóm phải >= Sức chứa trại (để đảm bảo đủ chỗ)
+            // group capacity > camp maxParticipants
             if (totalGroupCap < camp.maxParticipants)
             {
                 response.Errors.Add($"Tổng sức chứa của các nhóm ({totalGroupCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
             }
 
-            // 3. VALIDATE ACCOMMODATION
+            // validate accommodations
             var accommodations = await _unitOfWork.Accommodations.GetByCampIdAsync(campId);
 
-            // a. Check Assignment (Có Manager chưa?)
+            // check staff assignment
             var unassignedAccs = accommodations.Where(a => a.supervisorId == null).Select(a => $"{a.name} (ID: {a.accommodationId})").ToList();
             if (unassignedAccs.Any())
             {
@@ -845,7 +958,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var assignedAccIds = await _unitOfWork.Accommodations.GetAccommodationIdsWithSchedulesAsync(campId);
 
-            // Tìm các phòng chưa có lịch
+            // find accommodations without any scheduled resting periods
             var accsWithoutSchedule = accommodations
                 .Where(a => !assignedAccIds.Contains(a.accommodationId))
                 .Select(a => $"{a.name} (ID: {a.accommodationId})")
@@ -856,15 +969,15 @@ namespace SummerCampManagementSystem.BLL.Services
                 response.Errors.Add($"Các khu chỗ ở sau chưa được xếp lịch (Resting): {string.Join(", ", accsWithoutSchedule)}.");
             }
 
-            // b. Check Capacity
+            // check total capacity of accommodations vs camp maxParticipants
             int totalAccCap = accommodations.Sum(a => a.capacity ?? 0);
 
             if (totalAccCap < camp.maxParticipants)
             {
                 response.Errors.Add($"Tổng sức chứa chỗ ở ({totalAccCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
-            } 
+            }
 
-            // 4. VALIDATE SCHEDULE (Lịch trình)
+            // validate activity schedules
             var schedules = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(campId);
 
             if (!schedules.Any())
@@ -874,7 +987,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 return response;
             }
 
-            // a. Check Đầu/Cuối là CheckIn/CheckOut
+            // check initial and final activities
             var firstActivity = schedules.First();
             var lastActivity = schedules.Last();
 
@@ -888,20 +1001,20 @@ namespace SummerCampManagementSystem.BLL.Services
                 response.Errors.Add($"Hoạt động cuối cùng phải là 'CheckOut'. Hiện tại đang là: '{lastActivity.activity.name}' ({lastActivity.activity.activityType}).");
             }
 
-            // b. Check Coverage (Tất cả các ngày đều có hoạt động)
-            // Duyệt từng ngày từ Start đến End
+            // check daily coverage
+            // for each date in camp duration check if any schedule covers that date
             int daysCount = 0;
 
-            // [FIX]: Lọc trước các lịch hợp lệ (có đầy đủ Start/End) để tránh lỗi null
+            // only consider schedules with both startTime and endTime
             var validSchedules = schedules
                 .Where(s => s.startTime.HasValue && s.endTime.HasValue)
                 .ToList();
 
             var loopEndDate = camp.endDate.Value.Date;
 
-            // Nếu giờ kết thúc là đúng 00:00:00 (Midnight), 
-            // nghĩa là ngày đó chỉ là mốc kết thúc, không dùng để tổ chức hoạt động.
-            // -> Ta lùi lại 1 ngày kiểm tra.
+            // if end time is 00:00:00 (midnight), 
+            // that means the last day is not included in the camp duration
+            // subtract one day from the loop end date
             if (camp.endDate.Value.TimeOfDay == TimeSpan.Zero)
             {
                 loopEndDate = loopEndDate.AddDays(-1);
@@ -909,7 +1022,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             for (var date = camp.startDate.Value.Date; date <= loopEndDate; date = date.AddDays(1))
             {
-                // Check xem có hoạt động nào diễn ra vào ngày này (hoặc vắt qua ngày này) không
+                // check if any schedule covers this date
                 bool hasActivity = validSchedules.Any(s => s.startTime.Value.Date <= date && s.endTime.Value.Date >= date);
 
                 if (!hasActivity)
@@ -922,7 +1035,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
             }
 
-            // 5. KẾT LUẬN
             if (response.Errors.Any())
             {
                 response.IsValid = false;

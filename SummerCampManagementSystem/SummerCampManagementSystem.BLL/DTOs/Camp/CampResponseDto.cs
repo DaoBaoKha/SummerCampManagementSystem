@@ -26,6 +26,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camp
 
         public DateTime? RegistrationStartDate { get; set; }
         public DateTime? RegistrationEndDate { get; set; }
+        public int? CurrentCapacity { get; set; } = 0;
+        public string? Note { get; set; }
         public CampTypeDto? CampType { get; set; }
         public LocationDto? Location { get; set; }
         public PromotionSummaryForCampDto? Promotion { get; set; }
