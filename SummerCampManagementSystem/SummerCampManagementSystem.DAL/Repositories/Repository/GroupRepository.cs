@@ -120,5 +120,13 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return alerts;
         }
+
+        public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Include(g => g.camp)
+                .FirstOrDefaultAsync(g => g.groupId == groupId);
+        }
     }
 }
