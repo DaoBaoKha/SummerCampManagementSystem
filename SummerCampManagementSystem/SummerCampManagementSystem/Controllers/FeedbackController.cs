@@ -4,6 +4,7 @@ using SummerCampManagementSystem.BLL.DTOs.Feedback;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
+using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -34,6 +35,44 @@ namespace SummerCampManagementSystem.API.Controllers
             var feedback = await _feedbackService.GetFeedbackByIdAsync(id);
             if (feedback == null) return NotFound();
             return Ok(feedback);
+        }
+
+        [HttpGet("camps/{campId}")]
+        public async Task<IActionResult> GetFeedbackByCamp(int campId)
+        {
+            try
+            {
+                var feedbacks = await _feedbackService.GetFeedbacksByCampIdAsync(campId);
+                return Ok(feedbacks);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+        }
+
+
+        [HttpGet("registrattions/{registrationId}")]
+        public async Task<IActionResult> GetFeedbackByRegistration(int registrationId)
+        {
+            try 
+            {
+                var feedbacks = await _feedbackService.GetFeedbacksByRegistrationIdAsync(registrationId);
+                return Ok(feedbacks);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error", detail = ex.Message });
+            }
+
         }
 
         // POST api/<FeedbackController>
