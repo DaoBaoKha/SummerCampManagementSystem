@@ -53,7 +53,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     campStatus == CampStatus.Completed.ToString() ||
                     campStatus == CampStatus.Canceled.ToString())
                 {
-                    throw new BusinessRuleException($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
+                    throw new Exception($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
                 }
             }
         }
@@ -962,7 +962,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
 
-            ValidateCampStatusForOperation(camp, "update");
+            // Validate Schedule Status - Chỉ cho phép update khi status là NotYet trở về trước
+            var currentScheduleStatus = schedule.status;
+            if (currentScheduleStatus != ActivityScheduleStatus.Draft.ToString() &&
+                currentScheduleStatus != ActivityScheduleStatus.NotYet.ToString() &&
+                currentScheduleStatus != ActivityScheduleStatus.Rejected.ToString())
+            {
+                throw new BusinessRuleException($"Cannot update activity schedule with status '{currentScheduleStatus}'. Only Draft, NotYet, or Rejected status can be updated.");
+            }
 
             // 2. VALIDATE THỜI GIAN (Global Rule)
             if (dto.StartTime >= dto.EndTime)

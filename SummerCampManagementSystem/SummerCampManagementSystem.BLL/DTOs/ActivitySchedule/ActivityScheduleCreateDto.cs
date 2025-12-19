@@ -19,7 +19,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         public DateTime EndTime { get; set; }
         public bool? IsLiveStream { get; set; }
         public bool IsRepeat { get; set; } = false;
-        public List<int> GroupIds { get; set; } = new List<int>();
+        public List<int>? GroupIds { get; set; } = new List<int>();
     }
 
     public class OptionalScheduleCreateDto
