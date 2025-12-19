@@ -1,4 +1,5 @@
 ﻿using SummerCampManagementSystem.BLL.DTOs.Report;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.Interfaces
 {
@@ -6,6 +7,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<ReportResponseDto> CreateReportAsync(ReportRequestDto reportRequestDto, int staffId);
         Task<ReportResponseDto?> GetReportByIdAsync(int reportId);
+        Task<IEnumerable<ReportResponseDto>> GetReportsByTypeAsync(ReportType reportType);
         Task<IEnumerable<ReportResponseDto>> GetAllReportsAsync();
         Task<ReportResponseDto?> UpdateReportAsync(int reportId, ReportRequestDto reportRequestDto);
         Task<bool> DeleteReportAsync(int reportId);

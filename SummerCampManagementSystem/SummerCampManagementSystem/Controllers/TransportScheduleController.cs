@@ -43,6 +43,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// Support creating recurring schedules and auto-generating additional trips
         /// </summary>
         [HttpPost("bulk")]
+        [Authorize(Roles = "Admin, Manager")]
         public async Task<IActionResult> CreateScheduleBulk([FromBody] BulkCreateTransportScheduleDto bulkRequest)
         {
             if (!ModelState.IsValid)
@@ -115,10 +116,27 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         /// <summary>
-        /// get list or search transport schedules
+        /// Get transport schedules for login staff
         /// </summary>
-        /// <param name="searchDto"></param>
-        /// <returns></returns>
+        [HttpGet("staff-schedule")]
+        [Authorize(Roles = "Admin, Manager, Staff")]
+        public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetStaffSchedules()
+        {
+            var response = await _scheduleService.GetStaffSchedulesAsync();
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get transport schedule by ID with staff details (count + list with role)
+        /// </summary>
+        [HttpGet("{id}/staff-details")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<ActionResult<TransportScheduleWithStaffDto>> GetScheduleWithStaffDetails(int id)
+        {
+            var response = await _scheduleService.GetScheduleWithStaffDetailsAsync(id);
+            return Ok(response);
+        }
+
         [HttpGet]
         [Authorize(Roles = "Admin, Manager, User")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> Get([FromQuery] TransportScheduleSearchDto searchDto)

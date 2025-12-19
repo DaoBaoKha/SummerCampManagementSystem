@@ -189,7 +189,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // mock GetWithCampersAsync for the return
             // mock GetWithCampersAsync for the return
             var createdReg = new Registration { registrationId = 10, status = "PendingApproval", RegistrationCampers = new List<RegistrationCamper>() };
-             _mockRegistrationRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(createdReg);
+
+            _mockRegistrationRepo.Setup(r => r.GetFullDetailsAsync(10)).ReturnsAsync(createdReg);
+            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(createdReg);
              _mockRegistrationRepo.Setup(r => r.GetWithCampersAsync(10)).ReturnsAsync(createdReg);
              // Ensure CreateAsync callback sets the ID on the object passed to it
              _mockRegistrationRepo.Setup(r => r.CreateAsync(It.IsAny<Registration>()))
@@ -269,10 +271,10 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 }
             };
             
-            // Fix: Mock GetByIdAsync specifically
+            // mock GetByIdAsync specifically
             _mockRegistrationRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(reg);
             _mockRegistrationRepo.Setup(r => r.GetWithCampersAsync(1)).ReturnsAsync(reg);
-
+            _mockRegistrationRepo.Setup(r => r.GetFullDetailsAsync(1)).ReturnsAsync(reg);
             // Mock updates
             _mockRegistrationRepo.Setup(r => r.UpdateAsync(It.IsAny<Registration>())).Returns(Task.CompletedTask);
             _mockRegCamperRepo.Setup(r => r.UpdateAsync(It.IsAny<RegistrationCamper>())).Returns(Task.CompletedTask);
@@ -321,20 +323,14 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         [Fact]
         public async Task UpdateReg_InvalidStatus_ThrowsInvalidOperation()
         {
-            // arrange
             var request = new UpdateRegistrationRequestDto { CampId = 1, CamperIds = new List<int>() };
-            var regs = new List<Registration>
-            {
-                new Registration { registrationId = 1, status = "Rejected", RegistrationCampers = new List<RegistrationCamper>() }
-            };
-            var mockSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
-            _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockSet.Object);
-            // Fix: Mock GetByIdAsync explicitly
-            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(regs[0]);
+            var reg = new Registration { registrationId = 1, status = "PendingPayment", RegistrationCampers = new List<RegistrationCamper>() };
 
-            // act & assert
+            // mock getforupdate to find registration
+            _mockRegistrationRepo.Setup(r => r.GetForUpdateAsync(1)).ReturnsAsync(reg);
+
             var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _service.UpdateRegistrationAsync(1, request));
-            Assert.Contains("Cannot update registration with status", ex.Message);
+            Assert.Contains("Không thể cập nhật đơn ở trạng thái", ex.Message);
         }
 
         // UT14 - TEST CASE 3: Status Reset (Approved -> PendingApproval)
@@ -344,27 +340,20 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // arrange
             int regId = 1;
             var request = new UpdateRegistrationRequestDto { CampId = 2, CamperIds = new List<int>(), Note = "Updated" };
-
             var reg = new Registration { registrationId = regId, status = "Approved", campId = 1 };
             var regs = new List<Registration> { reg };
 
-            // Mock Repo Queryable
-            var mockRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
-            _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockRegSet.Object);
-            // Fix: Mock GetByIdAsync explicitly
-            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(regId)).ReturnsAsync(reg);
+            // [SỬA LỖI] Mock GetForUpdateAsync (đầu hàm) và GetFullDetailsAsync (cuối hàm)
+            _mockRegistrationRepo.Setup(r => r.GetForUpdateAsync(regId)).ReturnsAsync(reg);
+            _mockRegistrationRepo.Setup(r => r.GetFullDetailsAsync(regId)).ReturnsAsync(reg);
 
-            // Setup DbContext Mocks for direct access
             var dbRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockDbContext.Setup(c => c.Registrations).Returns(dbRegSet.Object);
-
             var dbLinkSet = MockDbSetHelper.GetQueryableMockDbSet(new List<RegistrationCamper>());
             _mockDbContext.Setup(c => c.RegistrationCampers).Returns(dbLinkSet.Object);
 
-            // Mock Camp Check
             _mockCampRepo.Setup(r => r.GetByIdAsync(2)).ReturnsAsync(new Camp { campId = 2 });
 
-            // Mock Mapper
             _mockMapper.Setup(m => m.Map<RegistrationResponseDto>(It.IsAny<Registration>()))
                 .Returns(new RegistrationResponseDto { registrationId = 1, Status = "PendingApproval" });
 
@@ -374,8 +363,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // assert
             Assert.NotNull(result);
             Assert.Equal("PendingApproval", result.Status);
-            // Verify DB update
-            Assert.Equal("PendingApproval", reg.status); // Check entity state
+            Assert.Equal("PendingApproval", reg.status);
             _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
         }
 
@@ -386,27 +374,20 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // arrange
             int regId = 1;
             var request = new UpdateRegistrationRequestDto { CampId = 1, CamperIds = new List<int>(), Note = "New Note" };
-
             var reg = new Registration { registrationId = regId, status = "PendingApproval", campId = 1, note = "Old" };
             var regs = new List<Registration> { reg };
 
-            // Mock Repo
-            var mockRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
-            _mockRegistrationRepo.Setup(r => r.GetQueryable()).Returns(mockRegSet.Object);
-            // Fix: Mock GetByIdAsync explicitly
-            _mockRegistrationRepo.Setup(r => r.GetByIdAsync(regId)).ReturnsAsync(reg);
+            // mock GetForUpdateAsync và GetFullDetailsAsync
+            _mockRegistrationRepo.Setup(r => r.GetForUpdateAsync(regId)).ReturnsAsync(reg);
+            _mockRegistrationRepo.Setup(r => r.GetFullDetailsAsync(regId)).ReturnsAsync(reg);
 
-            // Mock DbContext
             var dbRegSet = MockDbSetHelper.GetQueryableMockDbSet(regs);
             _mockDbContext.Setup(c => c.Registrations).Returns(dbRegSet.Object);
-
             var dbLinkSet = MockDbSetHelper.GetQueryableMockDbSet(new List<RegistrationCamper>());
             _mockDbContext.Setup(c => c.RegistrationCampers).Returns(dbLinkSet.Object);
 
-            // Mock Camp Check
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Camp { campId = 1 });
 
-            // Mock Mapper
             _mockMapper.Setup(m => m.Map<RegistrationResponseDto>(It.IsAny<Registration>()))
                 .Returns(new RegistrationResponseDto { registrationId = 1, Status = "PendingApproval" });
 
@@ -416,7 +397,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // assert
             Assert.NotNull(result);
             Assert.Equal("PendingApproval", result.Status);
-            Assert.Equal("New Note", reg.note); // Check entity update
+            Assert.Equal("New Note", reg.note);
             _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
         }
 

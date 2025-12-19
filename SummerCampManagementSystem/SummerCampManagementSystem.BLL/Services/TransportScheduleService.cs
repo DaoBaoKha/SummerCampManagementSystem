@@ -353,6 +353,55 @@ namespace SummerCampManagementSystem.BLL.Services
             return true;
         }
 
+        public async Task<IEnumerable<TransportScheduleResponseDto>> GetStaffSchedulesAsync()
+        {
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (!currentUserId.HasValue)
+            {
+                return Enumerable.Empty<TransportScheduleResponseDto>();
+            }
+
+            var schedules = await _repository.GetSchedulesByStaffIdAsync(currentUserId.Value);
+            return _mapper.Map<IEnumerable<TransportScheduleResponseDto>>(schedules);
+        }
+
+        public async Task<TransportScheduleWithStaffDto> GetScheduleWithStaffDetailsAsync(int scheduleId)
+        {
+            var schedule = await _repository.GetScheduleWithStaffDetailsAsync(scheduleId)
+                ?? throw new NotFoundException($"Transport Schedule ID {scheduleId} not found.");
+
+            var result = _mapper.Map<TransportScheduleWithStaffDto>(schedule);
+
+            // count and list staff with role
+            var staffList = schedule.TransportStaffAssignments
+                .Where(tsa => tsa.status == "Active" && tsa.staff != null)
+                .Select(tsa => new StaffInTransportDto
+                {
+                    StaffId = tsa.staff.userId,
+                    StaffName = $"{tsa.staff.lastName} {tsa.staff.firstName}",
+                    Role = tsa.staff.role ?? "Staff",
+                    Status = tsa.status ?? "Active"
+                })
+                .ToList();
+
+            // add driver to staff list if driver exists
+            if (schedule.driver != null && schedule.driver.user != null)
+            {
+                staffList.Insert(0, new StaffInTransportDto
+                {
+                    StaffId = schedule.driver.user.userId,
+                    StaffName = $"{schedule.driver.user.lastName} {schedule.driver.user.firstName}",
+                    Role = "Driver",
+                    Status = "Active"
+                });
+            }
+
+            result.Staff = staffList;
+            result.StaffCount = staffList.Count;
+
+            return result;
+        }
+
         #region Private Methods
 
         private async Task<TransportSchedule> PrepareScheduleEntityAsync(TransportScheduleRequestDto requestDto)

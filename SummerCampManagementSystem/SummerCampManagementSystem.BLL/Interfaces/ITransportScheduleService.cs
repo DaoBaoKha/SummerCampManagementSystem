@@ -19,5 +19,11 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperIdAsync(int camperId);
         Task<IEnumerable<CamperInScheduleResponseDto>> GetCampersInScheduleAsync(int scheduleId);
         Task<IEnumerable<TransportScheduleResponseDto>> GetSchedulesByCamperAndCampIdAsync(int camperId, int campId);
+
+        // get transport schedules for logged-in staff (based on TransportStaffAssignment)
+        Task<IEnumerable<TransportScheduleResponseDto>> GetStaffSchedulesAsync();
+
+        // get transport schedule by ID with staff details (count + list)
+        Task<TransportScheduleWithStaffDto> GetScheduleWithStaffDetailsAsync(int scheduleId);
     }
 }
