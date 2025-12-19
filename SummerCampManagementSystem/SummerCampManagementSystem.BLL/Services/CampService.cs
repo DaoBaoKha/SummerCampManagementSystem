@@ -334,7 +334,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
             {
-                throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft.");
+                throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể gửi phê duyệt từ trạng thái Draft hoặc Rejected.");
             }
 
 
@@ -360,7 +360,28 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new BadRequestException("Không thể gửi phê duyệt. Camp cần có ít nhất một Group/Staff Assignment hoặc Camper Group được tạo.");
             }
 
+            // if camp was previously rejected, reset rejected schedules to draft
+            if (currentStatus == CampStatus.Rejected)
+            {
+                await ResetRejectedSchedulesToDraftAsync(campId);
+            }
+
             return await TransitionCampStatusAsync(campId, CampStatus.PendingApproval);
+        }
+
+    
+        public async Task<CampResponseDto> RejectCampAsync(int campId)
+        {
+            var existingCamp = await GetCampsWithIncludes()
+                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Camp with ID {campId} not found.");
+
+            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
+                currentStatus != CampStatus.PendingApproval)
+            {
+                throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể từ chối phê duyệt khi trại đang ở trạng thái PendingApproval.");
+            }
+
+            return await TransitionCampStatusAsync(campId, CampStatus.Rejected);
         }
 
         public async Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate)
@@ -719,6 +740,42 @@ namespace SummerCampManagementSystem.BLL.Services
             foreach (var schedule in transportSchedules)
             {
                 schedule.status = rejectedStatus;
+                await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
+            }
+        }
+
+        private async Task ResetRejectedSchedulesToDraftAsync(int campId)
+        {
+            string rejectedStatus = TransportScheduleStatus.Rejected.ToString();
+            string draftStatus = TransportScheduleStatus.Draft.ToString();
+
+            // rejected -> draft
+            var activitySchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
+                                        .Include(s => s.activity)
+                                        .Where(s => s.activity.campId == campId && s.status == rejectedStatus)
+                                        .ToListAsync();
+
+            foreach (var schedule in activitySchedules)
+            {
+                schedule.status = draftStatus;
+                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+            }
+
+            // rejected -> draft
+            var campRouteIds = await _unitOfWork.Routes.GetQueryable()
+                                                     .Where(r => r.campId == campId)
+                                                     .Select(r => r.routeId)
+                                                     .ToListAsync();
+
+            var transportSchedules = await _unitOfWork.TransportSchedules.GetQueryable()
+                                         .Where(s => s.routeId.HasValue &&
+                                                     campRouteIds.Contains(s.routeId.Value) &&
+                                                     s.status == rejectedStatus)
+                                         .ToListAsync();
+
+            foreach (var schedule in transportSchedules)
+            {
+                schedule.status = draftStatus;
                 await _unitOfWork.TransportSchedules.UpdateAsync(schedule);
             }
         }
