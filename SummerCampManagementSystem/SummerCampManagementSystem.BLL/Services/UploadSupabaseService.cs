@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using Supabase;
@@ -88,6 +89,44 @@ namespace SummerCampManagementSystem.BLL.Services
             return await UploadFileInternalAsync(file, "general-images", string.Empty);
         }
 
+        public async Task<string?> UploadAlbumPhotoAsync(int albumId, IFormFile? file)
+        {
+            // Bucket: album-photos
+            // Path: {albumId}/filename
+            return await UploadFileInternalAsync(file, "album-photos", albumId.ToString());
+        }
+
+        public async Task<List<string>> UploadMultipleAlbumPhotosAsync(int albumId, List<IFormFile> files)
+        {
+            // validate only 20 files per upload
+            const int maxFilesPerUpload = 20;
+            if (files.Count > maxFilesPerUpload)
+            {
+                throw new BadRequestException($"Maximum {maxFilesPerUpload} files allowed per upload. Received: {files.Count}");
+            }
+
+            // validate total size not exceeding 50MB
+            const long maxTotalSize = 50 * 1024 * 1024; // 50MB
+            var totalSize = files.Sum(f => f.Length);
+            if (totalSize > maxTotalSize)
+            {
+                throw new BadRequestException($"Total file size cannot exceed 50MB. Current total: {totalSize / 1024 / 1024}MB");
+            }
+
+            var uploadedUrls = new List<string>();
+
+            foreach (var file in files)
+            {
+                var url = await UploadAlbumPhotoAsync(albumId, file);
+                if (!string.IsNullOrEmpty(url))
+                {
+                    uploadedUrls.Add(url);
+                }
+            }
+
+            return uploadedUrls;
+        }
+
         #region Private Helper Method
 
         private async Task<string?> UploadFileInternalAsync(IFormFile? file, string bucketName, string folderPath)
@@ -95,51 +134,46 @@ namespace SummerCampManagementSystem.BLL.Services
             if (file == null || file.Length == 0)
                 return null;
 
-            // 1. VALIDATE File Size (Max 5MB)
+            // validate file size (max 5MB)
             const long maxFileSize = 5 * 1024 * 1024;
             if (file.Length > maxFileSize)
-                throw new ArgumentException($"File size cannot exceed 5MB. Current size: {file.Length / 1024 / 1024}MB");
+                throw new BadRequestException($"File size cannot exceed 5MB. Current size: {file.Length / 1024 / 1024}MB");
 
-            // 2. VALIDATE File Extension
+            // validate file extension
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
             var ext = Path.GetExtension(file.FileName).ToLower();
 
             if (!allowedExtensions.Contains(ext))
-                throw new ArgumentException($"Only JPG, PNG, or WEBP images are allowed. Provided: {ext}");
+                throw new BadRequestException($"Only JPG, PNG, or WEBP images are allowed. Provided: {ext}");
 
-            // 3. VALIDATE Content Type
+            // validate content type
             var allowedContentTypes = new[] { "image/jpeg", "image/png", "image/webp" };
             if (!allowedContentTypes.Contains(file.ContentType))
-                throw new ArgumentException($"Invalid content type: {file.ContentType}");
+                throw new BadRequestException($"Invalid content type: {file.ContentType}");
 
-            // 4. UPLOAD
             var storage = _client.Storage;
             var bucket = storage.From(bucketName);
 
-            // Tạo tên file ngẫu nhiên để tránh trùng lặp
+            // generate filename 
             var fileName = $"avatar_{Guid.NewGuid():N}{ext}";
 
-            // Nếu có folderPath (ví dụ ID), ghép vào đường dẫn: "123/avatar_xyz.jpg"
-            // Nếu không (Blog), chỉ dùng tên file: "avatar_xyz.jpg"
+            // build path "123/avatar_xyz.jpg" or just "avatar_xyz.jpg"
             var fullPath = string.IsNullOrEmpty(folderPath) ? fileName : $"{folderPath}/{fileName}";
 
-            // 2. CHUYỂN IFormFile (Stream) SANG byte[]
+            // convert IFormFile (stream) to byte[]
             byte[] fileBytes;
             using (var stream = file.OpenReadStream())
             {
-                // Đọc toàn bộ nội dung stream vào mảng byte
                 fileBytes = new byte[file.Length];
-                // Sử dụng ReadAsync/CopyToAsync để an toàn và hiệu quả hơn
                 await stream.ReadAsync(fileBytes, 0, (int)file.Length);
             }
 
             await bucket.Upload(fileBytes, fullPath, new Supabase.Storage.FileOptions
             {
                 ContentType = file.ContentType,
-                Upsert = true // Ghi đè nếu file trùng tên (dù đã dùng GUID nhưng an toàn hơn)
+                Upsert = true // overwrite if file name already exists
             });
 
-            // 5. RETURN Public URL
             return bucket.GetPublicUrl(fullPath);
         }
 

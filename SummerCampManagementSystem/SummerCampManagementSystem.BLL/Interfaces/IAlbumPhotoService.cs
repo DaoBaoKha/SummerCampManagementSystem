@@ -9,5 +9,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<IEnumerable<AlbumPhotoResponseDto>> GetPhotosByAlbumIdAsync(int albumId);
         Task<AlbumPhotoResponseDto> UpdatePhotoAsync(int id, AlbumPhotoRequestDto photoRequest);
         Task<bool> DeletePhotoAsync(int id);
+        Task<BulkAlbumPhotoResponseDto> CreateMultiplePhotosAsync(int albumId, List<Microsoft.AspNetCore.Http.IFormFile> photos, string? defaultCaption = null);
     }
 }

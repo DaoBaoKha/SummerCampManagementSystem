@@ -5,7 +5,7 @@ using SummerCampManagementSystem.BLL.Interfaces;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [ApiController]
-    [Route("api/albumPhoto")]
+    [Route("api/album-photo")]
     public class AlbumPhotosController : ControllerBase
     {
         private readonly IAlbumPhotoService _albumPhotoService;
@@ -24,23 +24,12 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var newPhoto = await _albumPhotoService.CreatePhotoAsync(photoRequest);
-                return CreatedAtAction(
-                    nameof(GetPhotoById),
-                    new { id = newPhoto.AlbumPhotoId },
-                    newPhoto
-                );
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var newPhoto = await _albumPhotoService.CreatePhotoAsync(photoRequest);
+            return CreatedAtAction(
+                nameof(GetPhotoById),
+                new { id = newPhoto.AlbumPhotoId },
+                newPhoto
+            );
         }
 
 
@@ -73,18 +62,52 @@ namespace SummerCampManagementSystem.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var updatedPhoto = await _albumPhotoService.UpdatePhotoAsync(id, photoRequest);
+            return Ok(updatedPhoto);
+        }
+
+
+        [HttpPost("bulk")]
+        public async Task<IActionResult> AddMultiplePhotos([FromForm] int albumId, [FromForm] List<IFormFile> photos, [FromForm] string? caption = null)
+        {
+            // validation for formdata
+            if (photos == null || photos.Count == 0)
             {
-                var updatedPhoto = await _albumPhotoService.UpdatePhotoAsync(id, photoRequest);
-                return Ok(updatedPhoto);
+                return BadRequest(new { message = "At least one photo is required." });
             }
-            catch (KeyNotFoundException ex)
+
+            if (photos.Count > 20)
             {
-                return NotFound(new { message = ex.Message });
+                return BadRequest(new { message = "Maximum 20 photos allowed per upload." });
             }
-            catch (ArgumentException ex)
+
+            var result = await _albumPhotoService.CreateMultiplePhotosAsync(albumId, photos, caption);
+
+            // return appropriate status based on results
+            if (result.FailureCount == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Ok(new
+                {
+                    message = $"Successfully uploaded {result.SuccessCount} photos.",
+                    data = result
+                });
+            }
+            else if (result.SuccessCount == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "All photos failed to upload.",
+                    data = result
+                });
+            }
+            else
+            {
+                // partial success
+                return Ok(new
+                {
+                    message = $"Uploaded {result.SuccessCount} photos successfully, {result.FailureCount} failed.",
+                    data = result
+                });
             }
         }
 
@@ -92,20 +115,13 @@ namespace SummerCampManagementSystem.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeletePhoto(int id)
         {
-            try
+            var success = await _albumPhotoService.DeletePhotoAsync(id);
+            if (!success)
             {
-                var success = await _albumPhotoService.DeletePhotoAsync(id);
-                if (!success)
-                {
-                    return NotFound(new { message = $"Photo with ID {id} not found." });
-                }
+                return NotFound(new { message = $"Photo with ID {id} not found." });
+            }
 
-                return NoContent();
-            }
-            catch (InvalidOperationException ex) 
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            return NoContent();
         }
     }
 }
