@@ -69,6 +69,8 @@ public partial class Camp
 
     public int? maxAge { get; set; }
 
+    public string note { get; set; }
+
     [InverseProperty("camp")]
     public virtual ICollection<Accommodation> Accommodations { get; set; } = new List<Accommodation>();
 
