@@ -183,8 +183,16 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(ModelState);
             }
-            var updated = await _camperService.UpdateCamperAsync(id, dto);
-            return Ok(updated);
+
+            try
+            {
+                var updated = await _camperService.UpdateCamperAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

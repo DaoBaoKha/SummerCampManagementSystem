@@ -129,7 +129,7 @@ namespace SummerCampManagementSystem.BLL.Services
             
             try
             {
-                var Group = await _unitOfWork.Groups.GetByIdAsync(id)
+                var Group = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(id)
                     ?? throw new NotFoundException($"Camper Group with ID {id} not found.");
                 
                 stopwatch.Stop();
@@ -160,15 +160,16 @@ namespace SummerCampManagementSystem.BLL.Services
                 var group = _mapper.Map<Group>(Group);
 
                 await _unitOfWork.Groups.CreateAsync(group);
+                await _unitOfWork.CommitAsync();
 
-                var coreSchedules = await _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(Group.CampId);
+                var schedules = await _unitOfWork.ActivitySchedules.GetCheckInOutScheduleByCampIdAsync(Group.CampId);
 
-                foreach (var core in coreSchedules)
+                foreach (var schedule in schedules)
                 {
                     var groupActivity = new GroupActivity
                     {
                         groupId = group.groupId,
-                        activityScheduleId = core.activityScheduleId
+                        activityScheduleId = schedule.activityScheduleId
                     };
                     await _unitOfWork.GroupActivities.CreateAsync(groupActivity);
                 }
@@ -177,9 +178,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 
                 _logger.LogInformation(
                     "[GroupService] Successfully created GroupId={GroupId} with {ActivityCount} activities", 
-                    group.groupId, coreSchedules.Count());
-                
-                return _mapper.Map<GroupResponseDto>(group);
+                    group.groupId, schedules.Count());
+                var newGroup = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(group.groupId);
+                return _mapper.Map<GroupResponseDto>(newGroup);
             }
             catch (Exception ex)
             {
@@ -220,7 +221,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<GroupResponseDto?> UpdateGroupAsync(int id, GroupRequestDto Group)
         {
-            var existingGroup = await _unitOfWork.Groups.GetByIdAsync(id)
+            var existingGroup = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(id)
                 ?? throw new NotFoundException($"Camper Group with ID {id} not found.");
 
             await RunGroupSupervisorValidation(Group.SupervisorId, Group.CampId, id);
