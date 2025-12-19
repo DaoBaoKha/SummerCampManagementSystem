@@ -14,6 +14,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<Group>> GetAllCamperGroups()
         {
             return await _context.Groups
+                .AsNoTracking()
                 .Include(g => g.supervisor)
                 //.Include(g => g.Campers)
                 .ToListAsync();
@@ -36,6 +37,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<Group>> GetByCampIdAsync(int campId)
         {
             return await _context.Groups
+                .AsNoTracking()
                 .Include(g => g.supervisor)
                 //.Include(g => g.Campers)
                 .Where(g => g.campId == campId)
@@ -52,11 +54,30 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<Group>> GetGroupsByActivityScheduleIdAsync(int activityScheduleId)
         {
+            // use projection to avoid circular references and reduce memory footprint
             return await _context.GroupActivities
-                .Include(ga => ga.group.supervisor)
-                .Include(ga => ga.group)
-                .Where(g => g.activityScheduleId == activityScheduleId)
-                .Select(ga => ga.group)
+                .AsNoTracking()
+                .Where(ga => ga.activityScheduleId == activityScheduleId)
+                .Select(ga => new Group
+                {
+                    groupId = ga.group.groupId,
+                    groupName = ga.group.groupName,
+                    description = ga.group.description,
+                    currentSize = ga.group.currentSize,
+                    maxSize = ga.group.maxSize,
+                    supervisorId = ga.group.supervisorId,
+                    campId = ga.group.campId,
+                    minAge = ga.group.minAge,
+                    maxAge = ga.group.maxAge,
+                    supervisor = ga.group.supervisor != null ? new UserAccount
+                    {
+                        userId = ga.group.supervisor.userId,
+                        firstName = ga.group.supervisor.firstName,
+                        lastName = ga.group.supervisor.lastName,
+                        email = ga.group.supervisor.email,
+                        role = ga.group.supervisor.role
+                    } : null
+                })
                 .ToListAsync();
         }
 
