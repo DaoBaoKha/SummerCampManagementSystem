@@ -260,6 +260,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+
+
             // Validate giờ bắt đầu < kết thúc
             if (dto.StartTime >= dto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
