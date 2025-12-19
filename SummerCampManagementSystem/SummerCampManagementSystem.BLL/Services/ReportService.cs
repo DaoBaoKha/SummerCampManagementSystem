@@ -88,11 +88,12 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ReportResponseDto>>(reports);
         }
 
-        public async Task<ReportResponseDto?> GetReportByIdAsync(int reportId)
+        public async Task<ReportResponseDto> GetReportByIdAsync(int reportId)
         {
-            var report = await _unitOfWork.Reports.GetByIdAsync(reportId);
-            return report == null ? null : _mapper.Map<ReportResponseDto>(report);
-
+            var report = await _unitOfWork.Reports.GetByIdAsync(reportId)
+                ?? throw new NotFoundException($"Không tìm thấy report với ID {reportId}");
+            
+            return _mapper.Map<ReportResponseDto>(report);
         }
 
         public async Task<IEnumerable<ReportResponseDto>> GetReportsByTypeAsync(ReportType reportType)
