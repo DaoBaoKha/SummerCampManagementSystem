@@ -94,5 +94,23 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
             return _mapper.Map<FeedbackResponseDto>(feedback);
         }
+
+        public async Task<IEnumerable<FeedbackResponseDto>> GetFeedbacksByCampIdAsync(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new KeyNotFoundException($"Camp with id {campId} not found");
+
+            var feedbacks = await _unitOfWork.Feedbacks.GetFeedbacksByCampIdAsync(campId);
+            return _mapper.Map<IEnumerable<FeedbackResponseDto>>(feedbacks);
+        }
+
+        public async Task<IEnumerable<FeedbackResponseDto>> GetFeedbacksByRegistrationIdAsync(int registrationId)
+        {
+            var registration = await _unitOfWork.Registrations.GetByIdAsync(registrationId)
+                ?? throw new KeyNotFoundException($"Registration with id {registrationId} not found");
+
+            var feedbacks = await _unitOfWork.Feedbacks.GetFeedbacksByRegistrationIdAsync(registrationId);
+            return _mapper.Map<IEnumerable<FeedbackResponseDto>>(feedbacks);
+        }
     }
 }

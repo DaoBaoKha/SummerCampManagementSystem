@@ -16,5 +16,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<bool> DeleteFeedbackAsync(int feedbackId);
         Task<FeedbackResponseDto> ReplyFeedback(int feedbackId, FeedbackReplyRequestDto dto);
         Task<FeedbackResponseDto> RejectFeedback(int feedbackId, FeedbackRejectedRequestDto dto);
+        Task<IEnumerable<FeedbackResponseDto>> GetFeedbacksByCampIdAsync(int campId);
+        Task<IEnumerable<FeedbackResponseDto>> GetFeedbacksByRegistrationIdAsync(int registrationId);
     }
 }
