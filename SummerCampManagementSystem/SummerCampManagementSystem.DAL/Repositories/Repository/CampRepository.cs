@@ -17,21 +17,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<Camp>> GetCampsByStaffIdAsync(int staffId)
         {
-            return await _context.Camps
-                .Where(c =>
-                    c.status != CampStatus.Draft.ToString()
-                    && c.status != CampStatus.PendingApproval.ToString()
-                    &&
-                    (
-                        c.Activities.Any(a =>
-                            a.ActivitySchedules.Any(s => s.staffId == staffId)
-                        )
-                        || c.Groups.Any(g => g.supervisorId == staffId)
-                        || c.Accommodations.Any(a => a.supervisorId == staffId)
-                    )
-                )
-                .Distinct()
-                .ToListAsync();
+            return await _context.CampStaffAssignments
+               .Where(csa => csa.staffId == staffId)
+               .Select(csa => csa.camp)
+               .Where(c =>
+                   c.status != CampStatus.Draft.ToString()
+                   && c.status != CampStatus.PendingApproval.ToString()
+               )
+               .Distinct()
+               .ToListAsync();
         }
 
         // ADMIN DASHBOARD METHODS

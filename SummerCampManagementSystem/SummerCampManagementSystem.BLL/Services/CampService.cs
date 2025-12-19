@@ -771,12 +771,9 @@ namespace SummerCampManagementSystem.BLL.Services
             int totalGroupCap = groups.Sum(g => g.maxSize ?? 0);
 
             // Giả sử logic: Tổng sức chứa nhóm phải >= Sức chứa trại (để đảm bảo đủ chỗ)
-            if (totalGroupCap < camp.minParticipants)
+            if (totalGroupCap < camp.maxParticipants)
             {
                 response.Errors.Add($"Tổng sức chứa của các nhóm ({totalGroupCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
-            } else if (totalGroupCap > camp.maxParticipants)
-            {
-                response.Errors.Add($"Tổng sức chứa của các nhóm ({totalGroupCap}) vượt quá sức chứa tối đa của trại ({camp.maxParticipants}).");
             }
 
             // 3. VALIDATE ACCOMMODATION
@@ -805,13 +802,10 @@ namespace SummerCampManagementSystem.BLL.Services
             // b. Check Capacity
             int totalAccCap = accommodations.Sum(a => a.capacity ?? 0);
 
-            if (totalAccCap < camp.minParticipants)
+            if (totalAccCap < camp.maxParticipants)
             {
                 response.Errors.Add($"Tổng sức chứa chỗ ở ({totalAccCap}) thấp hơn sức chứa yêu cầu của trại ({camp.minParticipants}).");
-            } else if (totalAccCap > camp.maxParticipants)
-            {
-                response.Errors.Add($"Tổng sức chứa chỗ ở ({totalAccCap}) vượt quá sức chứa tối đa của trại ({camp.maxParticipants}).");
-            }
+            } 
 
             // 4. VALIDATE SCHEDULE (Lịch trình)
             var schedules = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(campId);
