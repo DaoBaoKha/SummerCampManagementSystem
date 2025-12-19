@@ -88,7 +88,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        public override async Task<IEnumerable<Report>> GetAllAsync()
+        public virtual async Task<IEnumerable<Report>> GetAllAsync()
         {
             return await _context.Reports
                 .Include(r => r.camper)
@@ -101,7 +101,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
-        public override async Task<Report?> GetByIdAsync(int id)
+        public virtual async Task<Report?> GetByIdAsync(int id)
         {
             return await _context.Reports
                 .Include(r => r.camper)

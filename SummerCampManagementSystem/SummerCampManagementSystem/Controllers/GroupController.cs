@@ -28,18 +28,42 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetAllGroups()
         {
             var requestId = Guid.NewGuid();
-            _logger.LogInformation("[GroupController] [{RequestId}] GET /api/group - GetAllGroups called", requestId);
+            var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            _logger.LogInformation(
+                "[GroupController] [{RequestId}] GET /api/group - GetAllGroups called - MemoryBefore={MemoryMB}MB, ProcessMemory={ProcessMemoryMB}MB", 
+                requestId, memoryBefore, Environment.WorkingSet / 1024 / 1024);
             
             try
             {
                 var Groups = await _groupService.GetAllGroupsAsync();
-                _logger.LogInformation("[GroupController] [{RequestId}] GET /api/group - Success, returned {Count} groups", requestId, Groups.Count());
+                
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogInformation(
+                    "[GroupController] [{RequestId}] GET /api/group - Success, returned {Count} groups, ElapsedMs={ElapsedMs}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, MemoryDelta={MemoryDeltaMB}MB",
+                    requestId, Groups.Count(), stopwatch.ElapsedMilliseconds, memoryBefore, memoryAfter, memoryAfter - memoryBefore);
+                    
                 return Ok(Groups);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(dbEx, 
+                    "[GroupController] [{RequestId}] GET /api/group - DATABASE ERROR: {ErrorMessage}, InnerException={InnerException}, StackTrace={StackTrace}", 
+                    requestId, dbEx.Message, dbEx.InnerException?.Message, dbEx.StackTrace);
+                return StatusCode(500, new { message = "Database error occurred.", detail = dbEx.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[GroupController] [{RequestId}] GET /api/group - ERROR: {ErrorMessage}", 
-                    requestId, ex.Message);
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogError(ex, 
+                    "[GroupController] [{RequestId}] GET /api/group - ERROR: {ErrorMessage}, ExceptionType={ExceptionType}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, StackTrace={StackTrace}", 
+                    requestId, ex.Message, ex.GetType().Name, memoryBefore, memoryAfter, ex.StackTrace);
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
@@ -100,24 +124,50 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetGroupsByCampId(int campId)
         {
             var requestId = Guid.NewGuid();
-            _logger.LogInformation("[GroupController] [{RequestId}] GET /api/group/camp/{CampId} called", requestId, campId);
+            var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            _logger.LogInformation(
+                "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} called - MemoryBefore={MemoryMB}MB", 
+                requestId, campId, memoryBefore);
             
             try
             {
                 var groups = await _groupService.GetGroupsByCampIdAsync(campId);
-                _logger.LogInformation("[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - Success, returned {Count} groups", 
-                    requestId, campId, groups.Count());
+                
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogInformation(
+                    "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - Success, returned {Count} groups, ElapsedMs={ElapsedMs}, MemoryDelta={MemoryDeltaMB}MB", 
+                    requestId, campId, groups.Count(), stopwatch.ElapsedMilliseconds, memoryAfter - memoryBefore);
+                    
                 return Ok(groups);
             }
             catch (NotFoundException ex)
             {
-                _logger.LogWarning("[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - Not Found: {Message}", requestId, campId, ex.Message);
+                stopwatch.Stop();
+                _logger.LogWarning(
+                    "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - Not Found: {Message}, ElapsedMs={ElapsedMs}", 
+                    requestId, campId, ex.Message, stopwatch.ElapsedMilliseconds);
                 return NotFound(new { message = ex.Message });
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(dbEx, 
+                    "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - DATABASE ERROR: {ErrorMessage}, StackTrace={StackTrace}", 
+                    requestId, campId, dbEx.Message, dbEx.StackTrace);
+                return StatusCode(500, new { message = "Database error occurred.", detail = dbEx.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - ERROR: {ErrorMessage}", 
-                    requestId, campId, ex.Message);
+                stopwatch.Stop();
+                var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
+                
+                _logger.LogError(ex, 
+                    "[GroupController] [{RequestId}] GET /api/group/camp/{CampId} - ERROR: {ErrorMessage}, ExceptionType={ExceptionType}, MemoryBefore={MemoryBeforeMB}MB, MemoryAfter={MemoryAfterMB}MB, StackTrace={StackTrace}", 
+                    requestId, campId, ex.Message, ex.GetType().Name, memoryBefore, memoryAfter, ex.StackTrace);
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }

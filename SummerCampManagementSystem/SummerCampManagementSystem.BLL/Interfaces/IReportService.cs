@@ -6,7 +6,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public interface IReportService
     {
         Task<ReportResponseDto> CreateReportAsync(ReportRequestDto reportRequestDto, int staffId);
-        Task<ReportResponseDto?> GetReportByIdAsync(int reportId);
+        Task<ReportResponseDto> GetReportByIdAsync(int reportId);
         Task<IEnumerable<ReportResponseDto>> GetReportsByTypeAsync(ReportType reportType);
         Task<IEnumerable<ReportResponseDto>> GetAllReportsAsync();
         Task<ReportResponseDto?> UpdateReportAsync(int reportId, ReportRequestDto reportRequestDto);

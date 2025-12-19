@@ -962,6 +962,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
 
+            ValidateCampStatusForOperation(camp, "update");
+
             // 2. VALIDATE THỜI GIAN (Global Rule)
             if (dto.StartTime >= dto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
