@@ -25,6 +25,39 @@ namespace SummerCampManagementSystem.BLL.Services
             _mapper = mapper;
         }
 
+        private void ValidateCampStatusForOperation(Camp camp, string operation)
+        {
+            var campStatus = camp.status;
+
+            if (operation == "create" || operation == "update")
+            {
+                // Not allowed from Published onwards
+                if (campStatus == CampStatus.Published.ToString() ||
+                    campStatus == CampStatus.OpenForRegistration.ToString() ||
+                    campStatus == CampStatus.RegistrationClosed.ToString() ||
+                    campStatus == CampStatus.UnderEnrolled.ToString() ||
+                    campStatus == CampStatus.InProgress.ToString() ||
+                    campStatus == CampStatus.Completed.ToString() ||
+                    campStatus == CampStatus.Canceled.ToString())
+                {
+                    throw new BusinessRuleException($"Cannot {operation} activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, or Rejected status.");
+                }
+            }
+            else if (operation == "delete")
+            {
+                // Not allowed from OpenForRegistration onwards
+                if (campStatus == CampStatus.OpenForRegistration.ToString() ||
+                    campStatus == CampStatus.RegistrationClosed.ToString() ||
+                    campStatus == CampStatus.UnderEnrolled.ToString() ||
+                    campStatus == CampStatus.InProgress.ToString() ||
+                    campStatus == CampStatus.Completed.ToString() ||
+                    campStatus == CampStatus.Canceled.ToString())
+                {
+                    throw new BusinessRuleException($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
+                }
+            }
+        }
+
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAllSchedulesAsync()
         {
             var activities = await _unitOfWork.ActivitySchedules.GetAllSchedule();
@@ -71,6 +104,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found.");
+
+            ValidateCampStatusForOperation(camp, "create");
 
             if (templateDto.StartTime >= templateDto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
@@ -260,6 +295,7 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            ValidateCampStatusForOperation(camp, "create");
 
 
             // Validate giờ bắt đầu < kết thúc
@@ -506,6 +542,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            ValidateCampStatusForOperation(camp, "create");
+
             // Validate giờ
             if (dto.StartTime >= dto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
@@ -670,6 +708,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            ValidateCampStatusForOperation(camp, "create");
+
             // Validate giờ
             if (dto.StartTime >= dto.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
@@ -794,6 +834,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
                 ?? throw new KeyNotFoundException("Camp not found");
 
+            ValidateCampStatusForOperation(camp, "create");
+
             // Vì Check-in/Check-out chỉ diễn ra 1 lần duy nhất trong trại
 
             if (dto.StartTime < camp.startDate.Value || dto.EndTime > camp.endDate.Value)
@@ -912,6 +954,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var campId = schedule.activity.campId.Value;
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+
+            ValidateCampStatusForOperation(camp, "update");
 
             // 2. VALIDATE THỜI GIAN (Global Rule)
             if (dto.StartTime >= dto.EndTime)
@@ -1245,6 +1289,12 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
                 ?? throw new NotFoundException("Activity schedule not found.");
+
+            // Fetch camp to validate status
+            var camp = await _unitOfWork.Camps.GetByIdAsync(schedule.activity.campId.Value)
+                ?? throw new NotFoundException("Camp not found.");
+
+            ValidateCampStatusForOperation(camp, "delete");
 
             var currentStatus = schedule.status;
 
