@@ -33,6 +33,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ActivitySchedule
         [Required(ErrorMessage = "Ngày Giờ kết thúc là bắt buộc.")]
         public DateTime EndTime { get; set; }
         public bool? IsLiveStream { get; set; }
+        public int? MaxCapacity { get; set; }
         public bool IsRepeat { get; set; } = false;
 
     }

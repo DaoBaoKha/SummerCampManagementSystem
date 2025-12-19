@@ -40,7 +40,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     campStatus == CampStatus.Completed.ToString() ||
                     campStatus == CampStatus.Canceled.ToString())
                 {
-                    throw new BusinessRuleException($"Cannot {operation} activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, or Rejected status.");
+                    throw new BadRequestException($"Cannot {operation} activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, or Rejected status.");
                 }
             }
             else if (operation == "delete")
@@ -53,7 +53,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     campStatus == CampStatus.Completed.ToString() ||
                     campStatus == CampStatus.Canceled.ToString())
                 {
-                    throw new Exception($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
+                    throw new BadRequestException($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
                 }
             }
         }
