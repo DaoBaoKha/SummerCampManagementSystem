@@ -78,6 +78,19 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<ActivitySchedule>> GetCheckInOutScheduleByCampIdAsync(int campId)
+        {
+            return await _context.ActivitySchedules
+                .Include(s => s.location)
+                .Include(s => s.staff)
+                .Include(s => s.activity)
+                .Include(s => s.livestream)
+                .Where(s => s.activity.campId == campId
+                && (s.activity.activityType == ActivityType.Checkin.ToString()
+                    || s.activity.activityType == ActivityType.Checkout.ToString()))
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<ActivitySchedule>> GetScheduleByCampIdAsync(int campId)
         {
             return await _context.ActivitySchedules

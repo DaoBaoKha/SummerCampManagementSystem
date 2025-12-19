@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using SummerCampManagementSystem.BLL.Attributes;
 using SummerCampManagementSystem.BLL.DTOs.HealthRecord;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         public string Gender { get; set; } = null!;
 
         [Required]
+        [AgeRange(5, 12)]
         public DateOnly Dob { get; set; }
 
         public HealthRecordCreateDto? HealthRecord { get; set; }
@@ -34,6 +36,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Camper
         
         public string? Gender { get; set; }
 
+        [AgeRange(5, 12)]
         public DateOnly? Dob { get; set; }
 
         public HealthRecordCreateDto? HealthRecord { get; set; }

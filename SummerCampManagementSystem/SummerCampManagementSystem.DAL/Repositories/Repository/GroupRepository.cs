@@ -342,6 +342,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Groups
                 .Include(g => g.CamperGroups)
                 .Include(g => g.camp)
+                .Include(g => g.supervisor)
                 .FirstOrDefaultAsync(g => g.groupId == groupId);
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
