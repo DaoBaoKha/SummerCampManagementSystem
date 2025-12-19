@@ -121,6 +121,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return alerts;
         }
 
+<<<<<<< HEAD
         public async Task<IEnumerable<Group>> GetGroupsWithCampersByCampIdAsync(int campId)
         {
             return await _context.Groups
@@ -135,6 +136,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(g => g.CamperGroups)
                 .Where(g => groupIds.Contains(g.groupId))
                 .ToListAsync();
+=======
+        public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Include(g => g.camp)
+                .FirstOrDefaultAsync(g => g.groupId == groupId);
+>>>>>>> aa1f3938992fc860e41f971b323f4af9d35c90c1
         }
     }
 }

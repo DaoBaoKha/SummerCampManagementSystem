@@ -15,7 +15,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             _context = context;
         }
-        public async Task<IEnumerable<Accommodation>> GetByCampId(int campId)
+        public async Task<IEnumerable<Accommodation>> GetByCampIdAsync(int campId)
         {
             return await _context.Accommodations
                 .Where(a => a.campId == campId)
@@ -66,6 +66,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(aa => aa.accommodationId)
                 .Distinct()
                 .ToListAsync();
+        }
+
+        public async Task<Accommodation?> GetByIdWithCamperAccommodationsAndCampAsync(int accommodationId)
+        {
+            return await _context.Accommodations
+                .Include(a => a.CamperAccommodations)
+                .Include(a => a.camp)
+                .FirstOrDefaultAsync(a => a.accommodationId == accommodationId);
         }
     }
 }

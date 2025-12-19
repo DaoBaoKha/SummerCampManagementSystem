@@ -128,6 +128,7 @@ builder.Services.AddScoped<ICamperTransportRepository, CamperTransportRepository
 builder.Services.AddScoped<ICamperTransportService, CamperTransportService>();
 builder.Services.AddScoped<ICamperGroupRepository, CamperGroupRepository>();
 builder.Services.AddScoped<ICamperGroupService, CamperGroupService>();
+builder.Services.AddScoped<ICamperAccommodationService, CamperAccommodationService>();
 builder.Services.AddScoped<IGuardianRepository, GuardianRepository>();
 builder.Services.AddScoped<IGuardianService, GuardianService>();
 builder.Services.AddScoped<IHealthRecordRepository, HealthRecordRepository>();
@@ -175,7 +176,7 @@ builder.Services.AddScoped<ITransportScheduleRepository, TransportScheduleReposi
 builder.Services.AddScoped<ITransportScheduleService, TransportScheduleService>();
 builder.Services.AddScoped<IAttendanceLogRepository, AttendanceLogRepository>();
 builder.Services.AddScoped<IAttendanceLogService, AttendanceLogService>();
-builder.Services.AddScoped<ICamperAccomodationRepository, CamperAccomodationRepository>();
+builder.Services.AddScoped<ICamperAccommodationRepository, CamperAccommodationRepository>();
 builder.Services.AddScoped<IRegistrationCamperRepository, RegistrationCamperRepository>();
 builder.Services.AddScoped<IRegistrationCamperService, RegistrationCamperService>();
 builder.Services.AddScoped<IParentCamperRepository, ParentCamperRepository>();

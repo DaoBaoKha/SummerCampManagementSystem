@@ -171,7 +171,7 @@ namespace SummerCampManagementSystem.BLL.Services
             try
             {
                 var groups = await _unitOfWork.Groups.GetByCampIdAsync(camp.campId);
-                var accommodations = await _unitOfWork.Accommodations.GetByCampId(camp.campId);
+                var accommodations = await _unitOfWork.Accommodations.GetByCampIdAsync(camp.campId);
                 var currentCapacity = groups.Sum(g => g.CamperGroups?.Count ?? 0);
 
                 // Tạo một list chứa tất cả thời gian của các schedule sắp tạo
@@ -725,7 +725,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 3. TÍNH CAPACITY & LẤY LIST ACCOMMODATION
             // Logic: Resting áp dụng cho toàn trại -> Tự động lấy tất cả Accommodation trong trại
-            var accommodations = await _unitOfWork.Accommodations.GetByCampId(camp.campId);
+            var accommodations = await _unitOfWork.Accommodations.GetByCampIdAsync(camp.campId);
             if (accommodations == null || !accommodations.Any())
                 throw new InvalidOperationException("Trại chưa có khu lưu trú (Accommodation) nào để tạo lịch nghỉ ngơi.");
 

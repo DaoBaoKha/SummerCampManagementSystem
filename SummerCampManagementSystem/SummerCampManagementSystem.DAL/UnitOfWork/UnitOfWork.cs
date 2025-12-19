@@ -51,7 +51,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         public ILocationRepository Locations { get; }
         public IGroupActivityRepository GroupActivities { get; }
         public IAttendanceLogRepository AttendanceLogs { get; }
-        public ICamperAccomodationRepository CamperAccommodations { get; }
+        public ICamperAccommodationRepository CamperAccommodations { get; }
         public IRegistrationCamperRepository RegistrationCampers { get; }
         public IParentCamperRepository ParentCampers { get; }
         public IDriverRepository Drivers { get; }
@@ -68,7 +68,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             , ILocationRepository locations, IRegistrationOptionalActivityRepository registrationOptionalActivities
             , IActivityScheduleRepository activitySchedules, IGroupActivityRepository groupActivities, IAlbumRepository albums, IAlbumPhotoRepository albumPhotos
             , IUserAccountRepository userAccounts, IAttendanceLogRepository attendanceLogs, IAlbumPhotoFaceRepository albumPhotoFaces,
-            ICamperAccomodationRepository camperAccomodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
+            ICamperAccommodationRepository camperAccommodations, IRegistrationCamperRepository registrationCampers, ICampStaffAssignmentRepository campStaffAssignments
             , IChatConversationRepository chatConversations, IChatMessageRepository chatMessages, IParentCamperRepository parentCampers, IAccommodationRepository accommodations
             , IRouteStopRepository routeStops, IAccommodationTypeRepository accommodationTypes, ICamperGuardianRepository camperGuardians,
             ITransportScheduleRepository transportSchedules, IDriverRepository drivers, ILiveStreamRepository liveStreams
@@ -94,7 +94,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
             CampTypes = campTypes;
             CamperGroups = camperGroups;
             Campers = campers;
-            CamperAccommodations = camperAccomodations;
+            CamperAccommodations = camperAccommodations;
             CamperGuardians = camperGuardians;
             CamperActivities = camperActivities;
             CampStaffAssignments = campStaffAssignments;
