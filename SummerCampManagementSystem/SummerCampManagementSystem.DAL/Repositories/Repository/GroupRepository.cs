@@ -322,8 +322,27 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             }
         }
 
+        public async Task<IEnumerable<Group>> GetGroupsWithCampersByCampIdAsync(int campId)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Where(g => g.campId == campId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Group>> GetGroupsWithCampersByIdsAsync(List<int> groupIds)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Where(g => groupIds.Contains(g.groupId))
+                .ToListAsync();
         public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
         {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Include(g => g.camp)
+                .FirstOrDefaultAsync(g => g.groupId == groupId);
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
             
