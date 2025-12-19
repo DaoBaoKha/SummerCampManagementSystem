@@ -11,6 +11,7 @@ namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/group")]
     [ApiController]
+    [Authorize]
     public class GroupController : ControllerBase
     {
         private readonly IGroupService _groupService;
