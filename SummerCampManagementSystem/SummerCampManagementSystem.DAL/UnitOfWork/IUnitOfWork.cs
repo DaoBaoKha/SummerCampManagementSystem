@@ -56,6 +56,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ILiveStreamRepository LiveStreams { get; }
         IReportRepository Reports { get; }
         IFeedbackRepository Feedbacks { get; }
+        IFAQRepository FAQs { get; }
         IMessageRepository Messages { get; }
         Task<int> CommitAsync();
         Task<IDbContextTransaction> BeginTransactionAsync();
