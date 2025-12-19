@@ -108,6 +108,130 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<ChatRoomMessageDto>>(messages);
         }
 
+        public async Task<CreateOrGetPrivateRoomResponseDto> CreateOrGetPrivateRoomAsync(int currentUserId, int recipientUserId)
+        {
+            // validate recipient user exists
+            var recipientUser = await _unitOfWork.Users.GetByIdAsync(recipientUserId);
+            if (recipientUser == null)
+            {
+                throw new NotFoundException($"Không tìm thấy người dùng với ID {recipientUserId}.");
+            }
+
+            // check if private room already exists between these two users
+            var existingRoom = await _unitOfWork.ChatRooms.GetQueryable()
+                .Include(r => r.ChatRoomUsers)
+                .ThenInclude(cru => cru.user)
+                .Where(r => r.type == "Private" && r.ChatRoomUsers.Count == 2)
+                .ToListAsync();
+
+            // find room where both users are members
+            var privateRoom = existingRoom.FirstOrDefault(r =>
+                r.ChatRoomUsers.Any(cru => cru.userId == currentUserId) &&
+                r.ChatRoomUsers.Any(cru => cru.userId == recipientUserId));
+
+            bool isNewRoom = false;
+
+            // if room doesn't exist, create new one
+            if (privateRoom == null)
+            {
+                // create new chat room
+                var newRoom = new ChatRoom
+                {
+                    name = null, // private rooms don't need names
+                    type = "Private",
+                    createdAt = DateTime.UtcNow,
+                    updateAt = DateTime.UtcNow
+                };
+
+                await _unitOfWork.ChatRooms.CreateAsync(newRoom);
+                await _unitOfWork.CommitAsync();
+
+                // add both users to the room
+                var chatRoomUser1 = new ChatRoomUser
+                {
+                    chatRoomId = newRoom.chatRoomId,
+                    userId = currentUserId
+                };
+
+                var chatRoomUser2 = new ChatRoomUser
+                {
+                    chatRoomId = newRoom.chatRoomId,
+                    userId = recipientUserId
+                };
+
+                await _unitOfWork.ChatRoomUsers.CreateAsync(chatRoomUser1);
+                await _unitOfWork.ChatRoomUsers.CreateAsync(chatRoomUser2);
+                await _unitOfWork.CommitAsync();
+
+                privateRoom = newRoom;
+                isNewRoom = true;
+            }
+
+            // return room details
+            return new CreateOrGetPrivateRoomResponseDto
+            {
+                ChatRoomId = privateRoom.chatRoomId,
+                IsNewRoom = isNewRoom,
+                RecipientName = $"{recipientUser.lastName} {recipientUser.firstName}",
+                RecipientAvatar = recipientUser.avatar ?? string.Empty,
+                RecipientUserId = recipientUserId
+            };
+        }
+
+        public async Task<ChatRoomDetailDto> GetRoomDetailsAsync(int userId, int chatRoomId)
+        {
+            // check if user is member of the room
+            var isInRoom = await _unitOfWork.ChatRoomUsers.IsUserInRoomAsync(userId, chatRoomId);
+            if (!isInRoom)
+            {
+                throw new UnauthorizedException("Bạn không có quyền xem thông tin phòng chat này.");
+            }
+
+            // get room with details
+            var room = await _unitOfWork.ChatRooms.GetQueryable()
+                .Include(r => r.ChatRoomUsers)
+                .ThenInclude(cru => cru.user)
+                .Include(r => r.Messages.OrderByDescending(m => m.createAt).Take(1))
+                .FirstOrDefaultAsync(r => r.chatRoomId == chatRoomId);
+
+            if (room == null)
+            {
+                throw new NotFoundException($"Không tìm thấy phòng chat với ID {chatRoomId}.");
+            }
+
+            var lastMsg = room.Messages.FirstOrDefault();
+
+            string displayName = room.name;
+            string displayAvatar = string.Empty;
+            int type = 1; // group
+
+            // if private chat or no name, use other user's name
+            if (string.IsNullOrEmpty(displayName) || room.ChatRoomUsers.Count == 2)
+            {
+                type = 0; // private
+                var otherUser = room.ChatRoomUsers.FirstOrDefault(u => u.userId != userId)?.user;
+                if (otherUser != null)
+                {
+                    displayName = $"{otherUser.lastName} {otherUser.firstName}";
+                    displayAvatar = otherUser.avatar ?? string.Empty;
+                }
+                else
+                {
+                    displayName = "Người dùng";
+                }
+            }
+
+            return new ChatRoomDetailDto
+            {
+                ChatRoomId = room.chatRoomId,
+                Name = displayName,
+                AvatarUrl = displayAvatar,
+                LastMessage = lastMsg?.content ?? "Chưa có tin nhắn",
+                LastMessageTime = lastMsg?.createAt,
+                Type = type
+            };
+        }
+
         #region Private Methods
 
         private async Task ValidateSendMessageRequest(int userId, int chatRoomId)
