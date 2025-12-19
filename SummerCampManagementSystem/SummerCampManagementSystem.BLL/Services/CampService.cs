@@ -329,12 +329,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<CampResponseDto> SubmitForApprovalAsync(int campId)
         {
             var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId);
-
-            if (existingCamp == null)
-            {
-                throw new Exception($"Camp with ID {campId} not found.");
-            }
+                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new Exception($"Camp with ID {campId} not found.");
 
             if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
                 (currentStatus != CampStatus.Draft && currentStatus != CampStatus.Rejected))
@@ -370,9 +365,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate)
         {
-            var camp = await GetCampsWithIncludes().FirstOrDefaultAsync(c => c.campId == campId);
-            if (camp == null)
-                throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+            var camp = await GetCampsWithIncludes().FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
 
             // only allow when status = UnderEnrolled
             if (camp.status != CampStatus.UnderEnrolled.ToString())
@@ -787,7 +780,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // 3. VALIDATE ACCOMMODATION
-            var accommodations = await _unitOfWork.Accommodations.GetByCampId(campId);
+            var accommodations = await _unitOfWork.Accommodations.GetByCampIdAsync(campId);
 
             // a. Check Assignment (Có Manager chưa?)
             var unassignedAccs = accommodations.Where(a => a.supervisorId == null).Select(a => $"{a.name} (ID: {a.accommodationId})").ToList();

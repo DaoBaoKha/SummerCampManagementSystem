@@ -27,6 +27,7 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         IVehicleRepository Vehicles { get; }
         IVehicleTypeRepository VehicleTypes { get; }
         ICamperGroupRepository CamperGroups { get; }
+        ICamperAccommodationRepository CamperAccommodations { get; }
         ICampRepository Camps { get; }
         ICampTypeRepository CampTypes { get; }
         ICamperRepository Campers { get; }
@@ -49,7 +50,6 @@ namespace SummerCampManagementSystem.DAL.UnitOfWork
         ILocationRepository Locations { get; }
         IGroupActivityRepository GroupActivities { get; }
         IAttendanceLogRepository AttendanceLogs { get; }
-        ICamperAccomodationRepository CamperAccommodations { get; }
         IRegistrationCamperRepository RegistrationCampers { get; }
         IParentCamperRepository ParentCampers { get; }
         IDriverRepository Drivers { get; }
