@@ -120,5 +120,21 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             return alerts;
         }
+
+        public async Task<IEnumerable<Group>> GetGroupsWithCampersByCampIdAsync(int campId)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Where(g => g.campId == campId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Group>> GetGroupsWithCampersByIdsAsync(List<int> groupIds)
+        {
+            return await _context.Groups
+                .Include(g => g.CamperGroups)
+                .Where(g => groupIds.Contains(g.groupId))
+                .ToListAsync();
+        }
     }
 }

@@ -29,7 +29,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var campStatus = camp.status;
 
-            if (operation == "create" || operation == "update")
+            if (operation == "create")
             {
                 // Not allowed from Published onwards
                 if (campStatus == CampStatus.Published.ToString() ||
@@ -312,22 +312,29 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // --- LOGIC TÍNH CAPACITY ---
-            // Lấy danh sách Group được chọn và đếm số lượng Camper trong đó
+            // Nếu không gửi GroupIds -> Lấy tất cả group trong trại
+            // Nếu có gửi GroupIds -> Chỉ lấy các group được chọn
             int totalCapacity = 0;
-            var dbContext = _unitOfWork.GetDbContext();
+            List<int> groupIdsToAssign = new List<int>();
 
-            // Query trực tiếp để Include bảng CamperGroups (đếm thành viên)
             if (dto.GroupIds != null && dto.GroupIds.Any())
             {
-                var selectedGroups = await dbContext.Groups
-                    .Include(g => g.CamperGroups) // Include bảng phụ để đếm
-                    .Where(g => dto.GroupIds.Contains(g.groupId))
-                    .ToListAsync();
+                // Có gửi GroupIds -> Dùng danh sách được chọn
+                groupIdsToAssign = dto.GroupIds;
+                var selectedGroups = await _unitOfWork.Groups.GetGroupsWithCampersByIdsAsync(dto.GroupIds);
 
-                // Tính tổng capacity = Tổng số camper trong các group này
-                // (Giả sử logic đếm tất cả, nếu cần lọc status Active thì thêm điều kiện vào Count)
                 totalCapacity = selectedGroups.Sum(g => g.CamperGroups.Count);
             }
+            else
+            {
+                // Không gửi GroupIds -> Lấy tất cả group trong trại
+                var allGroupsInCamp = await _unitOfWork.Groups.GetGroupsWithCampersByCampIdAsync(camp.campId);
+
+                groupIdsToAssign = allGroupsInCamp.Select(g => g.groupId).ToList();
+                totalCapacity = allGroupsInCamp.Sum(g => g.CamperGroups.Count);
+            }
+
+            var dbContext = _unitOfWork.GetDbContext();
 
             // 2. Chuẩn hóa ngày giờ (VN -> UTC)
             var campStartVn = camp.startDate.Value.ToVietnamTime();
@@ -444,10 +451,10 @@ namespace SummerCampManagementSystem.BLL.Services
                     await _unitOfWork.ActivitySchedules.CreateAsync(schedule);
                     await _unitOfWork.CommitAsync(); // Save để lấy ID
 
-                    // Gán GroupActivity
-                    if (dto.GroupIds != null && dto.GroupIds.Any())
+                    // Gán GroupActivity (sử dụng groupIdsToAssign đã tính ở trên)
+                    if (groupIdsToAssign != null && groupIdsToAssign.Any())
                     {
-                        foreach (var groupId in dto.GroupIds)
+                        foreach (var groupId in groupIdsToAssign)
                         {
                             var groupActivity = new GroupActivity
                             {
@@ -954,8 +961,6 @@ namespace SummerCampManagementSystem.BLL.Services
             var campId = schedule.activity.campId.Value;
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
-
-            ValidateCampStatusForOperation(camp, "update");
 
             // 2. VALIDATE THỜI GIAN (Global Rule)
             if (dto.StartTime >= dto.EndTime)
