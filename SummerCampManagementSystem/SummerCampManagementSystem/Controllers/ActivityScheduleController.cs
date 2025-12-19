@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.ActivitySchedule;
 using SummerCampManagementSystem.BLL.DTOs.Group;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
@@ -84,6 +85,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -110,6 +115,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -133,6 +142,10 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -159,6 +172,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return NotFound(new { message = ex.Message });
             }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -182,6 +199,10 @@ namespace SummerCampManagementSystem.API.Controllers
             catch (KeyNotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
