@@ -422,7 +422,7 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> DeleteActivitySchedule(int activityScheduleId)
         {
             var result = await _service.DeleteActivityScheduleAsync(activityScheduleId);
-            return result ? NoContent() : NotFound();
+            return result ? Ok(new {message = "Xóa thành công"}) : NotFound();
         }
     }
 }

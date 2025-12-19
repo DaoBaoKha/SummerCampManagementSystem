@@ -342,6 +342,54 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await query.ToListAsync();
         }
 
+        public async Task DeleteWithRelatedEntitiesAsync(ActivitySchedule schedule)
+        {
+            // Xóa các quan hệ theo thứ tự
+            // 1. AccommodationActivitySchedules
+            var accommodationActivities = await _context.AccommodationActivitySchedules
+                .Where(a => a.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (accommodationActivities.Any())
+                _context.AccommodationActivitySchedules.RemoveRange(accommodationActivities);
+
+            // 2. AttendanceLogs
+            var attendanceLogs = await _context.AttendanceLogs
+                .Where(a => a.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (attendanceLogs.Any())
+                _context.AttendanceLogs.RemoveRange(attendanceLogs);
+
+            // 3. CamperActivities
+            var camperActivities = await _context.CamperActivities
+                .Where(c => c.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (camperActivities.Any())
+                _context.CamperActivities.RemoveRange(camperActivities);
+
+            // 4. GroupActivities
+            var groupActivities = await _context.GroupActivities
+                .Where(g => g.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (groupActivities.Any())
+                _context.GroupActivities.RemoveRange(groupActivities);
+
+            // 5. RegistrationOptionalActivities
+            var registrationOptionalActivities = await _context.RegistrationOptionalActivities
+                .Where(r => r.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (registrationOptionalActivities.Any())
+                _context.RegistrationOptionalActivities.RemoveRange(registrationOptionalActivities);
+
+            // 6. Reports
+            var reports = await _context.Reports
+                .Where(r => r.activityScheduleId == schedule.activityScheduleId)
+                .ToListAsync();
+            if (reports.Any())
+                _context.Reports.RemoveRange(reports);
+
+            // Cuối cùng xóa ActivitySchedule
+            _context.ActivitySchedules.Remove(schedule);
+        }
 
     }
 }

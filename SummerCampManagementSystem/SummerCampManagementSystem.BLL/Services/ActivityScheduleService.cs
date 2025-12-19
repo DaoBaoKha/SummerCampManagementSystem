@@ -1243,14 +1243,43 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<bool> DeleteActivityScheduleAsync(int activityScheduleId)
         {
-            var schedule = await _unitOfWork.ActivitySchedules.GetByIdAsync(activityScheduleId)
+            var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
                 ?? throw new NotFoundException("Activity schedule not found.");
-            var nowUtc = DateTime.UtcNow;
-            if (schedule.startTime <= nowUtc)
-                throw new BusinessRuleException("Cannot delete an activity schedule that is in progress or has already occurred.");
-            await _unitOfWork.ActivitySchedules.RemoveAsync(schedule);
-            await _unitOfWork.CommitAsync();
-            return true;
+
+            var currentStatus = schedule.status;
+
+            // Nếu status là Draft -> Xóa hẳn khỏi database
+            if (currentStatus == ActivityScheduleStatus.Draft.ToString() || currentStatus == ActivityScheduleStatus.Rejected.ToString())
+            {
+                using var transaction = await _unitOfWork.BeginTransactionAsync();
+                try
+                {
+                    // Gọi Repository method để xóa cascade
+                    await _unitOfWork.ActivitySchedules.DeleteWithRelatedEntitiesAsync(schedule);
+                    await _unitOfWork.CommitAsync();
+                    
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            // Nếu status là NotYet -> Chuyển thành Canceled
+            else if (currentStatus == ActivityScheduleStatus.NotYet.ToString())
+            {
+                schedule.status = ActivityScheduleStatus.Canceled.ToString();
+                await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
+                await _unitOfWork.CommitAsync();
+                return true;
+            }
+            // Các status khác không cho xóa
+            else
+            {
+                throw new BusinessRuleException($"Cannot delete activity schedule with status '{currentStatus}'. Only Draft or NotYet status can be deleted.");
+            }
         }
 
         public async Task ChangeActivityScheduleStatusAuto()
