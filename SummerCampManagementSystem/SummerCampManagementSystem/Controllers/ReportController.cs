@@ -32,7 +32,6 @@ namespace SummerCampManagementSystem.API.Controllers
         public async Task<IActionResult> GetReportById(int id)
         {
             var report = await _reportService.GetReportByIdAsync(id);
-            if (report == null) return NotFound();
             return Ok(report);
         }
 
