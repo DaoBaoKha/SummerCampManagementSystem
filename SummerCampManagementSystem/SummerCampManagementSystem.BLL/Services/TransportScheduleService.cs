@@ -374,7 +374,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // count and list staff with role
             var staffList = schedule.TransportStaffAssignments
-                .Where(tsa => tsa.status == "Active" && tsa.staff != null)
+                .Where(tsa => tsa.status == "Active" && tsa.staff != null && tsa.staff.role != "Manager")
                 .Select(tsa => new StaffInTransportDto
                 {
                     StaffId = tsa.staff.userId,

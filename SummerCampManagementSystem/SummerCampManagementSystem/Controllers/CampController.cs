@@ -27,6 +27,13 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(camps);
         }
 
+        [HttpGet("active")]
+        public async Task<IActionResult> GetActiveCamps()
+        {
+            var camps = await _campService.GetActiveCampsAsync();
+            return Ok(camps);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCampById(int id)
         {
