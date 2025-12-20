@@ -365,6 +365,9 @@ namespace SummerCampManagementSystem.BLL.Services
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                 ?? throw new KeyNotFoundException($"User with ID {camperId} not found.");
 
+            // Delete all old avatar files from Supabase before uploading new one
+            await _uploadSupabaseService.DeleteAllFilesInFolderAsync("camper-photos", camperId.ToString());
+
             var avatarUrl = await _uploadSupabaseService.UploadCamperPhotoAsync(camperId, file);
 
             if (string.IsNullOrEmpty(avatarUrl))
