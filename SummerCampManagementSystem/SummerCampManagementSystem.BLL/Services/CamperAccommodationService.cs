@@ -120,14 +120,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var oldAccommodation = currentMapping.accommodation;
 
-            // validate old camp hasn't started
-            await ValidateCampNotStarted((int)oldAccommodation.campId);
+            // validate old camp status allows update
+            await ValidateCampAllowsUpdate((int)oldAccommodation.campId);
 
             var newAccommodation = await _unitOfWork.Accommodations.GetByIdWithCamperAccommodationsAndCampAsync(requestDto.accommodationId.Value)
                 ?? throw new NotFoundException("Không tìm thấy chỗ ở mới.");
 
-            // validate new camp hasn't started
-            await ValidateCampNotStarted((int)newAccommodation.campId);
+            // validate new camp status allows update
+            await ValidateCampAllowsUpdate((int)newAccommodation.campId);
 
             if (oldAccommodation.accommodationId == newAccommodation.accommodationId)
                 throw new BusinessRuleException("Camper đã ở chỗ này rồi.");
@@ -140,13 +140,13 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             currentMapping.accommodationId = newAccommodation.accommodationId;
+            currentMapping.accommodation = newAccommodation; // update navigation property to new accommodation
 
             await _unitOfWork.CamperAccommodations.UpdateAsync(currentMapping);
             await _unitOfWork.CommitAsync();
 
-            var updatedEntity = await _unitOfWork.CamperAccommodations.GetByIdWithDetailsAsync(id);
-
-            return _mapper.Map<CamperAccommodationResponseDto>(updatedEntity);
+            // map directly from updated entity in memory
+            return _mapper.Map<CamperAccommodationResponseDto>(currentMapping);
         }
 
         public async Task<bool> DeleteCamperAccommodationAsync(int id)
@@ -157,8 +157,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var accommodation = mapping.accommodation;
 
-            // validate camp hasn't started
-            await ValidateCampNotStarted((int)accommodation.campId);
+            // validate camp status allows delete
+            await ValidateCampAllowsDelete((int)accommodation.campId);
 
             // soft delete
             mapping.status = CamperAccommodationStatus.Inactive.ToString();
@@ -181,6 +181,48 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 throw new BusinessRuleException(
                     $"Cannot assign/update/remove campers. Camp '{camp.name}' has already started on {camp.startDate.Value:yyyy-MM-dd}.");
+            }
+        }
+
+        // only allow update if camp status is before RegistrationClosed
+        private async Task ValidateCampAllowsUpdate(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp với ID {campId} không tìm thấy.");
+
+            var restrictedStatuses = new[] {
+                CampStatus.RegistrationClosed.ToString(),
+                CampStatus.InProgress.ToString(),
+                CampStatus.Completed.ToString(),
+                CampStatus.Canceled.ToString()
+            };
+
+            if (restrictedStatuses.Contains(camp.status))
+            {
+                throw new BusinessRuleException(
+                    $"Không thể cập nhật phân chỗ ở. Trại '{camp.name}' đang ở trạng thái '{camp.status}'.");
+            }
+        }
+
+        // only allow delete if camp status is before Published
+        private async Task ValidateCampAllowsDelete(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp với ID {campId} không tìm thấy.");
+
+            var restrictedStatuses = new[] {
+                CampStatus.Published.ToString(),
+                CampStatus.OpenForRegistration.ToString(),
+                CampStatus.RegistrationClosed.ToString(),
+                CampStatus.InProgress.ToString(),
+                CampStatus.Completed.ToString(),
+                CampStatus.Canceled.ToString()
+            };
+
+            if (restrictedStatuses.Contains(camp.status))
+            {
+                throw new BusinessRuleException(
+                    $"Không thể xóa phân chỗ ở. Trại '{camp.name}' đang ở trạng thái '{camp.status}'.");
             }
         }
 
