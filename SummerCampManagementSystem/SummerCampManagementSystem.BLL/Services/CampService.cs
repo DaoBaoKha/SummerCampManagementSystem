@@ -339,6 +339,22 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
         }
 
+        public async Task<IEnumerable<CampResponseDto>> GetActiveCampsAsync()
+        {
+            var activeStatuses = new[] {
+                CampStatus.Published.ToString(),
+                CampStatus.OpenForRegistration.ToString(),
+                CampStatus.RegistrationClosed.ToString(),
+                CampStatus.InProgress.ToString()
+            };
+
+            var camps = await GetCampsWithIncludes()
+                .Where(c => activeStatuses.Contains(c.status))
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<CampResponseDto>>(camps);
+        }
+
         // change status Draft to PendingApproval and check required conditions
         public async Task<CampResponseDto> SubmitForApprovalAsync(int campId)
         {
