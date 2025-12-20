@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.Extensions.Logging;
 using SummerCampManagementSystem.BLL.DTOs.Report;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
@@ -13,12 +14,16 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IUploadSupabaseService _uploadSupabaseService;
+        private readonly IEmailService _emailService;
+        private readonly ILogger<ReportService> _logger;
 
-        public ReportService(IUnitOfWork unitOfWork, IMapper mapper, IUploadSupabaseService uploadSupabaseService)
+        public ReportService(IUnitOfWork unitOfWork, IMapper mapper, IUploadSupabaseService uploadSupabaseService, IEmailService emailService, ILogger<ReportService> logger)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _uploadSupabaseService = uploadSupabaseService;
+            _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<ReportResponseDto> CreateReportAsync(ReportRequestDto reportRequestDto, int staffId)
@@ -67,6 +72,38 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
+
+            // send email notification to parents
+            if (report.level == "3" && !string.IsNullOrEmpty(report.image))
+            {
+                _logger.LogInformation("Report level is 3 and has image. Retrieving parent emails for camper {CamperId}", report.camperId.Value);
+                var parentEmails = await _unitOfWork.ParentCampers.GetParentEmailsByCamperIdAsync(report.camperId.Value);
+                _logger.LogInformation("Found {Count} parent email(s) for camper {CamperId}", parentEmails.Count(), report.camperId.Value);
+                
+                foreach (var parentEmail in parentEmails)
+                {
+                    try
+                    {
+                        _logger.LogInformation("Sending Level 3 report notification to parent email: {Email}", parentEmail);
+                        await _emailService.SendLevel3ReportNotificationAsync(
+                            parentEmail,
+                            camper.camperName,
+                            report.reportType,
+                            report.note,
+                            report.image
+                        );
+                        _logger.LogInformation("Successfully sent Level 3 report notification to {Email}", parentEmail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send Level 3 report notification to {Email}", parentEmail);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Skipping email notification. Level: {Level}, HasImage: {HasImage}", report.level, !string.IsNullOrEmpty(report.image));
+            }
 
             return _mapper.Map<ReportResponseDto>(report);
         }
@@ -230,6 +267,38 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
 
+            // send email notification to parents
+            if (!string.IsNullOrEmpty(report.image))
+            {
+                _logger.LogInformation("Transport incident has image. Retrieving parent emails for camper {CamperId}", report.camperId.Value);
+                var parentEmails = await _unitOfWork.ParentCampers.GetParentEmailsByCamperIdAsync(report.camperId.Value);
+                _logger.LogInformation("Found {Count} parent email(s) for camper {CamperId}", parentEmails.Count(), report.camperId.Value);
+                
+                foreach (var parentEmail in parentEmails)
+                {
+                    try
+                    {
+                        _logger.LogInformation("Sending Level 3 report notification to parent email: {Email}", parentEmail);
+                        await _emailService.SendLevel3ReportNotificationAsync(
+                            parentEmail,
+                            camper.camperName,
+                            report.reportType,
+                            report.note,
+                            report.image
+                        );
+                        _logger.LogInformation("Successfully sent Level 3 report notification to {Email}", parentEmail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send Level 3 report notification to {Email}", parentEmail);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Skipping email notification for transport incident. HasImage: {HasImage}", !string.IsNullOrEmpty(report.image));
+            }
+
             return _mapper.Map<ReportResponseDto>(report);
         }
 
@@ -288,6 +357,38 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
+
+            // send email notification to parents
+            if (!string.IsNullOrEmpty(report.image))
+            {
+                _logger.LogInformation("Early checkout has image. Retrieving parent emails for camper {CamperId}", report.camperId.Value);
+                var parentEmails = await _unitOfWork.ParentCampers.GetParentEmailsByCamperIdAsync(report.camperId.Value);
+                _logger.LogInformation("Found {Count} parent email(s) for camper {CamperId}", parentEmails.Count(), report.camperId.Value);
+                
+                foreach (var parentEmail in parentEmails)
+                {
+                    try
+                    {
+                        _logger.LogInformation("Sending Level 3 report notification to parent email: {Email}", parentEmail);
+                        await _emailService.SendLevel3ReportNotificationAsync(
+                            parentEmail,
+                            camper.camperName,
+                            report.reportType,
+                            report.note,
+                            report.image
+                        );
+                        _logger.LogInformation("Successfully sent Level 3 report notification to {Email}", parentEmail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send Level 3 report notification to {Email}", parentEmail);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Skipping email notification for early checkout. HasImage: {HasImage}", !string.IsNullOrEmpty(report.image));
+            }
 
             return _mapper.Map<ReportResponseDto>(report);
         }
@@ -362,6 +463,38 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
             await transaction.CommitAsync();
+
+            // send email notification to parents
+            if (report.level == "3" && !string.IsNullOrEmpty(report.image))
+            {
+                _logger.LogInformation("Incident ticket level is 3 and has image. Retrieving parent emails for camper {CamperId}", report.camperId.Value);
+                var parentEmails = await _unitOfWork.ParentCampers.GetParentEmailsByCamperIdAsync(report.camperId.Value);
+                _logger.LogInformation("Found {Count} parent email(s) for camper {CamperId}", parentEmails.Count(), report.camperId.Value);
+                
+                foreach (var parentEmail in parentEmails)
+                {
+                    try
+                    {
+                        _logger.LogInformation("Sending Level 3 report notification to parent email: {Email}", parentEmail);
+                        await _emailService.SendLevel3ReportNotificationAsync(
+                            parentEmail,
+                            camper.camperName,
+                            report.reportType,
+                            report.note,
+                            report.image
+                        );
+                        _logger.LogInformation("Successfully sent Level 3 report notification to {Email}", parentEmail);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send Level 3 report notification to {Email}", parentEmail);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Skipping email notification for incident ticket. Level: {Level}, HasImage: {HasImage}", report.level, !string.IsNullOrEmpty(report.image));
+            }
 
             return _mapper.Map<ReportResponseDto>(report);
         }

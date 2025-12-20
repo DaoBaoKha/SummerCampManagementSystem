@@ -1,11 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SummerCampManagementSystem.DAL.Repositories.Repository
 {
@@ -22,6 +17,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Select(pc => pc.camper)
                 .ToListAsync();
           
+        }
+
+        public async Task<IEnumerable<string>> GetParentEmailsByCamperIdAsync(int camperId)
+        {
+            return await _context.ParentCampers
+                .Where(pc => pc.camperId == camperId)
+                .Select(pc => pc.parent.email)
+                .Where(email => !string.IsNullOrEmpty(email))
+                .Distinct()
+                .ToListAsync();
         }
     }
 }
