@@ -24,7 +24,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.User
         public DateOnly? Dob { get; set; }
     }
 
-    public class RegisterStaffRequestDto : RegisterUserRequestDto
+    public class CreateAccountByAdminRequestDto : RegisterUserRequestDto
     {
         public UserRole role { get; set; }
 

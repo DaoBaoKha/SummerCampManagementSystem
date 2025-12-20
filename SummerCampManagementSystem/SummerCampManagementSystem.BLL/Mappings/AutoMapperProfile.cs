@@ -330,8 +330,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<PromotionType, PromotionTypeNameResponseDto>()
                 .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.promotionTypeId));
 
-            // RegistrationStaff mappings
-            CreateMap<RegisterStaffRequestDto, UserAccount>()
+            // CreateAccountByAdmin mappings
+            CreateMap<CreateAccountByAdminRequestDto, UserAccount>()
                 .ForMember(dest => dest.password, opt => opt.Ignore()) // sẽ hash thủ công
                 .ForMember(dest => dest.createAt, opt => opt.MapFrom(_ => DateTime.UtcNow))
                 .ForMember(dest => dest.isActive, opt => opt.MapFrom(_ => true));

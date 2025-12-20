@@ -14,7 +14,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<ForgotPasswordResponseDto> ForgotPasswordAsync(string email);
         Task<ForgotPasswordResponseDto?> ResetPasswordAsync(ResetPasswordRequestDto model);
         Task<UserResponseDto?> GetUserByIdAsync(int id);
-        Task<RegisterUserResponseDto?> CreateStaffAccountAsync(RegisterStaffRequestDto model);
+        Task<RegisterUserResponseDto?> CreateAccountByAdminAsync(CreateAccountByAdminRequestDto model);
         string HashPassword(string password);
         bool VerifyPassword(string enteredPassword, string hashedPassword);
         Task<(AuthResponseDto? authResponse, string? errorMessage)> GoogleLoginAsync(GoogleLoginRequestDto model);
