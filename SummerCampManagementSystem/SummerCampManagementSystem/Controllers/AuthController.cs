@@ -10,7 +10,6 @@ using System.Security.Claims;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/auth")]
-    [Authorize]
     [ApiController]
 
     public class AuthController : ControllerBase
