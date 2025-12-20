@@ -97,7 +97,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// get camper transport schedule
         /// </summary>
         [HttpGet("camper/{camperId}")]
-        [Authorize(Roles = "Admin, Manager, Parent")] 
+        [Authorize(Roles = "Admin, Manager, User")] 
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperId(int camperId)
         {
             var response = await _scheduleService.GetSchedulesByCamperIdAsync(camperId);
@@ -108,7 +108,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// get camper transport schedules filtered by camp ID
         /// </summary>
         [HttpGet("camper/{camperId}/camp/{campId}")]
-        [Authorize(Roles = "Admin, Manager, Parent")]
+        [Authorize(Roles = "Admin, Manager, User")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperAndCampId(int camperId, int campId)
         {
             var response = await _scheduleService.GetSchedulesByCamperAndCampIdAsync(camperId, campId);

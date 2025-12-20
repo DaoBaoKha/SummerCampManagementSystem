@@ -112,9 +112,13 @@ namespace SummerCampManagementSystem.BLL.Services
         private bool DetermineIntent(string userMessage)
         {
             var lowerMessage = userMessage.ToLower();
+            
+            // keywords that indicate user asking about THEIR OWN data (personal)
             var personalKeywords = new[] {
                 "con tôi", "bé nhà tôi", "lịch trình của con",
-                "đăng ký của tôi", "sức khỏe của bé", "camper của tôi"
+                "đăng ký của tôi", "sức khỏe của bé", "camper của tôi",
+                "con của tôi", "bé của tôi", "con mình", "bé mình",
+                "trại của con", "camp của bé"
             };
 
             if (personalKeywords.Any(k => lowerMessage.Contains(k)))
@@ -132,6 +136,20 @@ namespace SummerCampManagementSystem.BLL.Services
             var contextBuilder = new StringBuilder();
             // This message MUST remain Vietnamese, as it is part of the prompt.
             contextBuilder.AppendLine("Thông tin tham khảo TỪ DATABASE (Bắt buộc dùng):");
+
+            // always include FAQ for both personal and general questions
+            // this helps AI answer common questions accurately
+            var faqs = await _unitOfWork.FAQs.GetAllAsync();
+            if (faqs != null && faqs.Any())
+            {
+                contextBuilder.AppendLine("[Câu hỏi thường gặp (FAQ)]:");
+                foreach (var faq in faqs)
+                {
+                    contextBuilder.AppendLine($"Q: {faq.question}");
+                    contextBuilder.AppendLine($"A: {faq.answer}");
+                }
+                contextBuilder.AppendLine();
+            }
 
             // user ask personal questions about their campers
             if (isPersonalIntent)
@@ -224,10 +242,13 @@ namespace SummerCampManagementSystem.BLL.Services
                     CampStatus.InProgress.ToString()
                 };
 
-                // Get all public camps first (including promotion data)
+                // get all public camps with full details (promotion, location, campType)
                 var allPublicCamps = await _unitOfWork.Camps.GetQueryable()
-                    .Include(c => c.promotion) 
+                    .Include(c => c.promotion)
+                    .Include(c => c.location)
+                    .Include(c => c.campType)
                     .Where(c => publicCampStatuses.Contains(c.status))
+                    .OrderBy(c => c.startDate)
                     .AsNoTracking()
                     .ToListAsync();
 
@@ -258,25 +279,25 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     contextBuilderPublic.AppendLine($"- Tên Trại: {foundCamp.name}, {campPriceInfo}, Bắt đầu: {foundCamp.startDate:dd/MM/yyyy}, Trạng thái: {foundCamp.status}.");
                 }
-                // SCENARIO B.2: No specific camp, check for general keywords
-                // (e.g., "có trại hè nào không?", "giá camp?")
+                // scenario b.2: no specific camp, check for general keywords
+                // (e.g., "có trại hè nào không?", "giá camp?", "trại đang hoạt động") 
                 else
                 {
-
-                    var generalKeywords = new[] { "trại hè", "camp", "giá", "lịch trình" };
+                    // keywords for general camp questions or active camp questions
+                    var generalKeywords = new[] { "trại hè", "camp", "giá", "lịch trình", "hoạt động", "đang mở", "active" };
 
                     if (generalKeywords.Any(k => lowerUserMessage.Contains(k)))
                     {
                         var campsToShow = allPublicCamps.Take(5); // take top 5 camps
                         if (campsToShow.Any())
                         {
+                            contextBuilderPublic.AppendLine("[Danh sách các trại đang hoạt động/mở đăng ký]:");
                             foreach (var camp in campsToShow)
                             {
-                                // (Price logic is already included in the 'camp' object, no need to query again)
+                                // build price info with promotion
                                 string campPriceInfo = $"Giá: {camp.price:N0} VND";
                                 if (camp.promotion != null && camp.promotion.percent.HasValue && camp.price.HasValue)
                                 {
-                                    // (Duplicate logic, consider refactoring to a private method later)
                                     decimal discount = camp.price.Value * (camp.promotion.percent.Value / 100);
                                     if (camp.promotion.maxDiscountAmount.HasValue && discount > camp.promotion.maxDiscountAmount.Value)
                                     {
@@ -285,7 +306,18 @@ namespace SummerCampManagementSystem.BLL.Services
                                     decimal finalPrice = camp.price.Value - discount;
                                     campPriceInfo = $"Giá gốc: {camp.price:N0} VND, KM: {camp.promotion.percent.Value}%, Giá cuối: {finalPrice:N0} VND";
                                 }
-                                contextBuilderPublic.AppendLine($"- Tên Trại: {camp.name}, {campPriceInfo}, Bắt đầu: {camp.startDate:dd/MM/yyyy}, Trạng thái: {camp.status}.");
+                                
+                                // include location and campType details
+                                string locationInfo = camp.location != null ? camp.location.address : "N/A";
+                                string campTypeInfo = camp.campType != null ? camp.campType.name : "N/A";
+                               
+                                contextBuilderPublic.AppendLine($"- Tên: {camp.name}");
+                                contextBuilderPublic.AppendLine($"  Loại: {campTypeInfo}");
+                                contextBuilderPublic.AppendLine($"  Địa điểm: {locationInfo}");
+                                contextBuilderPublic.AppendLine($"  Thời gian: {camp.startDate:dd/MM/yyyy} - {camp.endDate:dd/MM/yyyy}");
+                                contextBuilderPublic.AppendLine($"  {campPriceInfo}");
+                                contextBuilderPublic.AppendLine($"  Trạng thái: {camp.status}");
+                                contextBuilderPublic.AppendLine();
                             }
                         }
                         else
@@ -295,9 +327,9 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                     else
                     {
-                        // SCENARIO B.3: No specific camp, no general keywords
-                        // (e.g., "xin chào") -> Let the AI answer from its own knowledge.
-                        return null; // Return null to signal no DB context is needed.
+                        // scenario b.3: no specific camp, no general keywords
+                        // (e.g., "xin chào") -> let the AI answer from its own knowledge
+                        return null; // return null to signal no db context is needed
                     }
                 }
                 return contextBuilderPublic.ToString();
