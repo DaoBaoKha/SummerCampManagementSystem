@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
@@ -122,6 +124,13 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
+
+            // check if camp status is published or higher
+            var camp = await _unitOfWork.Camps.GetByIdAsync(accommodation.campId.Value);
+            if (camp != null && Enum.TryParse<CampStatus>(camp.status, out var campStatus) && campStatus >= CampStatus.Published)
+            {
+                throw new BusinessRuleException("Không thể xóa chỗ ở khi trại đã được xuất bản.");
+            }
 
             await _unitOfWork.Accommodations.RemoveAsync(accommodation);
 

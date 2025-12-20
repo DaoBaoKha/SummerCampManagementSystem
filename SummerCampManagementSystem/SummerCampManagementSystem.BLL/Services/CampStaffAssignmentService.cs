@@ -3,6 +3,7 @@ using AutoMapper.QueryableExtensions;
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
 using SummerCampManagementSystem.BLL.DTOs.UserAccount;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -77,6 +78,26 @@ namespace SummerCampManagementSystem.BLL.Services
             if (assignment == null)
             {
                 throw new KeyNotFoundException($"Assignment with ID {assignmentId} not found.");
+            }
+
+            // check if staff being removed is a Manager and validate manager count
+            var staff = await _unitOfWork.Users.GetByIdAsync(assignment.staffId.Value);
+            if (staff != null && staff.role == "Manager")
+            {
+                // count total managers for this camp
+                var managerCount = await _unitOfWork.CampStaffAssignments.GetQueryable()
+                    .Where(csa => csa.campId == assignment.campId)
+                    .Join(_unitOfWork.Users.GetQueryable(),
+                        csa => csa.staffId,
+                        u => u.userId,
+                        (csa, u) => new { csa, u })
+                    .Where(x => x.u.role == "Manager")
+                    .CountAsync();
+
+                if (managerCount <= 2)
+                {
+                    throw new BusinessRuleException("Không thể xóa manager này vì trại phải có ít nhất 2 manager.");
+                }
             }
 
            await EnsureStaffNotInUseAsync(assignment.staffId.Value, assignment.campId.Value);
