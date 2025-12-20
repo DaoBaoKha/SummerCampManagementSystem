@@ -4,6 +4,7 @@ using SummerCampManagementSystem.BLL.DTOs.Group;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
@@ -242,6 +243,13 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 var existingGroup = await _unitOfWork.Groups.GetByIdAsync(id)
                     ?? throw new NotFoundException($"Camper Group with ID {id} not found."); 
+
+                // check if camp status is published or higher
+                var camp = await _unitOfWork.Camps.GetByIdAsync(existingGroup.campId.Value);
+                if (camp != null && Enum.TryParse<CampStatus>(camp.status, out var campStatus) && campStatus >= CampStatus.Published)
+                {
+                    throw new BusinessRuleException("Không thể xóa nhóm khi trại đã được xuất bản.");
+                }
 
                 await _unitOfWork.Groups.RemoveAsync(existingGroup);
 

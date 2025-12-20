@@ -198,7 +198,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// API to update actual start time
         /// </summary>
         [HttpPatch("{id}/start-trip")]
-        [Authorize(Roles = "Admin, Manager, Driver")]
+        [Authorize(Roles = "Admin, Manager, Staff, Driver")]
         public async Task<IActionResult> StartTrip(int id)
         {
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);
@@ -211,7 +211,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// API to update actual end time
         /// </summary>
         [HttpPatch("{id}/end-trip")]
-        [Authorize(Roles = "Admin, Manager, Driver")]
+        [Authorize(Roles = "Admin, Manager, Staff, Driver")]
         public async Task<IActionResult> EndTrip(int id)
         {
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);

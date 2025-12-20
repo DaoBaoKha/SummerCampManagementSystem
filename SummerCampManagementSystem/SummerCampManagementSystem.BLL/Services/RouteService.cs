@@ -230,6 +230,16 @@ namespace SummerCampManagementSystem.BLL.Services
             var existingRoute = await _unitOfWork.Routes.GetByIdAsync(routeId);
             if (existingRoute == null) throw new KeyNotFoundException($"Route with ID {routeId} not found.");
 
+            // check if route is being used in any TransportSchedules
+            var isUsedInTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.routeId == routeId)
+                .AnyAsync();
+
+            if (isUsedInTransportSchedule)
+            {
+                throw new BusinessRuleException("Không thể xóa tuyến đường vì đang được sử dụng trong lịch vận chuyển.");
+            }
+
             await _unitOfWork.Routes.RemoveAsync(existingRoute);
             await _unitOfWork.CommitAsync();
 

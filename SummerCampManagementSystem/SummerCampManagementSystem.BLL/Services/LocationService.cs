@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Location;
 using SummerCampManagementSystem.BLL.DTOs.Shared;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -153,6 +154,16 @@ namespace SummerCampManagementSystem.BLL.Services
             if (hasChildren)
             {
                 throw new InvalidOperationException("Không thể xóa vị trí này vì nó đang chứa các vị trí con (Activity Locations).");
+            }
+
+            // check if any camps are using this location
+            var campsUsingLocation = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.locationId == id)
+                .AnyAsync();
+
+            if (campsUsingLocation)
+            {
+                throw new BusinessRuleException("Không thể xóa địa điểm này vì đang có trại sử dụng địa điểm này.");
             }
 
             location.isActive = false; // soft delete
