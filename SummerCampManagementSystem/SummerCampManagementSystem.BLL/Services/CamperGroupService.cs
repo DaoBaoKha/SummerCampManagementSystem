@@ -125,22 +125,27 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var oldGroup = currentMapping.group;
             
-            // validate old camp hasn't started
-            await ValidateCampNotStarted((int)oldGroup.campId);
+            // validate old camp status allows update
+            await ValidateCampAllowsUpdate((int)oldGroup.campId);
             
             var newGroup = await _unitOfWork.Groups.GetByIdWithCamperGroupsAndCampAsync(requestDto.groupId.Value)
                 ?? throw new NotFoundException("Không tìm thấy nhóm mới.");
 
-            // validate new camp hasn't started
-            await ValidateCampNotStarted((int)newGroup.campId);
+            // validate new camp status allows update
+            await ValidateCampAllowsUpdate((int)newGroup.campId);
 
             if (oldGroup.groupId == newGroup.groupId)
                 throw new BusinessRuleException("Camper đã thuộc nhóm này rồi.");
+
+            // validate both groups belong to the same camp
+            if (oldGroup.campId != newGroup.campId)
+                throw new BusinessRuleException($"Không thể chuyển nhóm giữa các trại khác nhau. Nhóm cũ thuộc Camp {oldGroup.campId}, nhóm mới thuộc Camp {newGroup.campId}.");
 
             // validation
             ValidateGroupConstraints(currentMapping.camper, newGroup);
 
             currentMapping.groupId = newGroup.groupId;
+            currentMapping.group = newGroup; // update navigation property to new group
 
             // update currentSize
             oldGroup.currentSize = (oldGroup.currentSize ?? 0) - 1;
@@ -152,9 +157,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.CommitAsync();
 
-            var updatedEntity = await _unitOfWork.CamperGroups.GetByIdWithDetailsAsync(id);
-
-            return _mapper.Map<CamperGroupResponseDto>(updatedEntity);
+            // map directly from updated entity in memory
+            return _mapper.Map<CamperGroupResponseDto>(currentMapping);
         }
 
         public async Task<bool> DeleteCamperGroupAsync(int id)
@@ -165,8 +169,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var group = mapping.group;
 
-            // validate camp hasn't started
-            await ValidateCampNotStarted((int)group.campId);
+            // validate camp status allows delete
+            await ValidateCampAllowsDelete((int)group.campId);
 
             // decrease old group currentSize
             group.currentSize = (group.currentSize ?? 0) - 1;
@@ -201,6 +205,48 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 throw new BusinessRuleException(
                     $"Cannot assign/update/remove campers. Camp '{camp.name}' has already started on {camp.startDate.Value:yyyy-MM-dd}.");
+            }
+        }
+
+        // only allow update if camp status is not RegistrationClosed or later
+        private async Task ValidateCampAllowsUpdate(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp với ID {campId} không tìm thấy.");
+
+            var restrictedStatuses = new[] {
+                CampStatus.RegistrationClosed.ToString(),
+                CampStatus.InProgress.ToString(),
+                CampStatus.Completed.ToString(),
+                CampStatus.Canceled.ToString()
+            };
+
+            if (restrictedStatuses.Contains(camp.status))
+            {
+                throw new BusinessRuleException(
+                    $"Không thể cập nhật phân nhóm. Trại '{camp.name}' đang ở trạng thái '{camp.status}'.");
+            }
+        }
+
+        // only allow delete if camp status before Published
+        private async Task ValidateCampAllowsDelete(int campId)
+        {
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
+                ?? throw new NotFoundException($"Camp với ID {campId} không tìm thấy.");
+
+            var restrictedStatuses = new[] {
+                CampStatus.Published.ToString(),
+                CampStatus.OpenForRegistration.ToString(),
+                CampStatus.RegistrationClosed.ToString(),
+                CampStatus.InProgress.ToString(),
+                CampStatus.Completed.ToString(),
+                CampStatus.Canceled.ToString()
+            };
+
+            if (restrictedStatuses.Contains(camp.status))
+            {
+                throw new BusinessRuleException(
+                    $"Không thể xóa phân nhóm. Trại '{camp.name}' đang ở trạng thái '{camp.status}'.");
             }
         }
 
