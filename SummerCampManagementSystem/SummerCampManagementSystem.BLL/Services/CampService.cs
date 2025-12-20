@@ -401,58 +401,78 @@ namespace SummerCampManagementSystem.BLL.Services
 
     
         public async Task<CampResponseDto> RejectCampAsync(int campId, CampRejectRequestDto request)
+    {
+        // get existing camp
+        var existingCamp = await GetCampsWithIncludes()
+            .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+
+        // validate current status
+        if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
+            currentStatus != CampStatus.PendingApproval)
         {
-            // get existing camp
-            var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
-
-            // validate current status
-            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus) ||
-                currentStatus != CampStatus.PendingApproval)
-            {
-                throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể từ chối phê duyệt khi trại đang ở trạng thái PendingApproval.");
-            }
-
-            // save reject note
-            existingCamp.note = request.Note;
-            await _unitOfWork.Camps.UpdateAsync(existingCamp);
-
-            // transition status and reject related schedules
-            return await TransitionCampStatusAsync(campId, CampStatus.Rejected);
+            throw new BadRequestException($"Camp hiện tại đang ở trạng thái '{currentStatus}'. Chỉ có thể từ chối phê duyệt khi trại đang ở trạng thái PendingApproval.");
         }
+
+        // transition status and reject related schedules first
+        var result = await TransitionCampStatusAsync(campId, CampStatus.Rejected);
+        
+        // save reject note after transition
+        var campToUpdate = await _unitOfWork.Camps.GetByIdAsync(campId);
+        if (campToUpdate != null)
+        {
+            campToUpdate.note = request.Note;
+            await _unitOfWork.Camps.UpdateAsync(campToUpdate);
+            await _unitOfWork.CommitAsync();
+            
+            // update result with the note
+            result.Note = request.Note;
+        }
+
+        return result;
+    }
 
         public async Task<CampResponseDto> CancelCampAsync(int campId, CampCancelRequestDto request)
+    {
+        // get existing camp
+        var existingCamp = await GetCampsWithIncludes()
+            .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
+
+        // validate current status - can cancel anytime except Completed or already Canceled
+        if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
         {
-            // get existing camp
-            var existingCamp = await GetCampsWithIncludes()
-                .FirstOrDefaultAsync(c => c.campId == campId) ?? throw new NotFoundException($"Không tìm thấy Camp với ID {campId}.");
-
-            // validate current status - can cancel anytime except Completed or already Canceled
-            if (!Enum.TryParse(existingCamp.status, true, out CampStatus currentStatus))
-            {
-                throw new BadRequestException("Trạng thái hiện tại của Camp không hợp lệ.");
-            }
-
-            if (currentStatus == CampStatus.Completed)
-            {
-                throw new BadRequestException("Không thể hủy trại đã hoàn thành.");
-            }
-
-            if (currentStatus == CampStatus.Canceled)
-            {
-                throw new BadRequestException("Trại này đã được hủy trước đó.");
-            }
-
-            // save cancel note
-            existingCamp.note = request.Note;
-            await _unitOfWork.Camps.UpdateAsync(existingCamp);
-
-            // cancel all related entities
-            await CancelCampAndRelatedEntitiesAsync(campId);
-
-            // transition camp status to Canceled
-            return await TransitionCampStatusAsync(campId, CampStatus.Canceled);
+            throw new BadRequestException("Trạng thái hiện tại của Camp không hợp lệ.");
         }
+
+        if (currentStatus == CampStatus.Completed)
+        {
+            throw new BadRequestException("Không thể hủy trại đã hoàn thành.");
+        }
+
+        if (currentStatus == CampStatus.Canceled)
+        {
+            throw new BadRequestException("Trại này đã được hủy trước đó.");
+        }
+
+        // cancel all related entities first
+        await CancelCampAndRelatedEntitiesAsync(campId);
+
+        // transition camp status to Canceled
+        var result = await TransitionCampStatusAsync(campId, CampStatus.Canceled);
+
+        // save cancel note after transition
+        var campToUpdate = await _unitOfWork.Camps.GetByIdAsync(campId);
+        if (campToUpdate != null)
+        {
+            campToUpdate.note = request.Note;
+            await _unitOfWork.Camps.UpdateAsync(campToUpdate);
+            await _unitOfWork.CommitAsync();
+            
+            // update result with the note
+            result.Note = request.Note;
+        }
+
+        return result;
+    }
 
         public async Task<CampResponseDto> ExtendRegistrationAsync(int campId, DateTime newRegistrationEndDate)
         {
