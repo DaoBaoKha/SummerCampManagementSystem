@@ -178,5 +178,36 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #endregion
+
+        public async Task DeleteAllFilesInFolderAsync(string bucketName, string folderPath)
+        {
+            try
+            {
+                var storage = _client.Storage;
+                var bucket = storage.From(bucketName);
+
+                // List all files in the folder
+                var files = await bucket.List(folderPath);
+
+                // If no files found, return silently (not an error)
+                if (files == null || !files.Any())
+                    return;
+
+                // Delete each file
+                foreach (var file in files)
+                {
+                    var filePath = string.IsNullOrEmpty(folderPath) 
+                        ? file.Name 
+                        : $"{folderPath}/{file.Name}";
+                    
+                    await bucket.Remove(filePath);
+                }
+            }
+            catch (Exception)
+            {
+                // Silently ignore errors (e.g., folder doesn't exist)
+                // This is acceptable for cleanup operations
+            }
+        }
     }
 }

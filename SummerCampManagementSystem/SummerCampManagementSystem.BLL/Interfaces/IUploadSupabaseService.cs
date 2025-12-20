@@ -21,6 +21,7 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task<string?> UploadImage(IFormFile? file);
         Task<string?> UploadAlbumPhotoAsync(int albumId, IFormFile? file);
         Task<List<string>> UploadMultipleAlbumPhotosAsync(int albumId, List<IFormFile> files);
+        Task DeleteAllFilesInFolderAsync(string bucketName, string folderPath);
 
     }
 }
