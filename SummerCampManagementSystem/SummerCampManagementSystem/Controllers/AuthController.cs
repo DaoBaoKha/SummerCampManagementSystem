@@ -10,7 +10,9 @@ using System.Security.Claims;
 namespace SummerCampManagementSystem.API.Controllers
 {
     [Route("api/auth")]
+    [Authorize]
     [ApiController]
+
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -74,17 +76,17 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(registerResponse);
         }
 
-        [HttpPost("create-staff")]
-        //[Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateStaff([FromBody] RegisterStaffRequestDto dto)
+        [HttpPost("create-account")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateAccountByAdmin([FromBody] CreateAccountByAdminRequestDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
           
-            var result = await _userService.CreateStaffAccountAsync(dto);
+            var result = await _userService.CreateAccountByAdminAsync(dto);
 
             if (result == null)
-                return BadRequest(new { message = "Tạo tài khoản nhân viên không thành công. Email này đã được sử dụng!" });
+                return BadRequest(new { message = "Tạo tài khoản không thành công. Email này đã được sử dụng!" });
 
             return Ok(result);
             

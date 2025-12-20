@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SqlServer.Server;
 using SummerCampManagementSystem.BLL.DTOs.User;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
@@ -370,8 +371,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
         }
 
-        public async Task<RegisterUserResponseDto?> CreateStaffAccountAsync(RegisterStaffRequestDto model)
+        public async Task<RegisterUserResponseDto?> CreateAccountByAdminAsync(CreateAccountByAdminRequestDto model)
         {
+            // Validate role - prevent creating Admin accounts
+            if (model.role == UserRole.Admin)
+            {
+                throw new BadRequestException("Không thể tạo tài khoản Admin thông qua chức năng này.");
+            }
+
             if (await _unitOfWork.Users.GetUserByEmail(model.Email) != null)
                 return null;
 
