@@ -2,8 +2,10 @@
 using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
 using SummerCampManagementSystem.BLL.DTOs.CampStaffAssignment;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using System;
@@ -32,6 +34,12 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<AccommodationResponseDto> CreateAccommodationAsync(AccommodationRequestDto accommodationRequestDto)
         {
+            // Validate camp status before creating accommodation
+            var camp = await _unitOfWork.Camps.GetByIdAsync(accommodationRequestDto.campId)
+                ?? throw new KeyNotFoundException($"Camp with ID {accommodationRequestDto.campId} not found.");
+            
+            ValidateCampStatusForAccommodationOperation(camp, "tạo");
+
             // check and validate supervisor
             await RunSupervisorValidation(accommodationRequestDto.supervisorId, accommodationRequestDto.campId);
             
@@ -120,8 +128,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<bool> DeleteAccommodationAsync(int accommodationId)
         {
-            var accommodation = await _unitOfWork.Accommodations.GetByIdAsync(accommodationId)
+            var accommodation = await _unitOfWork.Accommodations.GetByIdWithCampAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
+
+            // Validate camp status before deleting accommodation
+            if (accommodation.camp != null)
+            {
+                ValidateCampStatusForAccommodationOperation(accommodation.camp, "xóa");
+            }
 
             await _unitOfWork.Accommodations.RemoveAsync(accommodation);
 
@@ -146,6 +160,23 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<IEnumerable<AccommodationResponseDto>>(accommodations);
         }
         #region Private Methods
+
+        private void ValidateCampStatusForAccommodationOperation(Camp camp, string operation)
+        {
+            var campStatus = camp.status;
+
+            // Block operations if camp status is Published or later
+            if (campStatus == CampStatus.Published.ToString() ||
+                campStatus == CampStatus.OpenForRegistration.ToString() ||
+                campStatus == CampStatus.RegistrationClosed.ToString() ||
+                campStatus == CampStatus.UnderEnrolled.ToString() ||
+                campStatus == CampStatus.InProgress.ToString() ||
+                campStatus == CampStatus.Completed.ToString() ||
+                campStatus == CampStatus.Canceled.ToString())
+            {
+                throw new BadRequestException($"Không thể {operation} accommodation khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, hoặc Rejected.");
+            }
+        }
 
         private async Task RunSupervisorValidation(int? supervisorId, int campId)
         {

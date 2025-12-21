@@ -148,6 +148,7 @@ builder.Services.AddScoped<ICamperActivityService, CamperActivityService>();
 builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 builder.Services.AddScoped<IDriverService, DriverService>();
 builder.Services.AddScoped<IGroupActivityRepository, GroupActivityRepository>();
+builder.Services.AddScoped<IGroupActivityService, GroupActivityService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserAccountService, UserAccountService>();

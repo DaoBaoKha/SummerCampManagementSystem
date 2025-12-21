@@ -43,6 +43,9 @@ using SummerCampManagementSystem.BLL.DTOs.VehicleType;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.DAL.Models;
 using static SummerCampManagementSystem.BLL.DTOs.Location.LocationRequestDto;
+using SummerCampManagementSystem.BLL.DTOs.GroupActivity;
+using System.Text.RegularExpressions;
+using Group = SummerCampManagementSystem.DAL.Models.Group;
 
 namespace SummerCampManagementSystem.BLL.Mappings
 {
@@ -112,6 +115,10 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<Group, GroupNameDto>()
                     .ForMember(dest => dest.CurrentSize, opt => opt.MapFrom(src => src.CamperGroups.Count())); // count from CamperGroup
+
+            //GroupActivity Mapping
+            CreateMap<GroupActivityDto, GroupActivity>();
+            CreateMap<GroupActivity, GroupActivityResponseDto>();
 
             // CamperTransport mapping
             CreateMap<CamperTransportRequestDto, CamperTransport>();
