@@ -346,6 +346,17 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new BusinessRuleException($"Không thể xóa lịch trình khi trạng thái là {scheduleToDelete.status}. Chỉ có thể xóa lịch trình ở trạng thái Draft hoặc Rejected.");
             }
 
+            // cancel all camper transports in this schedule
+            var camperTransports = await _unitOfWork.CamperTransports.GetQueryable()
+                .Where(ct => ct.transportScheduleId == id)
+                .ToListAsync();
+
+            foreach (var ct in camperTransports)
+            {
+                ct.status = CamperTransportStatus.Canceled.ToString();
+                await _unitOfWork.CamperTransports.UpdateAsync(ct);
+            }
+
             scheduleToDelete.status = TransportScheduleStatus.Canceled.ToString();
             await _unitOfWork.TransportSchedules.UpdateAsync(scheduleToDelete);
             await _unitOfWork.CommitAsync();
@@ -374,7 +385,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // count and list staff with role
             var staffList = schedule.TransportStaffAssignments
-                .Where(tsa => tsa.status == "Active" && tsa.staff != null)
+                .Where(tsa => tsa.status == "Active" && tsa.staff != null && tsa.staff.role != "Manager")
                 .Select(tsa => new StaffInTransportDto
                 {
                     StaffId = tsa.staff.userId,

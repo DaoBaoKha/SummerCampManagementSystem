@@ -201,7 +201,9 @@ namespace SummerCampManagementSystem.BLL.Services
                     // still keep optional activity slot at holding so user can make payment again
 
                     transaction.status = TransactionStatus.Failed.ToString();
+                    registration.status = RegistrationStatus.Approved.ToString();
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
                     await _unitOfWork.CommitAsync();
                 }
             }
@@ -260,6 +262,34 @@ namespace SummerCampManagementSystem.BLL.Services
                 else
                 {
                     // (CANCELLED, EXPIRED, FAILED)
+                    // update database before redirect
+                    string orderCodeString = orderCode.ToString();
+                    var transaction = await _unitOfWork.Transactions.GetQueryable()
+                        .FirstOrDefaultAsync(t => t.transactionCode == orderCodeString);
+
+                    if (transaction != null && transaction.status == TransactionStatus.Pending.ToString())
+                    {
+                        /*
+                         * STATUS TRANSACTION = FAILED
+                         * STATUS REGISTRATION = APPROVED 
+                         */
+                        transaction.status = TransactionStatus.Failed.ToString();
+                        await _unitOfWork.Transactions.UpdateAsync(transaction);
+
+                        // update registration to approved if has registrationId
+                        if (transaction.registrationId.HasValue)
+                        {
+                            var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
+                            if (registration != null && registration.status == RegistrationStatus.PendingPayment.ToString())
+                            {
+                                registration.status = RegistrationStatus.Approved.ToString();
+                                await _unitOfWork.Registrations.UpdateAsync(registration);
+                            }
+                        }
+
+                        await _unitOfWork.CommitAsync();
+                    }
+
                     return $"{BaseDeepLink}/failure?{queryParams}&status={linkInfo.status}"; 
                 }
             }
@@ -316,6 +346,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
                 else
                 {
+                    // payment failed, cancelled, or expired
                     response.IsSuccess = false;
                     response.Status = linkInfo.status;
                     response.Message = "Giao dịch chưa hoàn tất.";
@@ -327,8 +358,24 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     if (transaction != null && transaction.status == TransactionStatus.Pending.ToString())
                     {
+                        /*
+                         * STATUS TRANSACTION = FAILED
+                         * STATUS REGISTRATION = APPROVED 
+                         */
                         transaction.status = TransactionStatus.Failed.ToString();
                         await _unitOfWork.Transactions.UpdateAsync(transaction);
+
+                        // update registration to approved if has registrationId
+                        if (transaction.registrationId.HasValue)
+                        {
+                            var registration = await _unitOfWork.Registrations.GetByIdAsync(transaction.registrationId.Value);
+                            if (registration != null && registration.status == RegistrationStatus.PendingPayment.ToString())
+                            {
+                                registration.status = RegistrationStatus.Approved.ToString();
+                                await _unitOfWork.Registrations.UpdateAsync(registration);
+                            }
+                        }
+
                         await _unitOfWork.CommitAsync();
                     }
                 }

@@ -80,6 +80,26 @@ namespace SummerCampManagementSystem.BLL.Services
             if (existing == null)
                 throw new NotFoundException($"Không tìm thấy điểm dừng có ID {id}.");
 
+            // check if the route containing this RouteStop is being used in TransportSchedules
+            var isRouteUsedInTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.routeId == existing.routeId)
+                .AnyAsync();
+
+            if (isRouteUsedInTransportSchedule)
+            {
+                throw new BusinessRuleException("Không thể xóa điểm dừng vì tuyến đường đang được sử dụng trong lịch vận chuyển.");
+            }
+
+            // check if any CamperTransport is using this stop location
+            var isCamperTransportUsing = await _unitOfWork.CamperTransports.GetQueryable()
+                .Where(ct => ct.stopLocationId == existing.locationId)
+                .AnyAsync();
+
+            if (isCamperTransportUsing)
+            {
+                throw new BusinessRuleException("Không thể xóa điểm dừng vì đang có camper sử dụng điểm dừng này.");
+            }
+
             existing.status = "Inactive";
 
             try

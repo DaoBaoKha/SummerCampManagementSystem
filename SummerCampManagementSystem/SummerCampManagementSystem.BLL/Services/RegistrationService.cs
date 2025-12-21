@@ -539,6 +539,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         // load all schedule info to check max capacity
                         var allSchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
                             .Where(s => requestedScheduleIds.Contains(s.activityScheduleId))
+                            .Include(s => s.activity)
                             .ToListAsync();
 
                         foreach (var choice in request.OptionalChoices)
@@ -546,7 +547,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             var schedule = allSchedules.FirstOrDefault(s => s.activityScheduleId == choice.ActivityScheduleId)
                                 ?? throw new NotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
 
-                            if (!schedule.isOptional == true)
+                            if (schedule.activity?.activityType != "Optional")
                                 throw new BusinessRuleException($"Schedule {choice.ActivityScheduleId} is not optional.");
 
                             // check if record is in db
@@ -678,15 +679,16 @@ namespace SummerCampManagementSystem.BLL.Services
                     await _unitOfWork.CommitAsync();
 
                     // Handle URL Redirect
+                    // route through backend API for both success and cancel
+                    // update DB and redirect to frontend
                     string returnUrl;
                     string cancelUrl;
+                    string baseApiUrl = _configuration["ApiBaseUrl"]
+                        ?? throw new BusinessRuleException("ApiBaseUrl is not configured.");
 
                     if (isMobile)
                     {
-                        // use Mobile URLs
-                        string baseApiUrl = _configuration["ApiBaseUrl"]
-                            ?? throw new BusinessRuleException("ApiBaseUrl is not configured.");
-
+                        // Mobile: API callbacks
                         returnUrl = _configuration["PayOS:MobileReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
                             ?? $"{baseApiUrl}/api/payment/mobile-callback";
 
@@ -695,8 +697,14 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                     else
                     {
-                        returnUrl = _configuration["PayOS:ReturnUrl"] ?? "";
-                        cancelUrl = _configuration["PayOS:CancelUrl"] ?? "";
+                        // Website: BOTH ReturnUrl and CancelUrl point to backend API
+                        // process payment status and redirect to frontend
+                        // eeusing existing PayOS:ReturnUrl and PayOS:CancelUrl config keys
+                        returnUrl = _configuration["PayOS:ReturnUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                            ?? $"{baseApiUrl}/api/payment/website-callback";
+
+                        cancelUrl = _configuration["PayOS:CancelUrl"]?.Replace("{API_BASE_URL}", baseApiUrl)
+                            ?? $"{baseApiUrl}/api/payment/website-callback?status=CANCELLED";
                     }
 
                     // call payOS to create link

@@ -29,5 +29,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Vehicle
     {
         public int vehicleId { get; set; }
         public string vehicleName { get; set; } = string.Empty;
+        public string? vehicleNumber { get; set; }
     }
 }

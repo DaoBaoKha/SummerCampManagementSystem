@@ -250,10 +250,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 var existingGroup = await _unitOfWork.Groups.GetByIdWithCampAsync(id)
                     ?? throw new NotFoundException($"Camper Group with ID {id} not found."); 
 
-                // Validate camp status before deleting group
-                if (existingGroup.camp != null)
+                // check if camp status is published or higher
+                var camp = await _unitOfWork.Camps.GetByIdAsync(existingGroup.campId.Value);
+                if (camp != null && Enum.TryParse<CampStatus>(camp.status, out var campStatus) && campStatus >= CampStatus.Published)
                 {
-                    ValidateCampStatusForGroupOperation(existingGroup.camp, "xóa");
+                    throw new BusinessRuleException("Không thể xóa nhóm khi trại đã được xuất bản.");
                 }
 
                 await _unitOfWork.Groups.RemoveAsync(existingGroup);

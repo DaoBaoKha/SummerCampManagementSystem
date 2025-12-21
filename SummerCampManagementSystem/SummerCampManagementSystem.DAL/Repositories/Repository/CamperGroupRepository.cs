@@ -69,7 +69,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Set<CamperGroup>()
                 .Include(cg => cg.camper)
                 .Include(cg => cg.group)
-                .AsNoTracking()
                 .FirstOrDefaultAsync(cg => cg.camperGroupId == id);
         }
 

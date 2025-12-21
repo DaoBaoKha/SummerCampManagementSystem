@@ -97,7 +97,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// get camper transport schedule
         /// </summary>
         [HttpGet("camper/{camperId}")]
-        [Authorize(Roles = "Admin, Manager, Parent")] 
+        [Authorize(Roles = "Admin, Manager, User")] 
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperId(int camperId)
         {
             var response = await _scheduleService.GetSchedulesByCamperIdAsync(camperId);
@@ -108,7 +108,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// get camper transport schedules filtered by camp ID
         /// </summary>
         [HttpGet("camper/{camperId}/camp/{campId}")]
-        [Authorize(Roles = "Admin, Manager, Parent")]
+        [Authorize(Roles = "Admin, Manager, User")]
         public async Task<ActionResult<IEnumerable<TransportScheduleResponseDto>>> GetSchedulesByCamperAndCampId(int camperId, int campId)
         {
             var response = await _scheduleService.GetSchedulesByCamperAndCampIdAsync(camperId, campId);
@@ -198,7 +198,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// API to update actual start time
         /// </summary>
         [HttpPatch("{id}/start-trip")]
-        [Authorize(Roles = "Admin, Manager, Driver")]
+        [Authorize(Roles = "Admin, Manager, Staff, Driver")]
         public async Task<IActionResult> StartTrip(int id)
         {
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);
@@ -211,7 +211,7 @@ namespace SummerCampManagementSystem.API.Controllers
         /// API to update actual end time
         /// </summary>
         [HttpPatch("{id}/end-trip")]
-        [Authorize(Roles = "Admin, Manager, Driver")]
+        [Authorize(Roles = "Admin, Manager, Staff, Driver")]
         public async Task<IActionResult> EndTrip(int id)
         {
             var currentTime = TimeOnly.FromDateTime(DateTime.Now);

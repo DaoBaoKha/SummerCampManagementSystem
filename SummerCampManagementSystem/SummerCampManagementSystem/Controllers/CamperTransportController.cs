@@ -25,6 +25,17 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(campers);
         }
 
+        /// <summary>
+        /// Get active camper transports
+        /// </summary>
+        [HttpGet("schedule/{transportScheduleId}/active")]
+        [Authorize(Roles = "Driver, Staff, Manager, Admin")]
+        public async Task<IActionResult> GetActiveCampersByScheduleId(int transportScheduleId)
+        {
+            var campers = await _camperTransportService.GetActiveCamperTransportsByScheduleIdAsync(transportScheduleId);
+            return Ok(campers);
+        }
+
         [HttpGet]
         [Authorize(Roles = "Driver, Staff, Manager, Admin")]
         public async Task<IActionResult> GetAllCamperTransports()

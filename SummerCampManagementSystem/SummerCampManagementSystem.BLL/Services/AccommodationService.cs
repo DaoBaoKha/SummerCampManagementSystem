@@ -131,10 +131,11 @@ namespace SummerCampManagementSystem.BLL.Services
             var accommodation = await _unitOfWork.Accommodations.GetByIdWithCampAsync(accommodationId)
                 ?? throw new KeyNotFoundException("Accommodation not found.");
 
-            // Validate camp status before deleting accommodation
-            if (accommodation.camp != null)
+            // check if camp status is published or higher
+            var camp = await _unitOfWork.Camps.GetByIdAsync(accommodation.campId.Value);
+            if (camp != null && Enum.TryParse<CampStatus>(camp.status, out var campStatus) && campStatus >= CampStatus.Published)
             {
-                ValidateCampStatusForAccommodationOperation(accommodation.camp, "xóa");
+                throw new BusinessRuleException("Không thể xóa chỗ ở khi trại đã được xuất bản.");
             }
 
             await _unitOfWork.Accommodations.RemoveAsync(accommodation);

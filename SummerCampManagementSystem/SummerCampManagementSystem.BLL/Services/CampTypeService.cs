@@ -1,4 +1,6 @@
-﻿using SummerCampManagementSystem.BLL.DTOs.CampType;
+﻿using Microsoft.EntityFrameworkCore;
+using SummerCampManagementSystem.BLL.DTOs.CampType;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -41,6 +43,16 @@ namespace SummerCampManagementSystem.BLL.Services
             if (existingCampType == null)
             {
                 return false;
+            }
+
+            // check if any camps are using this camp type
+            var campsUsingType = await _unitOfWork.Camps.GetQueryable()
+                .Where(c => c.campTypeId == id)
+                .AnyAsync();
+
+            if (campsUsingType)
+            {
+                throw new BusinessRuleException("Không thể xóa loại trại này vì đang có trại sử dụng loại này.");
             }
 
             await _unitOfWork.CampTypes.RemoveAsync(existingCampType);

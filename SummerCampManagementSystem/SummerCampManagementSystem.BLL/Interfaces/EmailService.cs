@@ -16,6 +16,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task SendAccountCreatedEmailAsync(string toEmail, string role);
 
         Task SendEmailUpdateSuccessAsync(string newEmail, string oldEmail);
+
+        Task SendLevel3ReportNotificationAsync(string toEmail, string camperName, string reportType, string note, string imageUrl);
     }
 
     public class EmailService : IEmailService
@@ -41,6 +43,12 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             {
                 _logger.LogError("CRITICAL CONFIG: EmailSetting__SmtpServer is null or empty. Cannot connect to SMTP.");
                 throw new InvalidOperationException("Email server configuration is missing. SmtpServer is null or empty.");
+            }
+
+            if (string.IsNullOrWhiteSpace(_emailSetting.Password))
+            {
+                _logger.LogError("CRITICAL CONFIG: EmailSetting__Password is null or empty. Cannot authenticate to SMTP.");
+                throw new InvalidOperationException("Email server configuration is missing. Password is null or empty.");
             }
 
             _logger.LogInformation(
@@ -69,6 +77,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
                 await smtp.AuthenticateAsync(_emailSetting.SenderEmail, _emailSetting.Password);
                 await smtp.SendAsync(email);
                 await smtp.DisconnectAsync(true);
+                
+                _logger.LogInformation("Email sent successfully to {Recipient}", to);
             }
             catch (Exception ex)
             {
@@ -153,6 +163,33 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             <p style='color:red;'>Nếu bạn không thực hiện việc thay đổi này, vui lòng liên hệ ngay với bộ phận hỗ trợ của chúng tôi để bảo vệ tài khoản của bạn.</p>
             <p>Trân trọng,<br/>Summer Camp Team</p>";
             await SendEmailAsync(oldEmail, oldEmailSubject, oldEmailBody);
+        }
+
+        public async Task SendLevel3ReportNotificationAsync(string toEmail, string camperName, string reportType, string note, string imageUrl)
+        {
+            _logger.LogInformation("Preparing to send Level 3 report notification to {Email} for camper {CamperName}", toEmail, camperName);
+            
+            var subject = $"Thông báo quan trọng về {camperName} - Báo cáo Mức 3";
+            var body = $@"
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <h2 style='color: #E74C3C;'>⚠️ Thông báo quan trọng</h2>
+                <p>Xin chào Quý Phụ huynh,</p>
+                <p>Chúng tôi xin thông báo về một sự việc <strong>mức độ 3</strong> liên quan đến con em của Quý vị: <strong>{camperName}</strong></p>
+                
+                <div style='background-color: #f8f9fa; padding: 15px; border-left: 4px solid #E74C3C; margin: 20px 0;'>
+                    <p><strong>Loại báo cáo:</strong> {reportType}</p>
+                    <p><strong>Chi tiết:</strong> {note}</p>
+                </div>
+                
+                {(!string.IsNullOrEmpty(imageUrl) ? $"<p><strong>Hình ảnh đính kèm:</strong></p><img src='{imageUrl}' alt='Report Image' style='max-width: 100%; height: auto; border-radius: 8px;' />" : "")}
+                
+                <p style='margin-top: 20px;'>Nếu Quý vị có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi ngay.</p>
+                <p>Trân trọng,<br/>Đội ngũ Summer Camp</p>
+            </div>";
+            
+            await SendEmailAsync(toEmail, subject, body);
+            
+            _logger.LogInformation("Level 3 report notification sent successfully to {Email}", toEmail);
         }
     }
 }

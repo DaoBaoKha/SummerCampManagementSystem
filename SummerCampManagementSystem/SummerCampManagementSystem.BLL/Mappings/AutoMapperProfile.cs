@@ -86,11 +86,11 @@ namespace SummerCampManagementSystem.BLL.Mappings
             CreateMap<Camper, CamperNameDto>();
             CreateMap<CamperCreateDto, Camper>()
                     .ForMember(dest => dest.HealthRecord, opt => opt.Ignore());
-            
+
             CreateMap<CamperUpdateDto, Camper>()
                  .ForMember(x => x.HealthRecord, opt => opt.Ignore())
                  .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
-                       
+
 
             CreateMap<Camper, CamperResponseDto>()
                 .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
@@ -134,8 +134,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             // CamperGroup mapping
             CreateMap<CamperGroup, CamperGroupResponseDto>()
-                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper)) 
-                .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));  
+                .ForMember(dest => dest.camperName, opt => opt.MapFrom(src => src.camper))
+                .ForMember(dest => dest.groupName, opt => opt.MapFrom(src => src.group));
             CreateMap<CamperGroupRequestDto, CamperGroup>();
 
             // CamperAccommodation mapping
@@ -168,7 +168,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<Driver, DriverRegisterResponseDto>()
                 .ForMember(dest => dest.DriverDetails, opt => opt.MapFrom(src => src)) // map Driver to DriverDetailsDto (mapping 3)
-                .ForMember(dest => dest.OneTimeUploadToken, opt => opt.MapFrom(src => src.UploadToken)); 
+                .ForMember(dest => dest.OneTimeUploadToken, opt => opt.MapFrom(src => src.UploadToken));
 
             CreateMap<Driver, DriverLicensePhotoUploadDto>();
             CreateMap<Driver, DriverStatusUpdateDto>();
@@ -213,7 +213,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             .ForMember(dest => dest.campLocationId, opt => opt.MapFrom(src => src.ParentLocationId))
             .ForMember(dest => dest.locationType, opt => opt.MapFrom(src => src.LocationType.ToString()))
             .ForMember(dest => dest.isActive, opt => opt.MapFrom(src => true));
-           
+
             CreateMap<LocationUpdateDto, Location>()
                 .ForMember(dest => dest.campLocationId, opt => opt.MapFrom(src => src.ParentLocationId))
                 .ForMember(dest => dest.locationType, opt => opt.MapFrom(src => src.LocationType.ToString()))
@@ -286,7 +286,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             //ActivitySchedule mappings
             CreateMap<ActivitySchedule, ActivityScheduleResponseDto>();
-               
+
 
             CreateMap<ActivitySchedule, ActivityScheduleByCamperResponseDto>()
                 .IncludeBase<ActivitySchedule, ActivityScheduleResponseDto>()
@@ -305,7 +305,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
             //CamperActivity mappings
             CreateMap<CamperActivity, CamperActivityResponseDto>()
                 .ForMember(dest => dest.Camper, opt => opt.MapFrom(src => src.camper));
-                
+
             CreateMap<CamperActivityCreateDto, CamperActivity>()
                 .ForMember(dest => dest.participationStatus, opt => opt.MapFrom(src => "Approved"));
             CreateMap<CamperActivityUpdateDto, CamperActivity>();
@@ -358,7 +358,7 @@ namespace SummerCampManagementSystem.BLL.Mappings
                     src.camper.CamperAccommodations
                         .Where(ca => ca.accommodation != null && ca.accommodation.campId == src.registration.campId)
                         .Select(ca => ca.accommodation)
-                        .FirstOrDefault())); 
+                        .FirstOrDefault()));
 
             CreateMap<RegistrationCamper, RegistrationCamperDetailDto>()
                 .IncludeMembers(src => src.camper)
@@ -371,7 +371,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
                 .ForMember(dest => dest.vehicleType, opt => opt.MapFrom(src => src.vehicleTypeNavigation));
             CreateMap<Vehicle, VehicleNameDto>()
                 .ForMember(dest => dest.vehicleId, opt => opt.MapFrom(src => src.vehicleId))
-                .ForMember(dest => dest.vehicleName, opt => opt.MapFrom(src => src.vehicleName));
+                .ForMember(dest => dest.vehicleName, opt => opt.MapFrom(src => src.vehicleName))
+                .ForMember(dest => dest.vehicleNumber, opt => opt.MapFrom(src => src.vehicleNumber));
 
             //VehicleType mappings
             CreateMap<VehicleTypeRequestDto, VehicleType>()
@@ -412,8 +413,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Transaction mappings 
             CreateMap<Transaction, TransactionResponseDto>()
                 .ForMember(dest => dest.RegistrationId, opt => opt.MapFrom(src => src.registrationId))
-                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.registration.camp.name)) 
-                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.registration.userId))    
+                .ForMember(dest => dest.CampName, opt => opt.MapFrom(src => src.registration.camp.name))
+                .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.registration.userId))
                 .ForMember(dest => dest.TransactionId, opt => opt.MapFrom(src => src.transactionId))
                 .ForMember(dest => dest.TransactionTime, opt => opt.MapFrom(src => src.transactionTime));
 
@@ -482,11 +483,12 @@ namespace SummerCampManagementSystem.BLL.Mappings
 
             CreateMap<Message, ChatRoomMessageDto>()
             .ForMember(dest => dest.MessageId, opt => opt.MapFrom(src => src.messageId))
+            .ForMember(dest => dest.ChatRoomId, opt => opt.MapFrom(src => src.chatRoomId))
             .ForMember(dest => dest.SenderId, opt => opt.MapFrom(src => src.senderId))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.content))
 
-            // change name sentAt -> createAt
-            .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.createAt.HasValue ? src.createAt.Value.ToVietnamTime() : DateTime.UtcNow.ToVietnamTime()))
+            // Keep UTC - no timezone conversion (client will handle display conversion)
+            .ForMember(dest => dest.SentAt, opt => opt.MapFrom(src => src.createAt.HasValue ? src.createAt.Value : DateTime.UtcNow))
 
             // get user info
             .ForMember(dest => dest.SenderName, opt => opt.MapFrom(src =>
