@@ -15,6 +15,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ChatRoom
     public class ChatRoomMessageDto
     {
         public int MessageId { get; set; }
+        public int ChatRoomId { get; set; }
         public int SenderId { get; set; }
         public string SenderName { get; set; }
         public string Avatar { get; set; }
@@ -29,7 +30,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.ChatRoom
         public int Type { get; set; } // private or group
         public string? LastMessage { get; set; }
         public DateTime? LastMessageTime { get; set; }
-        public string? AvatarUrl { get; set; } 
+        public string? AvatarUrl { get; set; }
     }
 
     public class CreateOrGetPrivateRoomRequestDto
