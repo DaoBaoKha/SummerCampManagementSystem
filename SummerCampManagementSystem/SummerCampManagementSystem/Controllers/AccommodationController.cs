@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Accommodation;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
 
@@ -115,6 +116,10 @@ namespace SummerCampManagementSystem.API.Controllers
                 return NotFound(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (BadRequestException ex)
             {
                 return BadRequest(new { message = ex.Message });
             }

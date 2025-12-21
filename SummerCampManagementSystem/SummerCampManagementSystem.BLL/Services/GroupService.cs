@@ -156,6 +156,12 @@ namespace SummerCampManagementSystem.BLL.Services
             
             try
             {
+                // Validate camp status before creating group
+                var camp = await _unitOfWork.Camps.GetByIdAsync(Group.CampId)
+                    ?? throw new NotFoundException($"Camp with ID {Group.CampId} not found.");
+                
+                ValidateCampStatusForGroupOperation(camp, "tạo");
+
                 await RunGroupSupervisorValidation(Group.SupervisorId, Group.CampId);
 
                 var group = _mapper.Map<Group>(Group);
@@ -241,7 +247,7 @@ namespace SummerCampManagementSystem.BLL.Services
             
             try
             {
-                var existingGroup = await _unitOfWork.Groups.GetByIdAsync(id)
+                var existingGroup = await _unitOfWork.Groups.GetByIdWithCampAsync(id)
                     ?? throw new NotFoundException($"Camper Group with ID {id} not found."); 
 
                 // check if camp status is published or higher
@@ -335,6 +341,23 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         #region Private Methods
+
+        private void ValidateCampStatusForGroupOperation(Camp camp, string operation)
+        {
+            var campStatus = camp.status;
+
+            // Block operations if camp status is Published or later
+            if (campStatus == CampStatus.Published.ToString() ||
+                campStatus == CampStatus.OpenForRegistration.ToString() ||
+                campStatus == CampStatus.RegistrationClosed.ToString() ||
+                campStatus == CampStatus.UnderEnrolled.ToString() ||
+                campStatus == CampStatus.InProgress.ToString() ||
+                campStatus == CampStatus.Completed.ToString() ||
+                campStatus == CampStatus.Canceled.ToString())
+            {
+                throw new BadRequestException($"Không thể {operation} group khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, hoặc Rejected.");
+            }
+        }
 
         private async Task<(UserAccount staff, Camp camp)> RunGroupSupervisorValidation(int? supervisorId, int campId, int? groupId = null)
         {

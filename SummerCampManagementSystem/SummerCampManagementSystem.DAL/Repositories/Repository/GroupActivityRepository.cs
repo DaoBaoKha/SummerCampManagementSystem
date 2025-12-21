@@ -29,5 +29,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(ga => ga.activityScheduleId == activityScheduleId && ga.groupId == groupId)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<GroupActivity?> GetByIdWithGroupAndCampAsync(int groupActivityId)
+        {
+            return await _context.GroupActivities
+                .AsNoTracking()
+                .Include(ga => ga.group)
+                    .ThenInclude(g => g.camp)
+                .FirstOrDefaultAsync(ga => ga.groupActivityId == groupActivityId);
+        }
     }
 }

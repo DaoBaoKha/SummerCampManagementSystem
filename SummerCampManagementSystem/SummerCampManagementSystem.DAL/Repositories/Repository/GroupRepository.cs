@@ -337,6 +337,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(g => groupIds.Contains(g.groupId))
                 .ToListAsync();
         }
+
+        public async Task<Group?> GetByIdWithCampAsync(int groupId)
+        {
+            return await _context.Groups
+                .AsNoTracking()
+                .Include(g => g.camp)
+                .FirstOrDefaultAsync(g => g.groupId == groupId);
+        }
+
         public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
         {
             return await _context.Groups

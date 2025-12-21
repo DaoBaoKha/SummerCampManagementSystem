@@ -68,6 +68,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .ToListAsync();
         }
 
+        public async Task<Accommodation?> GetByIdWithCampAsync(int accommodationId)
+        {
+            return await _context.Accommodations
+                .AsNoTracking()
+                .Include(a => a.camp)
+                .FirstOrDefaultAsync(a => a.accommodationId == accommodationId);
+        }
+
         public async Task<Accommodation?> GetByIdWithCamperAccommodationsAndCampAsync(int accommodationId)
         {
             return await _context.Accommodations
