@@ -539,6 +539,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         // load all schedule info to check max capacity
                         var allSchedules = await _unitOfWork.ActivitySchedules.GetQueryable()
                             .Where(s => requestedScheduleIds.Contains(s.activityScheduleId))
+                            .Include(s => s.activity)
                             .ToListAsync();
 
                         foreach (var choice in request.OptionalChoices)
@@ -546,7 +547,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             var schedule = allSchedules.FirstOrDefault(s => s.activityScheduleId == choice.ActivityScheduleId)
                                 ?? throw new NotFoundException($"Activity Schedule {choice.ActivityScheduleId} not found.");
 
-                            if (!schedule.isOptional == true)
+                            if (schedule.activity?.activityType != "Optional")
                                 throw new BusinessRuleException($"Schedule {choice.ActivityScheduleId} is not optional.");
 
                             // check if record is in db

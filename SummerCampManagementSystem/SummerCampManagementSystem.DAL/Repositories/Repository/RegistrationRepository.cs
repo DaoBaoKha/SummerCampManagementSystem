@@ -118,6 +118,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Registrations
                 .Where(r => r.campId == campId)
                 .Include(r => r.camp)
+                .Include(r => r.user)
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
