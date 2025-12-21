@@ -327,6 +327,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                // SignalR sends JWT token via query string as access_token
+                var accessToken = context.Request.Query["access_token"];
+
+                // If the request is for SignalR hub
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
+
             OnChallenge = async context =>
             {
                 context.HandleResponse();
