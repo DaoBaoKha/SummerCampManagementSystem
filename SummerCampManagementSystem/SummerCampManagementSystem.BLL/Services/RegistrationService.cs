@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Net.payOS.Types;
+using SummerCampManagementSystem.BLL.DTOs.Refund;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
@@ -21,9 +22,11 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
+        private readonly IRefundService _refundService;
 
         public RegistrationService(IUnitOfWork unitOfWork, IValidationService validationService,
-            IPayOSService payOSService, IConfiguration configuration, IMapper mapper, IUserContextService userContextService)
+            IPayOSService payOSService, IConfiguration configuration, IMapper mapper, 
+            IUserContextService userContextService, IRefundService refundService)
         {
             _unitOfWork = unitOfWork;
             _validationService = validationService;
@@ -31,6 +34,7 @@ namespace SummerCampManagementSystem.BLL.Services
             _configuration = configuration;
             _mapper = mapper;
             _userContextService = userContextService;
+            _refundService = refundService;
         }
 
         public async Task<RegistrationResponseDto> CreateRegistrationAsync(CreateRegistrationRequestDto request)
@@ -833,6 +837,136 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             return Math.Max(0m, finalAmount);
+        }
+
+        public async Task<CancelRegistrationResponseDto> CancelRegistrationAsync(int registrationId, CancelRegistrationRequestDto request)
+        {
+            // get current user
+            var currentUserId = _userContextService.GetCurrentUserId();
+            if (!currentUserId.HasValue)
+                throw new UnauthorizedException("User not authenticated.");
+
+            // get registration with full details using existing repository method
+            var registration = await _unitOfWork.Registrations.GetFullDetailsAsync(registrationId);
+            if (registration == null)
+                throw new NotFoundException($"Registration with ID {registrationId} not found.");
+
+            // validate ownership
+            if (registration.userId != currentUserId.Value)
+                throw new UnauthorizedException("You do not have permission to cancel this registration.");
+
+            // check if already cancelled or being cancelled
+            if (registration.status == RegistrationStatus.Canceled.ToString())
+                throw new BadRequestException("Registration is already cancelled.");
+
+            if (registration.status == RegistrationStatus.PendingRefund.ToString())
+                throw new BadRequestException("Registration cancellation is already being processed.");
+
+            // validate status allows cancellation
+            var allowedStatuses = new[]
+            {
+                RegistrationStatus.PendingApproval.ToString(),
+                RegistrationStatus.Approved.ToString(),
+                RegistrationStatus.PendingPayment.ToString(),
+                RegistrationStatus.Confirmed.ToString()
+            };
+
+            if (!allowedStatuses.Contains(registration.status))
+                throw new BadRequestException($"Cannot cancel registration with status '{registration.status}'.");
+
+            // check if payment has been confirmed
+            var hasConfirmedPayment = registration.Transactions
+                .Any(t => t.type == "Payment" && t.status == TransactionStatus.Confirmed.ToString());
+
+            // unpaid Registration - Free Cancel
+            if (!hasConfirmedPayment)
+            {
+                using (var transaction = await _unitOfWork.BeginTransactionAsync())
+                {
+                    try
+                    {
+                        // update registration campers to Canceled
+                        foreach (var regCamper in registration.RegistrationCampers)
+                        {
+                            regCamper.status = RegistrationCamperStatus.Canceled.ToString();
+                            await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                        }
+
+                        // update optional activities to Canceled
+                        // registrationOptionalActivity has status field
+                        var optionalActivities = registration.RegistrationOptionalActivities;
+                        foreach (var activity in optionalActivities)
+                        {
+                            activity.status = "Canceled";
+                            // mark as modified using DbContext
+                            var dbContext = _unitOfWork.GetDbContext();
+                            dbContext.Entry(activity).State = EntityState.Modified;
+                        }
+
+                        // camperTransport handled by database rules or separate transport management
+
+                        // update registration status to canceled
+                        registration.status = RegistrationStatus.Canceled.ToString();
+                        registration.rejectReason = request.Reason ?? "Cancelled by user";
+                        await _unitOfWork.Registrations.UpdateAsync(registration);
+
+                        await _unitOfWork.CommitAsync();
+                        await transaction.CommitAsync();
+
+                        return new CancelRegistrationResponseDto
+                        {
+                            RegistrationId = registrationId,
+                            Status = RegistrationStatus.Canceled.ToString(),
+                            RefundAmount = null,
+                            RefundPercentage = null,
+                            Message = "Registration cancelled successfully. No payment was made."
+                        };
+                    }
+                    catch (Exception)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
+            }
+
+            // paid Registration - Requires Refund Process
+            else
+            {
+                // validate bank info is provided
+                if (!request.BankUserId.HasValue || request.BankUserId.Value <= 0)
+                    throw new BusinessRuleException("Bank account information is required for refund processing.");
+
+                // validate bank user exists and belongs to current user
+                var bankUser = await _unitOfWork.BankUsers.GetByIdAsync(request.BankUserId.Value);
+                if (bankUser == null)
+                    throw new NotFoundException($"Bank account with ID {request.BankUserId.Value} not found.");
+
+                if (bankUser.userId != currentUserId.Value)
+                    throw new UnauthorizedException("The specified bank account does not belong to you.");
+
+                // delegate to refund service for policy-based refund
+                var refundRequest = new CancelRequestDto
+                {
+                    RegistrationId = registrationId,
+                    BankUserId = request.BankUserId.Value,
+                    Reason = request.Reason
+                };
+
+                var refundResult = await _refundService.RequestCancelAsync(refundRequest);
+
+                // calculate refund info for response
+                var refundCalc = await _refundService.CalculateRefundAsync(registrationId);
+
+                return new CancelRegistrationResponseDto
+                {
+                    RegistrationId = registrationId,
+                    Status = refundResult.Status,
+                    RefundAmount = refundResult.RefundAmount,
+                    RefundPercentage = refundCalc.RefundPercentage,
+                    Message = $"Refund request submitted. {refundCalc.PolicyDescription}"
+                };
+            }
         }
 
         #endregion
