@@ -201,7 +201,9 @@ namespace SummerCampManagementSystem.BLL.Services
                     // still keep optional activity slot at holding so user can make payment again
 
                     transaction.status = TransactionStatus.Failed.ToString();
+                    registration.status = RegistrationStatus.Approved.ToString();
                     await _unitOfWork.Transactions.UpdateAsync(transaction);
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
                     await _unitOfWork.CommitAsync();
                 }
             }
