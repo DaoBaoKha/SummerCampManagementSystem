@@ -53,6 +53,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
                 .Include(r => r.appliedPromotion)
                 .Include(r => r.RegistrationOptionalActivities)
+                .Include(r => r.Transactions)  // add this for cancel registration check
                 .FirstOrDefaultAsync();
         }
 

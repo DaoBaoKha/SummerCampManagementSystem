@@ -167,6 +167,17 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
+        /// <summary>
+        /// Cancel registration
+        /// </summary>
+        [HttpPost("{id}/cancel")]
+        [Authorize]
+        public async Task<IActionResult> CancelRegistration(int id, [FromBody] CancelRegistrationRequestDto request)
+        {
+            var result = await _registrationService.CancelRegistrationAsync(id, request);
+            return Ok(result);
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteRegistration(int id)
         {
