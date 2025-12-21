@@ -121,28 +121,46 @@ namespace SummerCampManagementSystem.API.Controllers
         }
 
         [HttpGet("website-callback")]
+        [ProducesResponseType(StatusCodes.Status302Found)] // this is a redirect
         public async Task<IActionResult> PaymentWebsiteCallback()
         {
             try
             {
                 string rawQueryString = Request.QueryString.Value ?? string.Empty;
-                _logger.LogInformation($"Website Callback: Nhận được query: {rawQueryString}"); // log when start processing
+                _logger.LogInformation($"Website Callback: Nhận được query: {rawQueryString}");
 
+                // Process payment in backend (update DB)
                 var resultDto = await _paymentService.ProcessPaymentWebsiteCallbackRaw(rawQueryString);
 
-                _logger.LogInformation($"Website Callback: Xử lý thành công, kết quả: {resultDto.Status} - {resultDto.Message}"); // log when success
-                return Ok(resultDto);
+                _logger.LogInformation($"Website Callback: Xử lý thành công, kết quả: {resultDto.Status} - {resultDto.Message}");
+
+                // Redirect to frontend with payment result
+                var frontendUrl = _configuration["FrontendUrl"] ?? "https://summer-camp-web-seven.vercel.app";
+                var redirectUrl = $"{frontendUrl}/user/payment-callback?status={resultDto.Status.ToLower()}&orderCode={resultDto.OrderCode}&message={Uri.EscapeDataString(resultDto.Message)}";
+
+                _logger.LogInformation($"Website Callback: Redirect to frontend: {redirectUrl}");
+                
+                return Redirect(redirectUrl);
             }
             catch (ArgumentException ex)
             {
                 _logger.LogError(ex, $"Website Callback LỖI 1 (ArgumentException): {ex.Message}");
-                return BadRequest(new { message = ex.Message });
+                
+                // Redirect to frontend with error
+                var frontendUrl = _configuration["FrontendUrl"] ?? "https://summer-camp-web-seven.vercel.app";
+                var redirectUrl = $"{frontendUrl}/user/payment-callback?status=error&message={Uri.EscapeDataString(ex.Message)}";
+                
+                return Redirect(redirectUrl);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Website Callback LỖI 2 (Exception): {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError,
-                    new { message = "Lỗi hệ thống khi xử lý callback.", detail = ex.Message });
+                
+                // Redirect to frontend with system error
+                var frontendUrl = _configuration["FrontendUrl"] ?? "https://summer-camp-web-seven.vercel.app";
+                var redirectUrl = $"{frontendUrl}/user/payment-callback?status=error&message={Uri.EscapeDataString("Lỗi hệ thống khi xử lý callback")}";
+                
+                return Redirect(redirectUrl);
             }
         }
 

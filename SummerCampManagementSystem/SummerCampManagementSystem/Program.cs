@@ -25,6 +25,14 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
+
+// Force UTC timezone AND culture-invariant formatting to ensure consistent PayOS signature generation
+// This prevents signature mismatches between local (UTC+7, vi-VN culture) and cloud (UTC, en-US culture)
+// Note: Google Cloud already runs in UTC with invariant culture, so this only affects local development
+TimeZoneInfo.ClearCachedData();
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -58,11 +66,19 @@ builder.Services.AddDbContext<CampEaseDatabaseContext>(options =>
 // Singleton Services Configuration
 
 // PayOS
-builder.Services.AddSingleton(sp => new PayOS(
-    builder.Configuration["PayOS:ClientId"] ?? "",
-    builder.Configuration["PayOS:ApiKey"] ?? "",
-    builder.Configuration["PayOS:ChecksumKey"] ?? ""
-));
+var payOSClientId = (builder.Configuration["PayOS:ClientId"] ?? "").Trim();
+var payOSApiKey = (builder.Configuration["PayOS:ApiKey"] ?? "").Trim();
+var payOSChecksumKey = (builder.Configuration["PayOS:ChecksumKey"] ?? "").Trim();
+
+// Log credential lengths
+Console.WriteLine($"[PayOS Init] ClientId length: {payOSClientId.Length}, ApiKey length: {payOSApiKey.Length}, ChecksumKey length: {payOSChecksumKey.Length}");
+
+if (string.IsNullOrEmpty(payOSClientId) || string.IsNullOrEmpty(payOSApiKey) || string.IsNullOrEmpty(payOSChecksumKey))
+{
+    Console.WriteLine("[PayOS Init] WARNING: One or more PayOS credentials are missing!");
+}
+
+builder.Services.AddSingleton(sp => new PayOS(payOSClientId, payOSApiKey, payOSChecksumKey));
 
 // Supabase - Use ServiceRoleKey for admin operations (storage uploads, etc.)
 var supabaseUrl = builder.Configuration["Supabase:Url"] ?? "";
