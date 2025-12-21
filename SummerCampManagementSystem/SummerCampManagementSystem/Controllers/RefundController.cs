@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SummerCampManagementSystem.BLL.DTOs.Refund;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.API.Controllers
 {
@@ -54,6 +55,19 @@ namespace SummerCampManagementSystem.API.Controllers
 
             return Ok(results);
         }
+
+        /// <summary>
+        /// Get refund requests for a specific camp with optional filtering
+        /// </summary>
+        [HttpGet("camp/{campId}/requests")]
+        [Authorize(Roles = "Admin, Manager")]
+        public async Task<IActionResult> GetRefundRequestsByCamp(int campId, [FromQuery] RefundRequestFilterDto filter)
+        {
+            var results = await _refundService.GetRefundRequestsByCampAsync(campId, filter);
+
+            return Ok(results);
+        }
+
 
         [HttpPost("approve")]
         [Authorize(Roles = "Admin, Manager")]

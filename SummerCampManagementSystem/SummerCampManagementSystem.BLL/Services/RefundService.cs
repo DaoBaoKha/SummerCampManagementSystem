@@ -36,6 +36,19 @@ namespace SummerCampManagementSystem.BLL.Services
             return CalculateRefundInternal(registration);
         }
 
+        public async Task<RefundCalculationDto> CalculateRefundForSystemAsync(int registrationId)
+        {
+            // reuse repository method - no user validation 
+            var registration = await _unitOfWork.Registrations.GetWithDetailsForRefundAsync(registrationId);
+
+            if (registration == null)
+            {
+                throw new NotFoundException($"Không tìm thấy đơn đăng ký với ID {registrationId}.");
+            }
+
+            return CalculateRefundInternal(registration);
+        }
+
         public async Task<RegistrationCancelResponseDto> RequestCancelAsync(CancelRequestDto requestDto)
         {
             var userId = _userContextService.GetCurrentUserId();
@@ -71,17 +84,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (filter != null)
             {
-                if (!string.IsNullOrEmpty(filter.Status))
+                if (filter.Status.HasValue)
                 {
-                    query = query.Where(rc => rc.status == filter.Status);
-                }
-                if (!string.IsNullOrEmpty(filter.SearchTerm))
-                {
-                    string term = filter.SearchTerm.ToLower();
-                    query = query.Where(rc =>
-                        (rc.registration.user.firstName + " " + rc.registration.user.lastName).ToLower().Contains(term) ||
-                        rc.registration.RegistrationCampers.Any(cp => cp.camper.camperName.ToLower().Contains(term))
-                    );
+                    query = query.Where(rc => rc.status == filter.Status.Value.ToString());
                 }
             }
 
@@ -114,6 +119,57 @@ namespace SummerCampManagementSystem.BLL.Services
                 BankAccountName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : ""
             });
         }
+
+        public async Task<IEnumerable<RefundRequestListDto>> GetRefundRequestsByCampAsync(int campId, RefundRequestFilterDto? filter = null)
+        {
+            // validate camp existence
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null)
+                throw new NotFoundException($"Không tìm thấy trại với ID {campId}.");
+
+            // get refund requests for registrations of this camp
+            var query = _unitOfWork.RegistrationCancels.GetQueryableWithDetails()
+                .Where(rc => rc.registration.campId == campId);
+
+            // apply filters if provided
+            if (filter != null)
+            {
+                if (filter.Status.HasValue)
+                {
+                    query = query.Where(rc => rc.status == filter.Status.Value.ToString());
+                }
+            }
+
+            var requests = await query.OrderByDescending(rc => rc.requestDate).ToListAsync();
+
+            return requests.Select(rc => new RefundRequestListDto
+            {
+                RegistrationCancelId = rc.registrationCancelId,
+                RegistrationId = rc.registrationId ?? 0,
+
+                // user information
+                ParentName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : "Unknown",
+                ParentEmail = rc.registration?.user?.email ?? "",
+                ParentPhone = rc.registration?.user?.phoneNumber ?? "",
+                CamperNames = rc.registration?.RegistrationCampers.Select(cp => cp.camper?.camperName ?? "Unknown").ToList() ?? new List<string>(),
+
+                // refund information
+                RefundAmount = rc.refundAmount ?? 0,
+                RequestDate = rc.requestDate.HasValue ? rc.requestDate.Value.ToVietnamTime() : DateTime.MinValue,
+                Reason = rc.reason,
+                Status = rc.status,
+                ApprovalDate = rc.approvalDate.HasValue ? rc.approvalDate.Value.ToVietnamTime() : null,
+                ManagerNote = rc.note,
+                ImageRefund = rc.imageRefund,
+                TransactionCode = rc.transactionCode,
+
+                // bank information
+                BankName = rc.bankUser?.bankName ?? "N/A",
+                BankNumber = rc.bankUser?.bankNumber ?? "N/A",
+                BankAccountName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : ""
+            });
+        }
+
 
         public async Task<RegistrationCancelResponseDto> ApproveRefundAsync(ApproveRefundDto dto)
         {

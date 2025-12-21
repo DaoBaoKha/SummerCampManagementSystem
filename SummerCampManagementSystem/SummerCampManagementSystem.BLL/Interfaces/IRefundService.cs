@@ -6,9 +6,13 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {        
         Task<RefundCalculationDto> CalculateRefundAsync(int registrationId);
 
+        Task<RefundCalculationDto> CalculateRefundForSystemAsync(int registrationId);
+
         Task<RegistrationCancelResponseDto> RequestCancelAsync(CancelRequestDto requestDto);
 
         Task<IEnumerable<RefundRequestListDto>> GetAllRefundRequestsAsync(RefundRequestFilterDto? filter = null);
+
+        Task<IEnumerable<RefundRequestListDto>> GetRefundRequestsByCampAsync(int campId, RefundRequestFilterDto? filter = null);
 
         Task<RegistrationCancelResponseDto> ApproveRefundAsync(ApproveRefundDto dto);
 
