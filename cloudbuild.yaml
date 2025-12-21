@@ -62,6 +62,7 @@ steps:
       
       # --- GENERAL API SETTINGS ---
       '--set-secrets', 'ApiBaseUrl=api-base-url:latest',
+      '--set-secrets', 'FrontendUrl=frontend-url:latest',
 
       # --- GEMINI API ---
       '--set-secrets', 'GeminiApi__ApiKey=gemini-api-key:latest,GeminiApi__ApiBaseUrl=gemini-base-url:latest,GeminiApi__ModelName=gemini-model-name:latest',
@@ -126,9 +127,7 @@ steps:
 
       '--timeout', '1000s',
 
-      '--set-secrets', 'Authentication__Google__ClientId=google-client-id:latest',
-      '--set-secrets', 'Authentication__Google__ClientSecret=google-client-secret:latest',
-      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest',
+      '--set-secrets', 'ConnectionStrings__DefaultConnection=db-connection-string:latest,Authentication__Google__ClientId=google-client-id:latest,Authentication__Google__ClientSecret=google-client-secret:latest',
       '--set-secrets', 'Jwt__Key=jwt-secret:latest',
       '--set-secrets', 'Jwt__Issuer=jwt-issuer:latest',
       '--set-secrets', 'Jwt__Audience=jwt-audience:latest',
