@@ -33,6 +33,9 @@ public partial class Group
 
     public int? maxAge { get; set; }
 
+    [StringLength(50)]
+    public string status { get; set; }
+
     [InverseProperty("group")]
     public virtual ICollection<CamperGroup> CamperGroups { get; set; } = new List<CamperGroup>();
 

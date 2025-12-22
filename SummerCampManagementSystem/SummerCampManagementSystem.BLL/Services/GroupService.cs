@@ -32,7 +32,8 @@ namespace SummerCampManagementSystem.BLL.Services
             
             try
             {
-                var groups = await _unitOfWork.Groups.GetAllAsync();
+                // use GetAllCamperGroups which filters only Active groups
+                var groups = await _unitOfWork.Groups.GetAllCamperGroups();
                 
                 stopwatch.Stop();
                 _logger.LogInformation(
@@ -257,8 +258,11 @@ namespace SummerCampManagementSystem.BLL.Services
                     throw new BusinessRuleException("Không thể xóa nhóm khi trại đã được xuất bản.");
                 }
 
-                await _unitOfWork.Groups.RemoveAsync(existingGroup);
+                // soft delete group: set status to Inactive
+                existingGroup.status = "Inactive";
+                await _unitOfWork.Groups.UpdateAsync(existingGroup);
 
+                // hard delete GroupActivities
                 var groupActivities = await _unitOfWork.GroupActivities.GetByGroupId(id);
                 foreach (var ga in groupActivities)
                 {
@@ -266,8 +270,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 await _unitOfWork.CommitAsync();
+                
                 _logger.LogInformation(
-                    "[GroupService] Successfully deleted GroupId={GroupId} and {ActivityCount} activities", 
+                    "[GroupService] Successfully soft deleted GroupId={GroupId} (status=Inactive) and removed {ActivityCount} activities", 
                     id, groupActivities.Count());
 
                 return true;
