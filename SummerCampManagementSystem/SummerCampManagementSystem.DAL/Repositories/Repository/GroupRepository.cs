@@ -88,7 +88,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     .AsNoTracking()
                     .AnyAsync(a =>
                         a.supervisorId == staffId &&
-                        a.campId == campId);
+                        a.campId == campId &&
+                        a.status == "Active");  // check only active groups
 
                 _logger.LogInformation("[GroupRepository] isSupervisor result - StaffId={StaffId}, CampId={CampId}, IsSupervisor={Result}",
                     staffId, campId, result);

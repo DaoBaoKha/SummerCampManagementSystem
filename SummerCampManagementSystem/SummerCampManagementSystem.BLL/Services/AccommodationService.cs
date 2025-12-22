@@ -129,17 +129,21 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<bool> DeleteAccommodationAsync(int accommodationId)
         {
             var accommodation = await _unitOfWork.Accommodations.GetByIdWithCampAsync(accommodationId)
-                ?? throw new KeyNotFoundException("Accommodation not found.");
+                ?? throw new NotFoundException("Không tìm thấy chỗ ở.");
 
-            // check if camp status is published or higher
+            // only delete when camp status is before Published
             var camp = await _unitOfWork.Camps.GetByIdAsync(accommodation.campId.Value);
             if (camp != null && Enum.TryParse<CampStatus>(camp.status, out var campStatus) && campStatus >= CampStatus.Published)
             {
                 throw new BusinessRuleException("Không thể xóa chỗ ở khi trại đã được xuất bản.");
             }
 
-            await _unitOfWork.Accommodations.RemoveAsync(accommodation);
+            // soft delete set isActive = false 
+            accommodation.isActive = false;
+            accommodation.supervisorId = null;  // set null supervisor to release staff
+            await _unitOfWork.Accommodations.UpdateAsync(accommodation);
 
+            // Hard delete các AccommodationActivitySchedule liên quan
             var accommodationActivities = await _unitOfWork.AccommodationActivities
                 .GetByAccommodationIdAsync(accommodationId);
 
