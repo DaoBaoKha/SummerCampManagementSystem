@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
+using SummerCampManagementSystem.Core.Enums;
 
 namespace SummerCampManagementSystem.BLL.DTOs.Refund
 {
@@ -78,7 +79,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Refund
 
     public class RefundRequestFilterDto
     {
-        public string? Status { get; set; } 
-        public string? SearchTerm { get; set; } 
+        public RegistrationCancelStatus? Status { get; set; } 
     }
 }

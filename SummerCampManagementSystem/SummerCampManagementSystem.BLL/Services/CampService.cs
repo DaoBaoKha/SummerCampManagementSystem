@@ -17,13 +17,18 @@ namespace SummerCampManagementSystem.BLL.Services
         private readonly IMapper _mapper;
         private readonly IUserContextService _userContextService;
         private readonly ILogger<CampService> _logger;
+        private readonly IEmailService _emailService;
+        private readonly IRefundService _refundService;
 
-        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, ILogger<CampService> logger)
+        public CampService(IUnitOfWork unitOfWork, IMapper mapper, IUserContextService userContextService, 
+            ILogger<CampService> logger, IEmailService emailService, IRefundService refundService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userContextService = userContextService;
             _logger = logger;
+            _emailService = emailService;
+            _refundService = refundService;
         }
 
         public async Task<CampResponseDto> CreateCampAsync(CampRequestDto campRequest)
@@ -106,10 +111,21 @@ namespace SummerCampManagementSystem.BLL.Services
 
             var campResponse = _mapper.Map<CampResponseDto>(camp);
 
-            // calculate current capacity by counting confirmed campers
+            // calculate current capacity by counting all approved campers (from Approved onwards)
+            var approvedStatuses = new[]
+            {
+                RegistrationCamperStatus.Approved.ToString(),
+                RegistrationCamperStatus.PendingAssignGroup.ToString(),
+                RegistrationCamperStatus.Confirmed.ToString(),
+                RegistrationCamperStatus.Transporting.ToString(),
+                RegistrationCamperStatus.Transported.ToString(),
+                RegistrationCamperStatus.CheckedIn.ToString(),
+                RegistrationCamperStatus.CheckedOut.ToString()
+            };
+
             var currentCapacity = await _unitOfWork.RegistrationCampers.GetQueryable()
                 .CountAsync(rc => rc.registration.campId == id 
-                                  && rc.status == RegistrationCamperStatus.Confirmed.ToString());
+                                  && approvedStatuses.Contains(rc.status));
 
             campResponse.CurrentCapacity = currentCapacity;
 
@@ -453,7 +469,11 @@ namespace SummerCampManagementSystem.BLL.Services
             throw new BadRequestException("Trại này đã được hủy trước đó.");
         }
 
-        // cancel all related entities first
+        // IMPORTANT: Process refunds BEFORE canceling entities
+        // This ensures we can find registrations with 'Confirmed' status
+        await ProcessRefundsForCampCancellationAsync(campId, request.Note);
+
+        // cancel all related entities after processing refunds
         await CancelCampAndRelatedEntitiesAsync(campId);
 
         // transition camp status to Canceled
@@ -929,6 +949,123 @@ namespace SummerCampManagementSystem.BLL.Services
             await _unitOfWork.CommitAsync();
 
             _logger.LogInformation($"Canceled all related entities for Camp {campId}: {activitySchedules.Count} activity schedules, {transportSchedules.Count} transport schedules, {registrations.Count} registrations, {registrationCampers.Count} registration campers.");
+        }
+
+
+        private async Task ProcessRefundsForCampCancellationAsync(int campId, string cancelReason)
+        {
+            // log all registrations for this camp first
+            var allRegistrations = await _unitOfWork.Registrations.GetQueryable()
+                .Where(r => r.campId == campId)
+                .Select(r => new { r.registrationId, r.status })
+                .ToListAsync();
+            
+            _logger.LogInformation($"DEBUG: Total registrations for Camp {campId}: {allRegistrations.Count}. Statuses: {string.Join(", ", allRegistrations.Select(r => $"[{r.registrationId}:{r.status}]"))}");
+            
+            // get all confirmed registrations for this camp (paid registrations only)
+            var confirmedRegistrations = await _unitOfWork.Registrations.GetQueryable()
+                .Include(r => r.user)
+                .Include(r => r.camp)
+                .Include(r => r.Transactions)
+                .Include(r => r.RegistrationCampers).ThenInclude(rc => rc.camper)
+                .Include(r => r.RegistrationCancels)
+                .Where(r => r.campId == campId && r.status == RegistrationStatus.Confirmed.ToString())
+                .ToListAsync();
+
+            _logger.LogInformation($"DEBUG: Found {confirmedRegistrations.Count} confirmed registrations for Camp {campId}");
+            
+            if (!confirmedRegistrations.Any())
+            {
+                _logger.LogInformation($"No confirmed registrations found for Camp {campId}. No refunds needed.");
+                return;
+            }
+
+            _logger.LogInformation($"Processing refunds for {confirmedRegistrations.Count} confirmed registrations for Camp {campId}");
+
+            foreach (var registration in confirmedRegistrations)
+            {
+                try
+                {
+                    // check if refund request already exists for this registration
+                    var existingRefund = registration.RegistrationCancels
+                        .FirstOrDefault(rc => rc.status != RegistrationCancelStatus.Rejected.ToString());
+
+                    if (existingRefund != null)
+                    {
+                        _logger.LogWarning($"Refund request already exists for Registration {registration.registrationId}. Skipping.");
+                        continue;
+                    }
+
+                    // calculate refund amount using existing logic
+                    var refundCalculation = await _refundService.CalculateRefundForSystemAsync(registration.registrationId);
+
+                    // get parent's primary bank account (first active bank account)
+                    var parentBankAccount = await _unitOfWork.BankUsers.GetQueryable()
+                        .Where(bu => bu.userId == registration.userId && bu.isActive == true)
+                        .OrderBy(bu => bu.bankUserId)
+                        .FirstOrDefaultAsync();
+
+                    // create refund request
+                    var refundRequest = new RegistrationCancel
+                    {
+                        registrationId = registration.registrationId,
+                        bankUserId = parentBankAccount?.bankUserId,
+                        refundAmount = refundCalculation.RefundAmount,
+                        requestDate = DateTime.UtcNow,
+                        reason = $"Trại bị hủy: {cancelReason}",
+                        
+                        // if refund amount is 0 -> Completed, else -> Pending (needs manager approval)
+                        status = (refundCalculation.RefundAmount == 0) 
+                            ? RegistrationCancelStatus.Completed.ToString() 
+                            : RegistrationCancelStatus.Pending.ToString()
+                    };
+
+                    await _unitOfWork.RegistrationCancels.CreateAsync(refundRequest);
+
+                    // update registration status
+                    if (refundCalculation.RefundAmount == 0)
+                    {
+                        registration.status = RegistrationStatus.Canceled.ToString();
+                    }
+                    else
+                    {
+                        registration.status = RegistrationStatus.PendingRefund.ToString();
+                    }
+
+                    await _unitOfWork.Registrations.UpdateAsync(registration);
+
+                    // send email notification to parent
+                    if (registration.user != null && !string.IsNullOrEmpty(registration.user.email))
+                    {
+                        string parentName = $"{registration.user.lastName} {registration.user.firstName}";
+                        string campName = registration.camp?.name ?? "Trại hè";
+
+                        await _emailService.SendCampCancellationNotificationAsync(
+                            toEmail: registration.user.email,
+                            parentName: parentName,
+                            campName: campName,
+                            cancelReason: cancelReason,
+                            refundAmount: refundCalculation.RefundAmount,
+                            refundPercentage: refundCalculation.RefundPercentage
+                        );
+
+                        _logger.LogInformation($"Sent cancellation email to {registration.user.email} for Registration {registration.registrationId}");
+                    }
+                    else
+                    {
+                        _logger.LogWarning($"No email found for user ID {registration.userId}. Cannot send cancellation notification for Registration {registration.registrationId}");
+                    }
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Error processing refund for Registration {registration.registrationId} in Camp {campId}");
+                    // continue processing other registrations
+                }
+            }
+
+            await _unitOfWork.CommitAsync();
+            _logger.LogInformation($"Completed refund processing for Camp {campId}");
         }
 
         #endregion

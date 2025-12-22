@@ -36,6 +36,19 @@ namespace SummerCampManagementSystem.BLL.Services
             return CalculateRefundInternal(registration);
         }
 
+        public async Task<RefundCalculationDto> CalculateRefundForSystemAsync(int registrationId)
+        {
+            // reuse repository method - no user validation 
+            var registration = await _unitOfWork.Registrations.GetWithDetailsForRefundAsync(registrationId);
+
+            if (registration == null)
+            {
+                throw new NotFoundException($"Không tìm thấy đơn đăng ký với ID {registrationId}.");
+            }
+
+            return CalculateRefundInternal(registration);
+        }
+
         public async Task<RegistrationCancelResponseDto> RequestCancelAsync(CancelRequestDto requestDto)
         {
             var userId = _userContextService.GetCurrentUserId();
@@ -71,17 +84,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
             if (filter != null)
             {
-                if (!string.IsNullOrEmpty(filter.Status))
+                if (filter.Status.HasValue)
                 {
-                    query = query.Where(rc => rc.status == filter.Status);
-                }
-                if (!string.IsNullOrEmpty(filter.SearchTerm))
-                {
-                    string term = filter.SearchTerm.ToLower();
-                    query = query.Where(rc =>
-                        (rc.registration.user.firstName + " " + rc.registration.user.lastName).ToLower().Contains(term) ||
-                        rc.registration.RegistrationCampers.Any(cp => cp.camper.camperName.ToLower().Contains(term))
-                    );
+                    query = query.Where(rc => rc.status == filter.Status.Value.ToString());
                 }
             }
 
@@ -115,6 +120,106 @@ namespace SummerCampManagementSystem.BLL.Services
             });
         }
 
+        public async Task<IEnumerable<RefundRequestListDto>> GetRefundRequestsByCampAsync(int campId, RefundRequestFilterDto? filter = null)
+        {
+            // validate camp existence
+            var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
+            if (camp == null)
+                throw new NotFoundException($"Không tìm thấy trại với ID {campId}.");
+
+            // get refund requests for registrations of this camp
+            var query = _unitOfWork.RegistrationCancels.GetQueryableWithDetails()
+                .Where(rc => rc.registration.campId == campId);
+
+            // apply filters if provided
+            if (filter != null)
+            {
+                if (filter.Status.HasValue)
+                {
+                    query = query.Where(rc => rc.status == filter.Status.Value.ToString());
+                }
+            }
+
+            var requests = await query.OrderByDescending(rc => rc.requestDate).ToListAsync();
+
+            return requests.Select(rc => new RefundRequestListDto
+            {
+                RegistrationCancelId = rc.registrationCancelId,
+                RegistrationId = rc.registrationId ?? 0,
+
+                // user information
+                ParentName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : "Unknown",
+                ParentEmail = rc.registration?.user?.email ?? "",
+                ParentPhone = rc.registration?.user?.phoneNumber ?? "",
+                CamperNames = rc.registration?.RegistrationCampers.Select(cp => cp.camper?.camperName ?? "Unknown").ToList() ?? new List<string>(),
+
+                // refund information
+                RefundAmount = rc.refundAmount ?? 0,
+                RequestDate = rc.requestDate.HasValue ? rc.requestDate.Value.ToVietnamTime() : DateTime.MinValue,
+                Reason = rc.reason,
+                Status = rc.status,
+                ApprovalDate = rc.approvalDate.HasValue ? rc.approvalDate.Value.ToVietnamTime() : null,
+                ManagerNote = rc.note,
+                ImageRefund = rc.imageRefund,
+                TransactionCode = rc.transactionCode,
+
+                // bank information
+                BankName = rc.bankUser?.bankName ?? "N/A",
+                BankNumber = rc.bankUser?.bankNumber ?? "N/A",
+                BankAccountName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : ""
+            });
+        }
+
+        public async Task<IEnumerable<RefundRequestListDto>> GetMyRefundRequestsAsync(RefundRequestFilterDto? filter = null)
+        {
+            // get current user
+            var userId = _userContextService.GetCurrentUserId();
+            if (!userId.HasValue) throw new UnauthorizedException("Người dùng chưa xác thực.");
+
+            // get refund requests for current user 
+            var query = _unitOfWork.RegistrationCancels.GetQueryableWithDetails()
+                .Where(rc => rc.registration.userId == userId.Value);
+
+            // filters
+            if (filter != null)
+            {
+                if (filter.Status.HasValue)
+                {
+                    query = query.Where(rc => rc.status == filter.Status.Value.ToString());
+                }
+            }
+
+            var requests = await query.OrderByDescending(rc => rc.requestDate).ToListAsync();
+
+            return requests.Select(rc => new RefundRequestListDto
+            {
+                RegistrationCancelId = rc.registrationCancelId,
+                RegistrationId = rc.registrationId ?? 0,
+
+                // user information
+                ParentName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : "Unknown",
+                ParentEmail = rc.registration?.user?.email ?? "",
+                ParentPhone = rc.registration?.user?.phoneNumber ?? "",
+                CamperNames = rc.registration?.RegistrationCampers.Select(cp => cp.camper?.camperName ?? "Unknown").ToList() ?? new List<string>(),
+
+                // refund information
+                RefundAmount = rc.refundAmount ?? 0,
+                RequestDate = rc.requestDate.HasValue ? rc.requestDate.Value.ToVietnamTime() : DateTime.MinValue,
+                Reason = rc.reason,
+                Status = rc.status,
+                ApprovalDate = rc.approvalDate.HasValue ? rc.approvalDate.Value.ToVietnamTime() : null,
+                ManagerNote = rc.note,
+                ImageRefund = rc.imageRefund,
+                TransactionCode = rc.transactionCode,
+
+                // bank information
+                BankName = rc.bankUser?.bankName ?? "N/A",
+                BankNumber = rc.bankUser?.bankNumber ?? "N/A",
+                BankAccountName = rc.registration?.user != null ? $"{rc.registration.user.lastName} {rc.registration.user.firstName}" : ""
+            });
+        }
+
+
         public async Task<RegistrationCancelResponseDto> ApproveRefundAsync(ApproveRefundDto dto)
         {
             // validaion
@@ -140,6 +245,35 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 registration.status = RegistrationStatus.Refunded.ToString();
                 await _unitOfWork.Registrations.UpdateAsync(registration);
+
+                // update all RegistrationCampers to Canceled status
+                var registrationCampers = await _unitOfWork.RegistrationCampers
+                    .GetQueryable()
+                    .Where(rc => rc.registrationId == registration.registrationId)
+                    .ToListAsync();
+
+                foreach (var regCamper in registrationCampers)
+                {
+                    regCamper.status = RegistrationCamperStatus.Canceled.ToString();
+                    await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                }
+
+                // update all CamperTransports to Canceled status
+                var camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
+                if (camperIds.Any())
+                {
+                    var camperTransports = await _unitOfWork.CamperTransports
+                        .GetQueryable()
+                        .Where(ct => camperIds.Contains(ct.camperId) && 
+                                     ct.transportSchedule.campId == registration.campId)
+                        .ToListAsync();
+
+                    foreach (var transport in camperTransports)
+                    {
+                        transport.status = CamperTransportStatus.Canceled.ToString();
+                        await _unitOfWork.CamperTransports.UpdateAsync(transport);
+                    }
+                }
             }
 
             // 6. [TODO] Release Resources (Phase 5)
@@ -153,22 +287,51 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<RegistrationCancelResponseDto> RejectRefundAsync(RejectRefundDto dto)
         {
-            // 1. Validation (Validation moved to private method)
+            // validation
             var cancelRequest = await ValidateCancelRequestForManagerAsync(dto.RegistrationCancelId);
 
-            // 2. Update Request Status
+            // update cancel request status
             cancelRequest.status = RegistrationCancelStatus.Rejected.ToString();
             cancelRequest.note = dto.RejectReason;
             cancelRequest.approvalDate = DateTime.UtcNow;
 
             await _unitOfWork.RegistrationCancels.UpdateAsync(cancelRequest);
 
-            // 3. Revert Registration Status -> Confirmed
+            // cancel registration even though refund rejected
             var registration = cancelRequest.registration;
             if (registration != null)
             {
-                registration.status = RegistrationStatus.Confirmed.ToString();
+                registration.status = RegistrationStatus.Canceled.ToString();
                 await _unitOfWork.Registrations.UpdateAsync(registration);
+
+                // update all RegistrationCampers to Canceled 
+                var registrationCampers = await _unitOfWork.RegistrationCampers
+                    .GetQueryable()
+                    .Where(rc => rc.registrationId == registration.registrationId)
+                    .ToListAsync();
+
+                foreach (var regCamper in registrationCampers)
+                {
+                    regCamper.status = RegistrationCamperStatus.Canceled.ToString();
+                    await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                }
+
+                // update all CamperTransports to Canceled
+                var camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
+                if (camperIds.Any())
+                {
+                    var camperTransports = await _unitOfWork.CamperTransports
+                        .GetQueryable()
+                        .Where(ct => camperIds.Contains(ct.camperId) && 
+                                     ct.transportSchedule.campId == registration.campId)
+                        .ToListAsync();
+
+                    foreach (var transport in camperTransports)
+                    {
+                        transport.status = CamperTransportStatus.Canceled.ToString();
+                        await _unitOfWork.CamperTransports.UpdateAsync(transport);
+                    }
+                }
             }
 
             await _unitOfWork.CommitAsync();
@@ -274,6 +437,17 @@ namespace SummerCampManagementSystem.BLL.Services
         private async Task<Registration> ValidateRegistrationStatusForCancelAsync(int registrationId, int userId)
         {
             var registration = await ValidateAndGetRegistrationForUserAsync(registrationId, userId);
+
+            // check if registration period is closed
+            var camp = registration.camp;
+            if (camp != null && camp.registrationEndDate.HasValue)
+            {
+                var currentDate = DateTime.UtcNow;
+                if (currentDate >= camp.registrationEndDate.Value)
+                {
+                    throw new RefundPolicyViolationException("Không thể hủy đăng ký sau khi thời gian đăng ký đã đóng.");
+                }
+            }
 
             if (registration.status == RegistrationStatus.PendingRefund.ToString())
                 throw new InvalidRefundRequestException("Yêu cầu hủy cho đơn này đang được xử lý.");

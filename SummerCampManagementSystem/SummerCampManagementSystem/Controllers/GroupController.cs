@@ -190,17 +190,17 @@ namespace SummerCampManagementSystem.API.Controllers
                 return CreatedAtAction(nameof(GetGroupById),
                     new { id = newGroup.GroupId }, newGroup);
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
             }
             catch (BadRequestException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (BusinessRuleException ex)
+            {
+                return Conflict(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -214,11 +214,27 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var updatedGroup = await _groupService.UpdateGroupAsync(id, Group);
-            if (updatedGroup == null)
-                return NotFound(new { message = $"Group with ID {id} not found" });
-
-            return Ok(updatedGroup);
+            try
+            {
+                var updatedGroup = await _groupService.UpdateGroupAsync(id, Group);
+                return Ok(updatedGroup);
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (BadRequestException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (BusinessRuleException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
+            }
         }
 
         [HttpPut("{GroupId}/assign-staff/{staffId}")]
@@ -236,19 +252,24 @@ namespace SummerCampManagementSystem.API.Controllers
                 var updatedGroup = await _groupService.AssignStaffToGroup(GroupId, staffId);
                 return Ok(updatedGroup);
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new { message = ex.Message });
             }
-            catch (InvalidOperationException ex)
+            catch (BadRequestException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+            catch (BusinessRuleException ex)
+            {
+                return Conflict(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An unexpected error occurred.", detail = ex.Message });
             }
         }
+
 
 
         [HttpDelete("{id}")]
@@ -259,9 +280,13 @@ namespace SummerCampManagementSystem.API.Controllers
                 await _groupService.DeleteGroupAsync(id);
                 return NoContent(); 
             }
-            catch (KeyNotFoundException ex)
+            catch (NotFoundException ex)
             {
                 return NotFound(new { message = ex.Message }); 
+            }
+            catch (BusinessRuleException ex)
+            {
+                return Conflict(new { message = ex.Message });
             }
             catch (Exception ex)
             {

@@ -21,10 +21,18 @@ namespace SummerCampManagementSystem.BLL.Services
             _mapper = mapper;
         }
 
-        public async Task<IEnumerable<CamperTransportResponseDto>> GetCampersByScheduleIdAsync(int transportScheduleId)
+        public async Task<IEnumerable<CamperTransportResponseDto>> GetCampersByScheduleIdAsync(int transportScheduleId, int? camperId = null)
         {
-            var camperTransports = await GetCamperTransportsWithIncludes()
-                .Where(c => c.transportScheduleId == transportScheduleId).ToListAsync();
+            var query = GetCamperTransportsWithIncludes()
+                .Where(c => c.transportScheduleId == transportScheduleId);
+
+            // camperId filter
+            if (camperId.HasValue)
+            {
+                query = query.Where(c => c.camperId == camperId.Value);
+            }
+
+            var camperTransports = await query.ToListAsync();
 
             return _mapper.Map<IEnumerable<CamperTransportResponseDto>>(camperTransports);
         }

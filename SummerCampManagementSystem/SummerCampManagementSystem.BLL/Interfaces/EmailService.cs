@@ -18,6 +18,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
         Task SendEmailUpdateSuccessAsync(string newEmail, string oldEmail);
 
         Task SendLevel3ReportNotificationAsync(string toEmail, string camperName, string reportType, string note, string imageUrl);
+
+        Task SendCampCancellationNotificationAsync(string toEmail, string parentName, string campName, string cancelReason, decimal refundAmount, int refundPercentage);
     }
 
     public class EmailService : IEmailService
@@ -190,6 +192,49 @@ namespace SummerCampManagementSystem.BLL.Interfaces
             await SendEmailAsync(toEmail, subject, body);
             
             _logger.LogInformation("Level 3 report notification sent successfully to {Email}", toEmail);
+        }
+
+        public async Task SendCampCancellationNotificationAsync(string toEmail, string parentName, string campName, string cancelReason, decimal refundAmount, int refundPercentage)
+        {
+            _logger.LogInformation("Preparing to send camp cancellation notification to {Email} for camp {CampName}", toEmail, campName);
+            
+            var subject = $"Thông báo hủy trại {campName}";
+            
+            // format refund amount with Vietnamese currency
+            string refundInfo = refundAmount > 0 
+                ? $"<p><strong>Số tiền hoàn trả:</strong> <span style='color: #27AE60; font-size: 18px;'>{refundAmount:N0} VNĐ</span> ({refundPercentage}%)</p>"
+                : "<p><strong>Số tiền hoàn trả:</strong> Không có khoản thanh toán nào</p>";
+            
+            var body = $@"
+            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                <h2 style='color: #E67E22;'>🔔 Thông báo hủy trại Summer Camp</h2>
+                <p>Xin chào <strong>{parentName}</strong>,</p>
+                <p>Chúng tôi rất tiếc phải thông báo rằng trại <strong>{campName}</strong> đã bị hủy.</p>
+                
+                <div style='background-color: #FEF5E7; padding: 15px; border-left: 4px solid #E67E22; margin: 20px 0;'>
+                    <p><strong>Lý do hủy:</strong> {cancelReason}</p>
+                    {refundInfo}
+                </div>
+                
+                {(refundAmount > 0 ? 
+                    @"<div style='background-color: #EAFAF1; padding: 15px; border-left: 4px solid #27AE60; margin: 20px 0;'>
+                        <p><strong>⏳ Quy trình hoàn tiền:</strong></p>
+                        <ol style='margin: 10px 0; padding-left: 20px;'>
+                            <li>Yêu cầu hoàn tiền đã được tạo tự động</li>
+                            <li>Ban quản lý sẽ xử lý trong vòng 3-5 ngày làm việc</li>
+                            <li>Tiền sẽ được chuyển về tài khoản ngân hàng bạn đã đăng ký</li>
+                            <li>Bạn sẽ nhận được email xác nhận khi hoàn tiền thành công</li>
+                        </ol>
+                    </div>" : "")}
+                
+                <p style='margin-top: 20px;'>Chúng tôi xin lỗi vì sự bất tiện này và mong được phục vụ quý khách trong các chương trình sắp tới.</p>
+                <p>Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với chúng tôi.</p>
+                <p>Trân trọng,<br/>Đội ngũ Summer Camp</p>
+            </div>";
+            
+            await SendEmailAsync(toEmail, subject, body);
+            
+            _logger.LogInformation("Camp cancellation notification sent successfully to {Email}", toEmail);
         }
     }
 }

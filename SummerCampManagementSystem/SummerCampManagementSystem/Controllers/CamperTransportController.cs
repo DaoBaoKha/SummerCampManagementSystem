@@ -19,9 +19,9 @@ namespace SummerCampManagementSystem.API.Controllers
 
         [HttpGet("schedule/{transportScheduleId}")]
         [Authorize(Roles = "Driver, Staff, Manager, Admin")]
-        public async Task<IActionResult> GetCampersByScheduleId(int transportScheduleId)
+        public async Task<IActionResult> GetCampersByScheduleId(int transportScheduleId, [FromQuery] int? camperId = null)
         {
-            var campers = await _camperTransportService.GetCampersByScheduleIdAsync(transportScheduleId);
+            var campers = await _camperTransportService.GetCampersByScheduleIdAsync(transportScheduleId, camperId);
             return Ok(campers);
         }
 

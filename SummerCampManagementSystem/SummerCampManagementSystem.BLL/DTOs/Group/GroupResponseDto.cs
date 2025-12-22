@@ -13,7 +13,8 @@ namespace SummerCampManagementSystem.BLL.DTOs.Group
         public string SupervisorName { get; set; } = string.Empty;
         public int? CampId { get; set; }       
         public int? MinAge { get; set; }       
-        public int? MaxAge { get; set; }      
+        public int? MaxAge { get; set; }
+        public string? Status { get; set; }
     }
 
     public class GroupWithCampDetailsResponseDto 
@@ -24,7 +25,7 @@ namespace SummerCampManagementSystem.BLL.DTOs.Group
         public string GroupName { get; set; } = string.Empty;
         public int MinAge { get; set; }
         public int MaxAge { get; set; }
-
+        public string? Status { get; set; }
     }
 
     public class GroupNameDto
@@ -33,6 +34,6 @@ namespace SummerCampManagementSystem.BLL.DTOs.Group
         public string GroupName { get; set; }
         public SupervisorDto supervisor { get; set; }
         public int CurrentSize { get; set; }
-
+        public string? Status { get; set; }
     }
 }

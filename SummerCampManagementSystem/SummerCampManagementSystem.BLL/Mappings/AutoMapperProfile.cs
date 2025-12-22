@@ -108,7 +108,8 @@ namespace SummerCampManagementSystem.BLL.Mappings
             // Group mapping
             CreateMap<Group, GroupResponseDto>()
                  .ForMember(dest => dest.SupervisorName, opt => opt.MapFrom(src => src.supervisor.lastName + " " + src.supervisor.firstName));
-            CreateMap<GroupRequestDto, Group>();
+            CreateMap<GroupRequestDto, Group>()
+                .ForMember(dest => dest.status, opt => opt.MapFrom(_ => "Active"));
             CreateMap<Group, GroupWithCampDetailsResponseDto>()
                 .ForMember(dest => dest.CampName,
                            opt => opt.MapFrom(src => src.camp != null ? src.camp.name : string.Empty));
