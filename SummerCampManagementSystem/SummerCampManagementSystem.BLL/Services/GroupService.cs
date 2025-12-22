@@ -234,6 +234,18 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await RunGroupSupervisorValidation(Group.SupervisorId, Group.CampId, id);
 
+            // Validate maxSize is not less than current number of campers
+            if (Group.MaxSize.HasValue)
+            {
+                var currentCamperCount = await _unitOfWork.CamperGroups.GetCamperIdsByGroupIdAsync(id);
+                var camperCount = currentCamperCount.Count();
+                
+                if (Group.MaxSize.Value < camperCount)
+                {
+                    throw new BusinessRuleException($"Không thể cập nhật maxSize thành {Group.MaxSize.Value} vì nhóm hiện có {camperCount} camper(s). MaxSize phải lớn hơn hoặc bằng số lượng camper hiện tại.");
+                }
+            }
+
             _mapper.Map(Group, existingGroup);
 
             await _unitOfWork.Groups.UpdateAsync(existingGroup);
@@ -351,16 +363,15 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var campStatus = camp.status;
 
-            // Block operations if camp status is Published or later
-            if (campStatus == CampStatus.Published.ToString() ||
-                campStatus == CampStatus.OpenForRegistration.ToString() ||
+            // Block operations if camp status is OpenForRegistration or later
+            if (campStatus == CampStatus.OpenForRegistration.ToString() ||
                 campStatus == CampStatus.RegistrationClosed.ToString() ||
                 campStatus == CampStatus.UnderEnrolled.ToString() ||
                 campStatus == CampStatus.InProgress.ToString() ||
                 campStatus == CampStatus.Completed.ToString() ||
                 campStatus == CampStatus.Canceled.ToString())
             {
-                throw new BadRequestException($"Không thể {operation} group khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, hoặc Rejected.");
+                throw new BadRequestException($"Không thể {operation} group khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, Published hoặc Rejected.");
             }
         }
 

@@ -206,7 +206,8 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<LocationResponseDto>> GetChildLocationsByParentIdAsync(int parentLocationId)
         {
             var locations = await _unitOfWork.Locations.GetQueryable()
-                .Where(l => l.campLocationId == parentLocationId && l.locationType == LocationType.In_camp.ToString())
+                .Where(l => l.campLocationId == parentLocationId && l.locationType == LocationType.In_camp.ToString()
+                        && l.isActive == true)
                 .Include(l => l.campLocation)
                 .ToListAsync();
 

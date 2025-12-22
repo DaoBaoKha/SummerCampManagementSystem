@@ -118,6 +118,18 @@ namespace SummerCampManagementSystem.BLL.Services
             existingAccommodation.isActive = true; // ensure accommodation remains active
             
             await RunSupervisorUpdateValidation(accommodationId, newSupervisorId, campId.Value);
+
+            // Validate capacity is not less than current number of campers
+            if (accommodationRequestDto.capacity.HasValue)
+            {
+                var currentCampers = await _unitOfWork.CamperAccommodations.SearchAsync(null, accommodationId, null, null);
+                var camperCount = currentCampers.Count();
+                
+                if (accommodationRequestDto.capacity.Value < camperCount)
+                {
+                    throw new BusinessRuleException($"Không thể cập nhật capacity thành {accommodationRequestDto.capacity.Value} vì accommodation hiện có {camperCount} camper(s). Capacity phải lớn hơn hoặc bằng số lượng camper hiện tại.");
+                }
+            }
             
             _mapper.Map(accommodationRequestDto, existingAccommodation);
             await _unitOfWork.Accommodations.UpdateAsync(existingAccommodation);
@@ -170,16 +182,15 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var campStatus = camp.status;
 
-            // Block operations if camp status is Published or later
-            if (campStatus == CampStatus.Published.ToString() ||
-                campStatus == CampStatus.OpenForRegistration.ToString() ||
+            // Block operations if camp status is OpenForRegistration or later
+            if (campStatus == CampStatus.OpenForRegistration.ToString() ||
                 campStatus == CampStatus.RegistrationClosed.ToString() ||
                 campStatus == CampStatus.UnderEnrolled.ToString() ||
                 campStatus == CampStatus.InProgress.ToString() ||
                 campStatus == CampStatus.Completed.ToString() ||
                 campStatus == CampStatus.Canceled.ToString())
             {
-                throw new BadRequestException($"Không thể {operation} accommodation khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, hoặc Rejected.");
+                throw new BadRequestException($"Không thể {operation} accommodation khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, Published hoặc Rejected.");
             }
         }
 
