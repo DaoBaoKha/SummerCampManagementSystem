@@ -23,8 +23,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
+                // only return active groups
                 var groups = await _context.Groups
                     .AsNoTracking()
+                    .Where(g => g.status == "Active")
                     .Include(g => g.supervisor)
                     .AsSplitQuery() // prevent Cartesian explosion
                     .ToListAsync();
@@ -53,6 +55,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
+                // no status filter - allow viewing inactive groups by ID
                 var group = await _context.Groups
                     .AsNoTracking()
                     .Include(g => g.supervisor)
@@ -108,11 +111,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
+                // only return active groups
                 var groups = await _context.Groups
                     .AsNoTracking()
+                    .Where(g => g.campId == campId && g.status == "Active")
                     .Include(g => g.supervisor)
                     .AsSplitQuery()
-                    .Where(g => g.campId == campId)
                     .ToListAsync();
 
                 stopwatch.Stop();
@@ -143,13 +147,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
-                // added AsNoTracking and AsSplitQuery to prevent memory issues
+                // only return active groups
                 var group = await _context.Groups
                     .AsNoTracking()
+                    .Where(g => g.supervisorId == supervisorId && g.campId == campId && g.status == "Active")
                     .Include(g => g.supervisor)
                     .Include(g => g.camp)
                     .AsSplitQuery() // prevents Cartesian explosion warning
-                    .FirstOrDefaultAsync(g => g.supervisorId == supervisorId && g.campId == campId);
+                    .FirstOrDefaultAsync();
 
                 stopwatch.Stop();
                 var memoryAfter = GC.GetTotalMemory(false) / 1024 / 1024;
@@ -181,9 +186,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             try
             {
                 // use projection to avoid circular references and reduce memory footprint
+                // only return active groups
                 var groups = await _context.GroupActivities
                     .AsNoTracking()
-                    .Where(ga => ga.activityScheduleId == activityScheduleId)
+                    .Where(ga => ga.activityScheduleId == activityScheduleId && ga.group.status == "Active")
                     .Select(ga => new Group
                     {
                         groupId = ga.group.groupId,
@@ -195,6 +201,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                         campId = ga.group.campId,
                         minAge = ga.group.minAge,
                         maxAge = ga.group.maxAge,
+                        status = ga.group.status,
                         supervisor = ga.group.supervisor != null ? new UserAccount
                         {
                             userId = ga.group.supervisor.userId,
@@ -324,7 +331,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<Group>> GetGroupsWithCampersByCampIdAsync(int campId)
         {
+            // use AsNoTracking for read-only queries
             return await _context.Groups
+                .AsNoTracking()
                 .Include(g => g.CamperGroups)
                 .Where(g => g.campId == campId)
                 .ToListAsync();
@@ -332,7 +341,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<IEnumerable<Group>> GetGroupsWithCampersByIdsAsync(List<int> groupIds)
         {
+            // use AsNoTracking for read-only queries
             return await _context.Groups
+                .AsNoTracking()
                 .Include(g => g.CamperGroups)
                 .Where(g => groupIds.Contains(g.groupId))
                 .ToListAsync();
@@ -348,12 +359,6 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<Group?> GetByIdWithCamperGroupsAndCampAsync(int groupId)
         {
-            return await _context.Groups
-                .Include(g => g.CamperGroups)
-                .Include(g => g.camp)
-                .Include(g => g.supervisor)
-                .FirstOrDefaultAsync(g => g.groupId == groupId);
-
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             var memoryBefore = GC.GetTotalMemory(false) / 1024 / 1024;
             
@@ -363,12 +368,15 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
-                // added AsNoTracking and AsSplitQuery for multiple includes
+                // use AsNoTracking for read-only queries
+                // use AsSplitQuery to prevent Cartesian explosion with multiple collections
+                // no status filter - allow viewing inactive groups by ID
                 var group = await _context.Groups
                     .AsNoTracking()
                     .Include(g => g.CamperGroups)
                     .Include(g => g.camp)
-                    .AsSplitQuery() // prevents Cartesian explosion with multiple collections
+                    .Include(g => g.supervisor)
+                    .AsSplitQuery()
                     .FirstOrDefaultAsync(g => g.groupId == groupId);
 
                 stopwatch.Stop();
