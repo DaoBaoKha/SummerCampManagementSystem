@@ -31,8 +31,11 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<bool> isSupervisorOfAccomodation(int supervisorId, int campId)
         {
             return await _context.Accommodations
-                .AnyAsync(a => a.supervisorId == supervisorId && a.campId == campId);
-                
+                .AnyAsync(a => 
+                    a.supervisorId == supervisorId && 
+                    a.campId == campId &&
+                    a.isActive == true);  // check only active accommodations
+
         }
 
         public async Task<List<(string Name, int Current, int Max)>> GetCapacityAlertsByCampAsync(int campId)
