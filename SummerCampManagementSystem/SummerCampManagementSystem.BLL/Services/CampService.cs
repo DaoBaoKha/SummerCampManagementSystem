@@ -72,14 +72,43 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         public async Task<bool> DeleteCampAsync(int id)
-        {
-            var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
-            if (existingCamp == null) return false;
-            await _unitOfWork.Camps.RemoveAsync(existingCamp);
-            await _unitOfWork.CommitAsync();
+{
+    _logger.LogInformation("[CampService] DeleteCampAsync called for CampId={CampId}", id);
 
-            return true;
-        }
+    var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
+    if (existingCamp == null)
+    {
+        _logger.LogWarning("[CampService] Camp with ID {CampId} not found", id);
+        return false;
+    }
+
+    // only allow delete when camp status is Draft
+    if (!Enum.TryParse<CampStatus>(existingCamp.status, out var campStatus))
+    {
+        _logger.LogError("[CampService] Invalid camp status: {Status}", existingCamp.status);
+        throw new BusinessRuleException($"Trạng thái trại không hợp lệ: {existingCamp.status}");
+    }
+
+    if (campStatus != CampStatus.Draft)
+    {
+        _logger.LogWarning(
+            "[CampService] Cannot delete camp with status {Status}. Only Draft camps can be deleted", 
+            existingCamp.status);
+        throw new BusinessRuleException(
+            $"Không thể xóa trại khi trạng thái là '{existingCamp.status}'. Chỉ có thể xóa trại ở trạng thái Draft.");
+    }
+
+    // change status to Canceled
+    existingCamp.status = CampStatus.Canceled.ToString();
+    await _unitOfWork.Camps.UpdateAsync(existingCamp);
+    await _unitOfWork.CommitAsync();
+
+    _logger.LogInformation(
+        "[CampService] Successfully soft deleted CampId={CampId} (status changed to Canceled)", 
+        id);
+
+    return true;
+}        
 
         public async Task<IEnumerable<CampResponseDto>> GetAllCampsAsync()
         {
