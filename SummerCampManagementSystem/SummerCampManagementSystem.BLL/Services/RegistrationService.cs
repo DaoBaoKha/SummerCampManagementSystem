@@ -844,23 +844,34 @@ namespace SummerCampManagementSystem.BLL.Services
             // get current user
             var currentUserId = _userContextService.GetCurrentUserId();
             if (!currentUserId.HasValue)
-                throw new UnauthorizedException("User not authenticated.");
+                throw new UnauthorizedException("Người dùng chưa xác thực.");
 
             // get registration with full details using existing repository method
             var registration = await _unitOfWork.Registrations.GetFullDetailsAsync(registrationId);
             if (registration == null)
-                throw new NotFoundException($"Registration with ID {registrationId} not found.");
+                throw new NotFoundException($"Không tìm thấy đơn đăng ký với ID {registrationId}.");
 
             // validate ownership
             if (registration.userId != currentUserId.Value)
-                throw new UnauthorizedException("You do not have permission to cancel this registration.");
+                throw new UnauthorizedException("Bạn không có quyền hủy đơn đăng ký này.");
+
+            // check if camp is
+            var camp = registration.camp;
+            if (camp.status == CampStatus.RegistrationClosed.ToString())
+            {
+                var currentDate = DateTime.UtcNow;
+                if (currentDate >= camp.registrationEndDate.Value)
+                {
+                    throw new BusinessRuleException("Không thể hủy đăng ký sau khi thời gian đăng ký đã đóng.");
+                }
+            }
 
             // check if already cancelled or being cancelled
             if (registration.status == RegistrationStatus.Canceled.ToString())
-                throw new BadRequestException("Registration is already cancelled.");
+                throw new BadRequestException("Đơn đăng ký đã được hủy.");
 
             if (registration.status == RegistrationStatus.PendingRefund.ToString())
-                throw new BadRequestException("Registration cancellation is already being processed.");
+                throw new BadRequestException("Yêu cầu hủy đơn đăng ký đang được xử lý.");
 
             // validate status allows cancellation
             var allowedStatuses = new[]
@@ -872,7 +883,7 @@ namespace SummerCampManagementSystem.BLL.Services
             };
 
             if (!allowedStatuses.Contains(registration.status))
-                throw new BadRequestException($"Cannot cancel registration with status '{registration.status}'.");
+                throw new BadRequestException($"Không thể hủy đơn đăng ký ở trạng thái '{registration.status}'.");
 
             // check if payment has been confirmed
             var hasConfirmedPayment = registration.Transactions
@@ -903,11 +914,26 @@ namespace SummerCampManagementSystem.BLL.Services
                             dbContext.Entry(activity).State = EntityState.Modified;
                         }
 
-                        // camperTransport handled by database rules or separate transport management
+                        // update all CamperTransports to Canceled status
+                        var camperIds = registration.RegistrationCampers.Select(rc => rc.camperId).ToList();
+                        if (camperIds.Any())
+                        {
+                            var camperTransports = await _unitOfWork.CamperTransports
+                                .GetQueryable()
+                                .Where(ct => camperIds.Contains(ct.camperId) && 
+                                             ct.transportSchedule.campId == registration.campId)
+                                .ToListAsync();
+
+                            foreach (var transport in camperTransports)
+                            {
+                                transport.status = CamperTransportStatus.Canceled.ToString();
+                                await _unitOfWork.CamperTransports.UpdateAsync(transport);
+                            }
+                        }
 
                         // update registration status to canceled
                         registration.status = RegistrationStatus.Canceled.ToString();
-                        registration.rejectReason = request.Reason ?? "Cancelled by user";
+                        registration.rejectReason = request.Reason ?? "Đã hủy bởi người dùng";
                         await _unitOfWork.Registrations.UpdateAsync(registration);
 
                         await _unitOfWork.CommitAsync();
@@ -919,7 +945,7 @@ namespace SummerCampManagementSystem.BLL.Services
                             Status = RegistrationStatus.Canceled.ToString(),
                             RefundAmount = null,
                             RefundPercentage = null,
-                            Message = "Registration cancelled successfully. No payment was made."
+                            Message = "Đã hủy đơn đăng ký thành công. Chưa có thanh toán nào được thực hiện."
                         };
                     }
                     catch (Exception)
@@ -935,15 +961,15 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // validate bank info is provided
                 if (!request.BankUserId.HasValue || request.BankUserId.Value <= 0)
-                    throw new BusinessRuleException("Bank account information is required for refund processing.");
+                    throw new BusinessRuleException("Thông tin tài khoản ngân hàng là bắt buộc để xử lý hoàn tiền.");
 
                 // validate bank user exists and belongs to current user
                 var bankUser = await _unitOfWork.BankUsers.GetByIdAsync(request.BankUserId.Value);
                 if (bankUser == null)
-                    throw new NotFoundException($"Bank account with ID {request.BankUserId.Value} not found.");
+                    throw new NotFoundException($"Không tìm thấy tài khoản ngân hàng với ID {request.BankUserId.Value}.");
 
                 if (bankUser.userId != currentUserId.Value)
-                    throw new UnauthorizedException("The specified bank account does not belong to you.");
+                    throw new UnauthorizedException("Tài khoản ngân hàng đã chỉ định không thuộc về bạn.");
 
                 // delegate to refund service for policy-based refund
                 var refundRequest = new CancelRequestDto
@@ -964,7 +990,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     Status = refundResult.Status,
                     RefundAmount = refundResult.RefundAmount,
                     RefundPercentage = refundCalc.RefundPercentage,
-                    Message = $"Refund request submitted. {refundCalc.PolicyDescription}"
+                    Message = $"Đã gửi yêu cầu hoàn tiền. {refundCalc.PolicyDescription}"
                 };
             }
         }
