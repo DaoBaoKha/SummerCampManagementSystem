@@ -32,7 +32,7 @@ namespace SummerCampManagetmentSystem.BLL.Tests.Services
         private readonly Mock<IGroupRepository> _mockGroupRepo;
         private readonly Mock<IAccommodationRepository> _mockAccomRepo;
         private readonly Mock<ICamperGroupRepository> _mockCamperGroupRepo;
-        private readonly Mock<ICamperAccomodationRepository> _mockCamperAccomRepo;
+        private readonly Mock<ICamperAccommodationRepository> _mockCamperAccomRepo;
         private readonly Mock<ICamperRepository> _mockCamperRepo;
 
         public PaymentServiceTests()
@@ -58,7 +58,7 @@ namespace SummerCampManagetmentSystem.BLL.Tests.Services
             _mockGroupRepo = new Mock<IGroupRepository>();
             _mockAccomRepo = new Mock<IAccommodationRepository>();
             _mockCamperGroupRepo = new Mock<ICamperGroupRepository>();
-            _mockCamperAccomRepo = new Mock<ICamperAccomodationRepository>();
+            _mockCamperAccomRepo = new Mock<ICamperAccommodationRepository>();
             _mockCamperRepo = new Mock<ICamperRepository>();
 
             // setup UnitOfWork to return mock repos
@@ -138,6 +138,10 @@ namespace SummerCampManagetmentSystem.BLL.Tests.Services
 
             var trans = new TransactionEntity { transactionId = 1, transactionCode = "123", status = "Pending", registrationId = 1 };
             _dbContext.Transactions.Add(trans);
+            
+            // Add registration to avoid NullReferenceException
+            _dbContext.Registrations.Add(new Registration { registrationId = 1, status = "PendingPayment" });
+            
             await _dbContext.SaveChangesAsync();
 
             _mockTransRepo.Setup(r => r.UpdateAsync(It.IsAny<TransactionEntity>()))

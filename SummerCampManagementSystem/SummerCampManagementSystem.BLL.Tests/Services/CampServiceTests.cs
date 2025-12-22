@@ -4,6 +4,7 @@ using Moq;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.BLL.Tests.Helpers;
 using SummerCampManagementSystem.Core.Enums;
@@ -19,6 +20,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IUserContextService> _mockUserContext;
         private readonly Mock<ILogger<CampService>> _mockLogger;
+        private readonly Mock<IEmailService> _mockEmailService;
+        private readonly Mock<IRefundService> _mockRefundService;
         private readonly CampService _campService;
 
         // mock repositories
@@ -36,6 +39,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockMapper = new Mock<IMapper>();
             _mockUserContext = new Mock<IUserContextService>();
             _mockLogger = new Mock<ILogger<CampService>>();
+            _mockEmailService = new Mock<IEmailService>();
+            _mockRefundService = new Mock<IRefundService>();
 
             // init sub-repos
             _mockCampRepo = new Mock<ICampRepository>();
@@ -55,7 +60,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 _mockUnitOfWork.Object,
                 _mockMapper.Object,
                 _mockUserContext.Object,
-                _mockLogger.Object
+                _mockLogger.Object,
+                _mockEmailService.Object,
+                _mockRefundService.Object
             );
         }
 
