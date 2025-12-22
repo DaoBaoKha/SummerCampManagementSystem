@@ -334,8 +334,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 totalCapacity = allGroupsInCamp.Sum(g => g.CamperGroups.Count);
             }
 
-            var dbContext = _unitOfWork.GetDbContext();
-
             // 2. Chuẩn hóa ngày giờ (VN -> UTC)
             var campStartVn = camp.startDate.Value.ToVietnamTime();
             var campEndVn = camp.endDate.Value.ToVietnamTime();
@@ -395,7 +393,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     // 2. Check Conflict (Core đè Core, Cấm đè Optional/Resting)
                     // Lưu ý: Thêm điều kiện !s.isDeleted nếu có
-                    bool hasConflict = await dbContext.ActivitySchedules
+                    bool hasConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                         .Include(s => s.activity)
                         .AnyAsync(s =>
                             s.activity.campId == camp.campId &&
@@ -492,11 +490,9 @@ namespace SummerCampManagementSystem.BLL.Services
             if (request.StartTime >= request.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
 
-            var dbContext = _unitOfWork.GetDbContext();
-
             // 2. CHECK BLOCKER TOÀN TRẠI (Optional & Resting)
             // Nếu khung giờ này dính Optional hoặc Resting -> Toàn bộ trại bận -> Không nhóm nào rảnh.
-            bool isCampBlocked = await dbContext.ActivitySchedules
+            bool isCampBlocked = await _unitOfWork.ActivitySchedules.GetQueryable()
                 .Include(s => s.activity)
                 .AnyAsync(s =>
                     s.activity.campId == request.CampId &&
@@ -512,7 +508,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 3. TÌM CÁC GROUP ĐANG BẬN (Tham gia Core khác)
             // "ko 2 core trùng nhau thì chỉ 1 group dc tham gia thôi" -> Group nào đã dính lịch thì loại ra.
-            var busyGroupIds = await dbContext.GroupActivities
+            var busyGroupIds = await _unitOfWork.GroupActivities.GetQueryable()
                 .Include(ga => ga.activitySchedule)
                 .Where(ga =>
                     ga.activitySchedule.activity.campId == request.CampId &&
@@ -523,10 +519,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 .ToListAsync();
 
             // 4. LẤY DANH SÁCH GROUP KHẢ DỤNG
-            var availableGroups = await dbContext.Groups
+            var availableGroups = await _unitOfWork.Groups.GetQueryable()
                 .Include(g => g.supervisor)
                 .Where(g =>
                     g.campId == request.CampId &&
+                    g.status == "Active" &&
                     !busyGroupIds.Contains(g.groupId)
                 )
                 .ToListAsync();
@@ -584,8 +581,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 datesToProcess.Add(date);
             }
 
-            var dbContext = _unitOfWork.GetDbContext();
-
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
@@ -627,7 +622,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     // 3. Check Logic Nghiệp vụ (RULE CỦA OPTIONAL)
                     // "Không được đè lên Core/Resting, Optional được phép đè lên nhau"
-                    bool typeConflict = await dbContext.ActivitySchedules
+                    bool typeConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                         .Include(s => s.activity)
                         .AnyAsync(s =>
                             s.activity.campId == camp.campId &&
@@ -749,8 +744,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 datesToProcess.Add(date);
             }
 
-            var dbContext = _unitOfWork.GetDbContext();
-
             using var transaction = await _unitOfWork.BeginTransactionAsync();
             try
             {
@@ -780,7 +773,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                     // Rule 2: Check Conflict (QUAN TRỌNG)
                     // Logic: Resting không được đè lên BẤT KỲ hoạt động nào khác (Core, Optional, Resting khác...)
-                    bool hasConflict = await dbContext.ActivitySchedules
+                    bool hasConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                         .Include(s => s.activity)
                         .AnyAsync(s =>
                             s.activity.campId == camp.campId &&
@@ -869,8 +862,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Activity này không phải loại CheckIn hoặc CheckOut.");
             }
 
-            bool alreadyExists = await _unitOfWork.GetDbContext()
-                  .ActivitySchedules
+            bool alreadyExists = await _unitOfWork
+                  .ActivitySchedules.GetQueryable()
                   .Include(s => s.activity)
                   .AnyAsync(s => s.activity.activityType == activity.activityType
                               && s.activity.campId == activity.campId);
@@ -881,8 +874,6 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // 3. Validate Location và Conflict
-            var dbContext = _unitOfWork.GetDbContext();
-
             bool isOverlap = await _unitOfWork.ActivitySchedules
                    .IsTimeOverlapAsync(camp.campId, dto.StartTime, dto.EndTime);
 
@@ -897,7 +888,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Địa điểm này đã có hoạt động khác trong khung giờ bạn chọn.");
 
             // 4. Lấy tất cả Group Active để gán tự động
-            var allGroups = await dbContext.Groups
+            var allGroups = await _unitOfWork.Groups.GetQueryable()
                 .Include(g => g.CamperGroups) // Include để tính capacity nếu cần
                 .Where(g => g.campId == camp.campId)
                 .ToListAsync();
@@ -981,8 +972,6 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new InvalidOperationException("Thời gian hoạt động phải nằm trọn trong thời gian diễn ra trại.");
             }
 
-            var dbContext = _unitOfWork.GetDbContext();
-
             // 3. XỬ LÝ LOGIC THEO TỪNG LOẠI
             if (activityType == ActivityType.Resting.ToString())
             {
@@ -1037,7 +1026,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 else
                     blockerTypes.Add(ActivityType.Core.ToString());
 
-                bool hasTypeConflict = await dbContext.ActivitySchedules
+                bool hasTypeConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                     .Include(s => s.activity)
                     .AnyAsync(s =>
                         s.activityScheduleId != dto.ActivityScheduleId && 
