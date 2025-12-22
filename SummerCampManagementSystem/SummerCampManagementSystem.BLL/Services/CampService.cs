@@ -1103,7 +1103,6 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<CampValidationResponseDto> ValidateCampReadinessAsync(int campId)
         {
             var response = new CampValidationResponseDto { IsValid = true };
-            var dbContext = _unitOfWork.GetDbContext();
 
             // get camp data
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId);
