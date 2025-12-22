@@ -14,6 +14,8 @@ namespace SummerCampManagementSystem.BLL.Interfaces
 
         Task<IEnumerable<RefundRequestListDto>> GetRefundRequestsByCampAsync(int campId, RefundRequestFilterDto? filter = null);
 
+        Task<IEnumerable<RefundRequestListDto>> GetMyRefundRequestsAsync(RefundRequestFilterDto? filter = null);
+
         Task<RegistrationCancelResponseDto> ApproveRefundAsync(ApproveRefundDto dto);
 
         Task<RegistrationCancelResponseDto> RejectRefundAsync(RejectRefundDto dto);

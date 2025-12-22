@@ -68,6 +68,17 @@ namespace SummerCampManagementSystem.API.Controllers
             return Ok(results);
         }
 
+        /// <summary>
+        /// Get current user refund requests
+        /// </summary>
+        [HttpGet("my-requests")]
+        public async Task<IActionResult> GetMyRefundRequests([FromQuery] RefundRequestFilterDto filter)
+        {
+            var results = await _refundService.GetMyRefundRequestsAsync(filter);
+
+            return Ok(results);
+        }
+
 
         [HttpPost("approve")]
         [Authorize(Roles = "Admin, Manager")]
