@@ -153,6 +153,10 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (BusinessRuleException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });

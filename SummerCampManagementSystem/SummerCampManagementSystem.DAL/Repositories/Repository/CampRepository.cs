@@ -23,6 +23,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                .Where(c =>
                    c.status != CampStatus.Draft.ToString()
                    && c.status != CampStatus.PendingApproval.ToString()
+                   && c.status != CampStatus.Rejected.ToString()
+                   && c.status != CampStatus.Canceled.ToString()
                )
                .Distinct()
                .ToListAsync();
