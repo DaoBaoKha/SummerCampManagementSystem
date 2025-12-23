@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.Vehicle;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 
@@ -31,14 +32,16 @@ namespace SummerCampManagementSystem.BLL.Services
             var vehicle = await _unitOfWork.Vehicles.GetByIdAsync(id);
             if (vehicle == null) return false;
 
-            // check if vehicle is being used in any TransportSchedules
-            var isUsedInTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
-                .Where(ts => ts.vehicleId == id)
+            // check if vehicle is being used in any active TransportSchedules (NotYet or InProgress)
+            var isUsedInActiveTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.vehicleId == id 
+                    && (ts.status == TransportScheduleStatus.NotYet.ToString() 
+                        || ts.status == TransportScheduleStatus.InProgress.ToString()))
                 .AnyAsync();
 
-            if (isUsedInTransportSchedule)
+            if (isUsedInActiveTransportSchedule)
             {
-                throw new BusinessRuleException("Không thể xóa phương tiện vì đang được sử dụng trong lịch vận chuyển.");
+                throw new BusinessRuleException("Không thể xóa phương tiện vì đang được sử dụng trong lịch vận chuyển đang hoạt động.");
             }
 
             await _unitOfWork.Vehicles.RemoveAsync(vehicle);

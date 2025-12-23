@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SummerCampManagementSystem.BLL.DTOs.RouteStop;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Interfaces;
+using SummerCampManagementSystem.Core.Enums;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
@@ -80,14 +81,16 @@ namespace SummerCampManagementSystem.BLL.Services
             if (existing == null)
                 throw new NotFoundException($"Không tìm thấy điểm dừng có ID {id}.");
 
-            // check if the route containing this RouteStop is being used in TransportSchedules
-            var isRouteUsedInTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
-                .Where(ts => ts.routeId == existing.routeId)
+            // check if the route containing this RouteStop is in active TransportSchedules (NotYet or InProgress)
+            var isRouteUsedInActiveTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.routeId == existing.routeId 
+                    && (ts.status == TransportScheduleStatus.NotYet.ToString() 
+                        || ts.status == TransportScheduleStatus.InProgress.ToString()))
                 .AnyAsync();
 
-            if (isRouteUsedInTransportSchedule)
+            if (isRouteUsedInActiveTransportSchedule)
             {
-                throw new BusinessRuleException("Không thể xóa điểm dừng vì tuyến đường đang được sử dụng trong lịch vận chuyển.");
+                throw new BusinessRuleException("Không thể xóa điểm dừng vì tuyến đường đang được sử dụng trong lịch vận chuyển đang hoạt động.");
             }
 
             // check if any CamperTransport is using this stop location
@@ -117,7 +120,9 @@ namespace SummerCampManagementSystem.BLL.Services
 
         public async Task<IEnumerable<RouteStopResponseDto>> GetAllRouteStopsAsync()
         {
-            var routeStops = await _routeStopRepository.GetRouteStopsWithIncludes().ToListAsync();
+            var routeStops = await _routeStopRepository.GetRouteStopsWithIncludes()
+                .Where(rs => rs.status == "Active") // only return active route stops
+                .ToListAsync();
             return _mapper.Map<IEnumerable<RouteStopResponseDto>>(routeStops);
         }
 
