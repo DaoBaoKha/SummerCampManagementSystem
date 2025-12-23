@@ -10,6 +10,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     public interface IGroupActivityService
     {
        Task<GroupActivityResponseDto> CreateGroupActivity(GroupActivityDto groupActivityDto);
-       Task<bool> RemoveGroupActivity(int groupActivityId);
+       Task<bool> RemoveGroupActivity(int groupId, int activityScheduleId);
     }
 }

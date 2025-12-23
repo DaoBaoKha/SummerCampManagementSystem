@@ -64,9 +64,15 @@ namespace SummerCampManagementSystem.BLL.Services
             return _mapper.Map<GroupActivityResponseDto>(groupActivity);
         }
 
-        public async Task<bool> RemoveGroupActivity(int groupActivityId)
+        public async Task<bool> RemoveGroupActivity(int groupId, int activityScheduleId)
         {
-            var groupActivity = await _unitOfWork.GroupActivities.GetByIdWithGroupAndCampAsync(groupActivityId);
+            var group = await _unitOfWork.Groups.GetByIdWithCampAsync(groupId)
+                ?? throw new KeyNotFoundException($"Không tìm thấy group với ID {groupId}");
+
+            var activitySchedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
+                ?? throw new KeyNotFoundException($"Không tìm thấy activity schedule với ID {activityScheduleId}");
+
+            var groupActivity = await _unitOfWork.GroupActivities.GetByGroupAndActivityScheduleId(groupId, activityScheduleId);
 
             if (groupActivity == null)
             {

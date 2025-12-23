@@ -26,6 +26,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<GroupActivity?> GetByGroupAndActivityScheduleId(int groupId, int activityScheduleId)
         {
             return await _context.GroupActivities
+                 .Include(ga => ga.group)
+                    .ThenInclude(g => g.camp)
                 .Where(ga => ga.activityScheduleId == activityScheduleId && ga.groupId == groupId)
                 .FirstOrDefaultAsync();
         }
