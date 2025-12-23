@@ -890,7 +890,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // 4. Lấy tất cả Group Active để gán tự động
             var allGroups = await _unitOfWork.Groups.GetQueryable()
                 .Include(g => g.CamperGroups) // Include để tính capacity nếu cần
-                .Where(g => g.campId == camp.campId)
+                .Where(g => g.campId == camp.campId && g.status == "Active")
                 .ToListAsync();
 
             int totalCapacity = allGroups.Sum(g => g.CamperGroups?.Count ?? 0);
