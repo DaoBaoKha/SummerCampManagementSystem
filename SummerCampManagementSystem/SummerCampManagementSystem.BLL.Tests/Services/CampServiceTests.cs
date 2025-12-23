@@ -4,6 +4,7 @@ using Moq;
 using SummerCampManagementSystem.BLL.DTOs.Camp;
 using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.BLL.Tests.Helpers;
 using SummerCampManagementSystem.Core.Enums;
@@ -19,6 +20,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IUserContextService> _mockUserContext;
         private readonly Mock<ILogger<CampService>> _mockLogger;
+        private readonly Mock<IEmailService> _mockEmailService;
+        private readonly Mock<IRefundService> _mockRefundService;
         private readonly CampService _campService;
 
         // mock repositories
@@ -36,6 +39,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockMapper = new Mock<IMapper>();
             _mockUserContext = new Mock<IUserContextService>();
             _mockLogger = new Mock<ILogger<CampService>>();
+            _mockEmailService = new Mock<IEmailService>();
+            _mockRefundService = new Mock<IRefundService>();
 
             // init sub-repos
             _mockCampRepo = new Mock<ICampRepository>();
@@ -55,7 +60,9 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 _mockUnitOfWork.Object,
                 _mockMapper.Object,
                 _mockUserContext.Object,
-                _mockLogger.Object
+                _mockLogger.Object,
+                _mockEmailService.Object,
+                _mockRefundService.Object
             );
         }
 
@@ -507,6 +514,62 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockTransScheduleRepo.Verify(r => r.UpdateAsync(It.Is<TransportSchedule>(s => s.status == "Rejected")), Times.Once);
 
             _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.AtLeastOnce);
+        }
+
+        // ==========================================
+        // UT20 - DELETE CAMP
+        // ==========================================
+
+        // UT20 - TEST CASE 1: Camp Not Found
+        [Fact]
+        public async Task DeleteCamp_CampNotFound_ReturnsFalse()
+        {
+            // arrange
+            _mockCampRepo.Setup(r => r.GetByIdAsync(99)).ReturnsAsync((Camp)null);
+
+            // act
+            var result = await _campService.DeleteCampAsync(99);
+
+            // assert
+            Assert.False(result);
+            _mockCampRepo.Verify(r => r.GetByIdAsync(99), Times.Once);
+            _mockCampRepo.Verify(r => r.UpdateAsync(It.IsAny<Camp>()), Times.Never);
+        }
+
+        // UT20 - TEST CASE 2: Invalid Status (Not Draft)
+        [Fact]
+        public async Task DeleteCamp_InvalidStatus_ThrowsBusinessRuleException()
+        {
+            // arrange
+            var camp = new Camp { campId = 1, status = "Published" };
+            _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
+
+            // act & assert
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _campService.DeleteCampAsync(1));
+            Assert.Contains("Chỉ có thể xóa trại ở trạng thái Draft", ex.Message);
+            
+            _mockCampRepo.Verify(r => r.UpdateAsync(It.IsAny<Camp>()), Times.Never);
+        }
+
+        // UT20 - TEST CASE 3: Successful Delete (Draft -> Canceled)
+        [Fact]
+        public async Task DeleteCamp_ValidStatus_ReturnsTrueAndUpdatesStatus()
+        {
+            // arrange
+            var camp = new Camp { campId = 1, status = "Draft" };
+            _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
+            _mockCampRepo.Setup(r => r.UpdateAsync(It.IsAny<Camp>())).Returns(Task.CompletedTask);
+            _mockUnitOfWork.Setup(u => u.CommitAsync()).ReturnsAsync(1);
+
+            // act
+            var result = await _campService.DeleteCampAsync(1);
+
+            // assert
+            Assert.True(result);
+            Assert.Equal("Canceled", camp.status);
+
+            _mockCampRepo.Verify(r => r.UpdateAsync(It.Is<Camp>(c => c.status == "Canceled")), Times.Once);
+            _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.Once);
         }
     }
 }

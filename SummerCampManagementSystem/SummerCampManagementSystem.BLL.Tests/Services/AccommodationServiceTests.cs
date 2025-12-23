@@ -49,6 +49,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         {
             // arrange
             var request = new AccommodationRequestDto { campId = 1, supervisorId = 99 };
+            _mockUnitOfWork.Setup(u => u.Camps.GetByIdAsync(1)).ReturnsAsync(new Camp { status = "Draft" });
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(99)).ReturnsAsync((UserAccount?)null);
 
             // act & assert
@@ -62,6 +63,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         {
             // arrange
             var request = new AccommodationRequestDto { campId = 1, supervisorId = 1 };
+            _mockUnitOfWork.Setup(u => u.Camps.GetByIdAsync(1)).ReturnsAsync(new Camp { status = "Draft" });
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(1))
                 .ReturnsAsync(new UserAccount { role = "User" });
 
@@ -77,6 +79,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // arrange
             var request = new AccommodationRequestDto { campId = 1, supervisorId = 1 };
 
+            _mockUnitOfWork.Setup(u => u.Camps.GetByIdAsync(1)).ReturnsAsync(new Camp { status = "Draft" });
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(1)).ReturnsAsync(new UserAccount { role = "Staff" });
 
             // mock assignment check (already assigned to camp)
@@ -98,6 +101,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // arrange
             var request = new AccommodationRequestDto { campId = 1, supervisorId = 1, name = "Room A" };
 
+            _mockUnitOfWork.Setup(u => u.Camps.GetByIdAsync(1)).ReturnsAsync(new Camp { status = "Draft" });
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(1)).ReturnsAsync(new UserAccount { role = "Staff" });
 
             // mock: staff NOT assigned to camp yet
@@ -132,6 +136,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // arrange
             var request = new AccommodationRequestDto { campId = 1, supervisorId = 1, name = "Room B" };
 
+            _mockUnitOfWork.Setup(u => u.Camps.GetByIdAsync(1)).ReturnsAsync(new Camp { status = "Draft" });
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(1)).ReturnsAsync(new UserAccount { role = "Staff" });
             _mockAssignmentService.Setup(s => s.IsStaffAssignedToCampAsync(1, 1)).ReturnsAsync(true); // Already assigned
             _mockUnitOfWork.Setup(u => u.Accommodations.GetBySupervisorIdAsync(1, 1)).ReturnsAsync((Accommodation?)null);

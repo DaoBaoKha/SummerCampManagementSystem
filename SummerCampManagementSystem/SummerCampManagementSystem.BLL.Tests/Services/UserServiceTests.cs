@@ -6,6 +6,7 @@ using SummerCampManagementSystem.BLL.DTOs.User;
 using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Models;
+using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
 using IConfiguration = Microsoft.Extensions.Configuration.IConfiguration;
 
@@ -15,31 +16,40 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
     {
         // mock objects
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
-        private readonly Mock<IConfiguration> _mockConfig;
-        private readonly Mock<IMemoryCache> _mockCache;
+        private readonly Mock<IConfiguration> _mockConfiguration;
+        private readonly Mock<IMemoryCache> _mockMemoryCache;
         private readonly Mock<IEmailService> _mockEmailService;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<ILogger<UserService>> _mockLogger;
-
         private readonly UserService _userService;
+
+        // Mock Repositories
+        private readonly Mock<IUserRepository> _mockUserRepo;
 
         public UserServiceTests()
         {
+            // initialize mocks
             _mockUnitOfWork = new Mock<IUnitOfWork>();
-            _mockConfig = new Mock<IConfiguration>();
+            _mockConfiguration = new Mock<IConfiguration>();
+            _mockMemoryCache = new Mock<IMemoryCache>();
             _mockEmailService = new Mock<IEmailService>();
             _mockMapper = new Mock<IMapper>();
             _mockLogger = new Mock<ILogger<UserService>>();
 
-            // cache mock
-            _mockCache = new Mock<IMemoryCache>();
+            // setup cache mock
             var mockCacheEntry = new Mock<ICacheEntry>();
-            _mockCache.Setup(m => m.CreateEntry(It.IsAny<object>())).Returns(mockCacheEntry.Object);
+            _mockMemoryCache.Setup(m => m.CreateEntry(It.IsAny<object>())).Returns(mockCacheEntry.Object);
+
+            // initialize repo mocks
+            _mockUserRepo = new Mock<IUserRepository>();
+
+            // setup UnitOfWork
+            _mockUnitOfWork.Setup(u => u.Users).Returns(_mockUserRepo.Object);
 
             _userService = new UserService(
                 _mockUnitOfWork.Object,
-                _mockConfig.Object,
-                _mockCache.Object,
+                _mockConfiguration.Object,
+                _mockMemoryCache.Object,
                 _mockEmailService.Object,
                 _mockMapper.Object,
                 _mockLogger.Object
@@ -86,7 +96,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUnitOfWork.Setup(u => u.Users.GetUserByEmail(request.Email))
                 .ReturnsAsync((UserAccount?)null);
 
-            _mockConfig.Setup(c => c["AppSettings:DefaultAvatarUrl"]).Returns("default_avatar.png");
+            _mockConfiguration.Setup(c => c["AppSettings:DefaultAvatarUrl"]).Returns("default_avatar.png");
 
             // ACT
             var result = await _userService.RegisterAsync(request);

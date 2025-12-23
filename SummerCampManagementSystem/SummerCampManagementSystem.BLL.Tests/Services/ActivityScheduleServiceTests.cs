@@ -284,7 +284,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
 
             _mockActivityRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(activity);
             _mockCampRepo.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(camp);
-            _mockAccomRepo.Setup(r => r.GetByCampId(1)).ReturnsAsync(new List<Accommodation>());
+            _mockAccomRepo.Setup(r => r.GetByCampIdAsync(1)).ReturnsAsync(new List<Accommodation>());
 
             _mockScheduleRepo.Setup(r => r.CreateAsync(It.IsAny<ActivitySchedule>()))
                 .Callback<ActivitySchedule>(s => s.activityScheduleId = 100)

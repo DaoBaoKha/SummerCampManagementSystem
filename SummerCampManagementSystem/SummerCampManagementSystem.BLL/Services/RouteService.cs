@@ -230,17 +230,31 @@ namespace SummerCampManagementSystem.BLL.Services
             var existingRoute = await _unitOfWork.Routes.GetByIdAsync(routeId);
             if (existingRoute == null) throw new KeyNotFoundException($"Route with ID {routeId} not found.");
 
-            // check if route is being used in any TransportSchedules
-            var isUsedInTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
-                .Where(ts => ts.routeId == routeId)
+            // check if route is in active TransportSchedules (NotYet or InProgress)
+            var isUsedInActiveTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.routeId == routeId 
+                    && (ts.status == TransportScheduleStatus.NotYet.ToString() 
+                        || ts.status == TransportScheduleStatus.InProgress.ToString()))
                 .AnyAsync();
 
-            if (isUsedInTransportSchedule)
+            if (isUsedInActiveTransportSchedule)
             {
-                throw new BusinessRuleException("Không thể xóa tuyến đường vì đang được sử dụng trong lịch vận chuyển.");
+                throw new BusinessRuleException("Không thể xóa tuyến đường vì đang được sử dụng trong lịch vận chuyển đang hoạt động.");
             }
 
-            await _unitOfWork.Routes.RemoveAsync(existingRoute);
+            // check if route has any RouteStops
+            var hasRouteStops = await _unitOfWork.RouteStops.GetQueryable()
+                .Where(rs => rs.routeId == routeId && rs.status == "Active")
+                .AnyAsync();
+
+            if (hasRouteStops)
+            {
+                throw new BusinessRuleException("Không thể xóa tuyến đường vì vẫn còn các điểm dừng (RouteStops) đang hoạt động.");
+            }
+
+            // soft delete: set isActive to false
+            existingRoute.isActive = false;
+            await _unitOfWork.Routes.UpdateAsync(existingRoute);
             await _unitOfWork.CommitAsync();
 
             return true;
@@ -249,6 +263,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<RouteResponseDto>> GetAllRoutesAsync()
         {
             return await _unitOfWork.Routes.GetQueryable()
+                .Where(r => r.isActive == true) // only return active routes
                 .Include(r => r.camp) 
                 .ProjectTo<RouteResponseDto>(_mapper.ConfigurationProvider)
                 .ToListAsync();
@@ -274,7 +289,7 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             var routes = await GetRoutesWithIncludes()
-                .Where(r => r.campId == campId) 
+                .Where(r => r.campId == campId && r.isActive == true) // only return active routes
                 .ToListAsync();
 
             return _mapper.Map<IEnumerable<RouteResponseDto>>(routes);
@@ -286,7 +301,22 @@ namespace SummerCampManagementSystem.BLL.Services
             var existingRoute = await _unitOfWork.Routes.GetByIdAsync(routeId);
             if (existingRoute == null) throw new KeyNotFoundException($"Route with ID {routeId} not found.");
 
+            // validate camp exists
             var camp = await _unitOfWork.Camps.GetByIdAsync(routeRequestDto.campId);
+            if (camp == null)
+                throw new NotFoundException($"Camp with ID {routeRequestDto.campId} not found.");
+
+            // check if route is in active TransportSchedules (NotYet or InProgress)
+            var isUsedInActiveTransportSchedule = await _unitOfWork.TransportSchedules.GetQueryable()
+                .Where(ts => ts.routeId == routeId 
+                    && (ts.status == TransportScheduleStatus.NotYet.ToString() 
+                        || ts.status == TransportScheduleStatus.InProgress.ToString()))
+                .AnyAsync();
+
+            if (isUsedInActiveTransportSchedule)
+            {
+                throw new BusinessRuleException("Không thể cập nhật tuyến đường vì đang được sử dụng trong lịch vận chuyển đang hoạt động.");
+            }
 
             _mapper.Map(routeRequestDto, existingRoute);
 

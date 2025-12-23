@@ -1,7 +1,9 @@
 ﻿using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using SummerCampManagementSystem.BLL.DTOs.Group;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.DAL.Models;
@@ -17,6 +19,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         private readonly Mock<IUnitOfWork> _mockUnitOfWork;
         private readonly Mock<IValidationService> _mockValidationService;
         private readonly Mock<IMapper> _mockMapper;
+        private readonly Mock<ILogger<GroupService>> _mockLogger;
         private readonly GroupService _groupService;
 
         public GroupServiceTests()
@@ -24,11 +27,13 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUnitOfWork = new Mock<IUnitOfWork>();
             _mockValidationService = new Mock<IValidationService>();
             _mockMapper = new Mock<IMapper>();
+            _mockLogger = new Mock<ILogger<GroupService>>();
 
             _groupService = new GroupService(
                 _mockUnitOfWork.Object,
                 _mockValidationService.Object,
-                _mockMapper.Object
+                _mockMapper.Object,
+                _mockLogger.Object
             );
         }
 
@@ -43,7 +48,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 .ReturnsAsync((Camp?)null);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _groupService.CreateGroupAsync(request));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _groupService.CreateGroupAsync(request));
             Assert.Contains("Camp with ID 99 not found", ex.Message);
         }
 
@@ -59,7 +64,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 .ReturnsAsync((Camp?)null);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _groupService.CreateGroupAsync(request));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _groupService.CreateGroupAsync(request));
             Assert.Contains("Camp with ID 99 not found", ex.Message);
         }
 
@@ -74,7 +79,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(99)).ReturnsAsync((UserAccount?)null);
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() => _groupService.CreateGroupAsync(request));
+            var ex = await Assert.ThrowsAsync<NotFoundException>(() => _groupService.CreateGroupAsync(request));
             Assert.Contains("Supervisor with ID 99 not found", ex.Message);
         }
 
@@ -90,7 +95,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 .ReturnsAsync(new UserAccount { role = "User" });
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<ArgumentException>(() => _groupService.CreateGroupAsync(request));
+            var ex = await Assert.ThrowsAsync<BadRequestException>(() => _groupService.CreateGroupAsync(request));
             Assert.Contains("not a Staff member", ex.Message);
         }
 
@@ -110,7 +115,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 .ReturnsAsync(new Group { groupId = 100 });
 
             // act & assert
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _groupService.CreateGroupAsync(request));
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() => _groupService.CreateGroupAsync(request));
             Assert.Contains("already assigned to Camper Group", ex.Message);
         }
 
@@ -126,14 +131,14 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockUnitOfWork.Setup(u => u.Users.GetByIdAsync(1)).ReturnsAsync(new UserAccount { role = "Staff" });
             _mockUnitOfWork.Setup(u => u.Groups.GetGroupBySupervisorIdAsync(1, 1)).ReturnsAsync((Group?)null);
 
-            // mock core schedules
-            var coreSchedules = new List<ActivitySchedule>
+            // mock check-in/out schedules (service changed from core schedules)
+            var checkInOutSchedules = new List<ActivitySchedule>
             {
                 new ActivitySchedule { activityScheduleId = 10 },
                 new ActivitySchedule { activityScheduleId = 11 }
             };
-            _mockUnitOfWork.Setup(u => u.ActivitySchedules.GetCoreScheduleByCampIdAsync(1))
-                .ReturnsAsync(coreSchedules);
+            _mockUnitOfWork.Setup(u => u.ActivitySchedules.GetCheckInOutScheduleByCampIdAsync(1))
+                .ReturnsAsync(checkInOutSchedules);
 
             // setup group creation
             _mockUnitOfWork.Setup(u => u.Groups.CreateAsync(It.IsAny<Group>()))
@@ -143,6 +148,10 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             // setup group activity creation
             _mockUnitOfWork.Setup(u => u.GroupActivities.CreateAsync(It.IsAny<GroupActivity>()))
                 .Returns(Task.CompletedTask);
+
+            // setup GetByIdWithCamperGroupsAndCampAsync for return
+            _mockUnitOfWork.Setup(u => u.Groups.GetByIdWithCamperGroupsAndCampAsync(5))
+                .ReturnsAsync(new Group { groupId = 5, groupName = "Group A" });
 
             // setup mapper
             _mockMapper.Setup(m => m.Map<Group>(request)).Returns(new Group { campId = 1, supervisorId = 1 });
@@ -157,7 +166,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             Assert.Equal(5, result.GroupId);
 
             _mockUnitOfWork.Verify(u => u.Groups.CreateAsync(It.IsAny<Group>()), Times.Once);
-            // Verify core activities are copied (2 times)
+            // Verify check-in/out activities are copied (2 times)
             _mockUnitOfWork.Verify(u => u.GroupActivities.CreateAsync(It.IsAny<GroupActivity>()), Times.Exactly(2));
             _mockUnitOfWork.Verify(u => u.CommitAsync(), Times.Exactly(2));
         }

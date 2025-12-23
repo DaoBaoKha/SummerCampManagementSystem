@@ -119,12 +119,13 @@ namespace SummerCampManagementSystem.BLL.Services
             
             await RunSupervisorUpdateValidation(accommodationId, newSupervisorId, campId.Value);
 
-            // Validate capacity is not less than current number of campers
+            // validation: capacity must be greater than or equal to current number of campers in accommodation
             if (accommodationRequestDto.capacity.HasValue)
             {
                 var currentCampers = await _unitOfWork.CamperAccommodations.SearchAsync(null, accommodationId, null, null);
                 var camperCount = currentCampers.Count();
                 
+                // check that capacity cannot be less than number of campers already assigned to accommodation
                 if (accommodationRequestDto.capacity.Value < camperCount)
                 {
                     throw new BusinessRuleException($"Không thể cập nhật capacity thành {accommodationRequestDto.capacity.Value} vì accommodation hiện có {camperCount} camper(s). Capacity phải lớn hơn hoặc bằng số lượng camper hiện tại.");
