@@ -50,16 +50,16 @@ namespace SummerCampManagementSystem.API.Controllers
             }
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteGroupActivity(int id)
+        [HttpDelete]
+        public async Task<IActionResult> DeleteGroupActivity([FromQuery] int groupId, [FromQuery] int activityScheduleId)
         {
             try
             {
-                var result = await _groupActivityService.RemoveGroupActivity(id);
+                var result = await _groupActivityService.RemoveGroupActivity(groupId, activityScheduleId);
 
                 if (!result)
                 {
-                    return NotFound(new { message = $"Group activity with ID {id} not found." });
+                    return NotFound(new { message = $"Không tìm thấy hoạt động cho nhóm {groupId} và lịch hoạt động {activityScheduleId}." });
                 }
                 return Ok(new { message = "Đã xóa thành công." });
             }
@@ -67,8 +67,14 @@ namespace SummerCampManagementSystem.API.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
-
-
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Đã xảy ra lỗi không mong muốn khi xóa hoạt động nhóm." });
+            }
         }
     }
 }
