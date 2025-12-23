@@ -298,9 +298,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             try
             {
+                // only return active groups
                 var groups = await _context.Groups
                     .AsNoTracking()
-                    .Where(g => g.campId == campId && g.maxSize.HasValue && g.maxSize > 0)
+                    .Where(g => g.campId == campId && g.status == "Active" && g.maxSize.HasValue && g.maxSize > 0)
                     .Select(g => new
                     {
                         g.groupName,
@@ -333,10 +334,11 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<Group>> GetGroupsWithCampersByCampIdAsync(int campId)
         {
             // use AsNoTracking for read-only queries
+            // only return active groups
             return await _context.Groups
                 .AsNoTracking()
                 .Include(g => g.CamperGroups)
-                .Where(g => g.campId == campId)
+                .Where(g => g.campId == campId && g.status == "Active")
                 .ToListAsync();
         }
 
@@ -346,7 +348,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return await _context.Groups
                 .AsNoTracking()
                 .Include(g => g.CamperGroups)
-                .Where(g => groupIds.Contains(g.groupId))
+                .Where(g => groupIds.Contains(g.groupId) && g.status == "Active")
                 .ToListAsync();
         }
 
