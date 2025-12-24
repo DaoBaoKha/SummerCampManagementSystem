@@ -391,7 +391,7 @@ namespace SummerCampManagementSystem.BLL.Services
                         }
                     }
 
-                    // 2. Check Conflict (Core đè Core, Cấm đè Optional/Resting)
+                    // 2. Check Conflict (Core đè Core, Cấm đè Optional/Resting/CheckIn/CheckOut)
                     // Lưu ý: Thêm điều kiện !s.isDeleted nếu có
                     bool hasConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                         .Include(s => s.activity)
@@ -399,12 +399,14 @@ namespace SummerCampManagementSystem.BLL.Services
                             s.activity.campId == camp.campId &&
                             (s.startTime < endTimeUtc && s.endTime > startTimeUtc) && // Logic Overlap
                             (s.activity.activityType == ActivityType.Optional.ToString() ||
-                             s.activity.activityType == ActivityType.Resting.ToString())
+                             s.activity.activityType == ActivityType.Resting.ToString() ||
+                             s.activity.activityType == ActivityType.Checkin.ToString() ||
+                             s.activity.activityType == ActivityType.Checkout.ToString())
                         );
 
                     if (hasConflict)
                     {
-                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Bị trùng lịch với hoạt động Optional/Resting.");
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Bị trùng lịch với hoạt động Optional/Resting/CheckIn/CheckOut.");
                         continue; // Bỏ qua ngày này
                     }
 
@@ -490,20 +492,22 @@ namespace SummerCampManagementSystem.BLL.Services
             if (request.StartTime >= request.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
 
-            // 2. CHECK BLOCKER TOÀN TRẠI (Optional & Resting)
-            // Nếu khung giờ này dính Optional hoặc Resting -> Toàn bộ trại bận -> Không nhóm nào rảnh.
+            // 2. CHECK BLOCKER TOÀN TRẠI (Optional & Resting & CheckIn & CheckOut)
+            // Nếu khung giờ này dính Optional/Resting/CheckIn/CheckOut -> Toàn bộ trại bận -> Không nhóm nào rảnh.
             bool isCampBlocked = await _unitOfWork.ActivitySchedules.GetQueryable()
                 .Include(s => s.activity)
                 .AnyAsync(s =>
                     s.activity.campId == request.CampId &&
                     (s.startTime < request.EndTime && s.endTime > request.StartTime) && // Overlap Check
                     (s.activity.activityType == ActivityType.Optional.ToString() ||
-                     s.activity.activityType == ActivityType.Resting.ToString())
+                     s.activity.activityType == ActivityType.Resting.ToString() ||
+                     s.activity.activityType == ActivityType.Checkin.ToString() ||
+                     s.activity.activityType == ActivityType.Checkout.ToString())
                 );
 
             if (isCampBlocked)
             {
-                throw new InvalidOperationException("Không có nhóm nào khả dụng trong khung giờ này do trại đang có hoạt động Optional hoặc Resting.");
+                throw new InvalidOperationException("Không có nhóm nào khả dụng trong khung giờ này do trại đang có hoạt động Optional/Resting/CheckIn/CheckOut.");
             }
 
             // 3. TÌM CÁC GROUP ĐANG BẬN (Tham gia Core khác)
@@ -621,19 +625,21 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
 
                     // 3. Check Logic Nghiệp vụ (RULE CỦA OPTIONAL)
-                    // "Không được đè lên Core/Resting, Optional được phép đè lên nhau"
+                    // "Không được đè lên Core/Resting/CheckIn/CheckOut, Optional được phép đè lên nhau"
                     bool typeConflict = await _unitOfWork.ActivitySchedules.GetQueryable()
                         .Include(s => s.activity)
                         .AnyAsync(s =>
                             s.activity.campId == camp.campId &&
                             (s.startTime < endTimeUtc && s.endTime > startTimeUtc) &&
                             (s.activity.activityType == ActivityType.Core.ToString() ||
-                             s.activity.activityType == ActivityType.Resting.ToString()) // Chỉ sợ Core hoặc Resting
+                             s.activity.activityType == ActivityType.Resting.ToString() ||
+                             s.activity.activityType == ActivityType.Checkin.ToString() ||
+                             s.activity.activityType == ActivityType.Checkout.ToString())
                         );
 
                     if (typeConflict)
                     {
-                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Bị trùng lịch với hoạt động Core hoặc Resting.");
+                        result.Errors.Add($"Ngày {currentStartVn:dd/MM}: Bị trùng lịch với hoạt động Core/Resting/CheckIn/CheckOut.");
                         continue;
                     }
 
@@ -1018,7 +1024,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // Update Full: Time, Location, Staff, LiveStream
 
                 // A. Check Xung đột Logic (Type Conflict)
-                var blockerTypes = new List<string> { ActivityType.Resting.ToString() };
+                var blockerTypes = new List<string> { ActivityType.Resting.ToString(), ActivityType.Checkin.ToString(), ActivityType.Checkout.ToString() };
 
                 // Core sợ Optional, Optional sợ Core
                 if (activityType == ActivityType.Core.ToString())
