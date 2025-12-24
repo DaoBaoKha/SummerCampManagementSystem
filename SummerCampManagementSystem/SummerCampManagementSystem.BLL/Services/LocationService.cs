@@ -187,6 +187,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<LocationResponseDto>> GetLocationsAsync()
         {
             var locations = await _unitOfWork.Locations.GetQueryable()
+                .Where(l => l.isActive == true) // only return active locations
                 .Include(l => l.campLocation) 
                 .ToListAsync();
 

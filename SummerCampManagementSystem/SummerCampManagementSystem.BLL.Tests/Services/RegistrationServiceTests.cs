@@ -3,13 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
 using SummerCampManagementSystem.BLL.DTOs.Registration;
+using SummerCampManagementSystem.BLL.Exceptions;
 using SummerCampManagementSystem.BLL.Helpers;
+using SummerCampManagementSystem.BLL.Interfaces;
 using SummerCampManagementSystem.BLL.Services;
 using SummerCampManagementSystem.BLL.Tests.Helpers;
 using SummerCampManagementSystem.DAL.Models;
 using SummerCampManagementSystem.DAL.Repositories.Interfaces;
 using SummerCampManagementSystem.DAL.UnitOfWork;
-using SummerCampManagementSystem.BLL.Exceptions;
 
 namespace SummerCampManagementSystem.BLL.Tests.Services
 {
@@ -20,6 +21,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
         private readonly Mock<IConfiguration> _mockConfiguration;
         private readonly Mock<IMapper> _mockMapper;
         private readonly Mock<IUserContextService> _mockUserContext;
+        private readonly Mock<IRefundService> _mockRefundService;
         private readonly RegistrationService _service;
 
         // mock repos
@@ -38,6 +40,7 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
             _mockConfiguration = new Mock<IConfiguration>();
             _mockMapper = new Mock<IMapper>();
             _mockUserContext = new Mock<IUserContextService>();
+            _mockRefundService = new Mock<IRefundService>();
 
             // init repos
             _mockCampRepo = new Mock<ICampRepository>();
@@ -62,7 +65,8 @@ namespace SummerCampManagementSystem.BLL.Tests.Services
                 null, // payOS passed as null
                 _mockConfiguration.Object,
                 _mockMapper.Object,
-                _mockUserContext.Object
+                _mockUserContext.Object,
+                _mockRefundService.Object
             );
         }
 

@@ -72,14 +72,43 @@ namespace SummerCampManagementSystem.BLL.Services
         }
 
         public async Task<bool> DeleteCampAsync(int id)
-        {
-            var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
-            if (existingCamp == null) return false;
-            await _unitOfWork.Camps.RemoveAsync(existingCamp);
-            await _unitOfWork.CommitAsync();
+{
+    _logger.LogInformation("[CampService] DeleteCampAsync called for CampId={CampId}", id);
 
-            return true;
-        }
+    var existingCamp = await _unitOfWork.Camps.GetByIdAsync(id);
+    if (existingCamp == null)
+    {
+        _logger.LogWarning("[CampService] Camp with ID {CampId} not found", id);
+        return false;
+    }
+
+    // only allow delete when camp status is Draft
+    if (!Enum.TryParse<CampStatus>(existingCamp.status, out var campStatus))
+    {
+        _logger.LogError("[CampService] Invalid camp status: {Status}", existingCamp.status);
+        throw new BusinessRuleException($"Trạng thái trại không hợp lệ: {existingCamp.status}");
+    }
+
+    if (campStatus != CampStatus.Draft)
+    {
+        _logger.LogWarning(
+            "[CampService] Cannot delete camp with status {Status}. Only Draft camps can be deleted", 
+            existingCamp.status);
+        throw new BusinessRuleException(
+            $"Không thể xóa trại khi trạng thái là '{existingCamp.status}'. Chỉ có thể xóa trại ở trạng thái Draft.");
+    }
+
+    // change status to Canceled
+    existingCamp.status = CampStatus.Canceled.ToString();
+    await _unitOfWork.Camps.UpdateAsync(existingCamp);
+    await _unitOfWork.CommitAsync();
+
+    _logger.LogInformation(
+        "[CampService] Successfully soft deleted CampId={CampId} (status changed to Canceled)", 
+        id);
+
+    return true;
+}        
 
         public async Task<IEnumerable<CampResponseDto>> GetAllCampsAsync()
         {
@@ -642,6 +671,12 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         await TransitionCampStatusAsync(camp.campId, nextStatus.Value);
                         _logger.LogInformation($"SUCCESS: Camp {camp.campId} transitioned from {currentStatus} to {nextStatus}.");
+
+                        // when transitioning to RegistrationClosed, release staff from groups without campers
+                        if (nextStatus.Value == CampStatus.RegistrationClosed)
+                        {
+                            await ReleaseStaffFromEmptyEntitiesAsync(camp.campId);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -1213,6 +1248,58 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             return response;
+        }
+
+        private async Task ReleaseStaffFromEmptyEntitiesAsync(int campId)
+        {
+            _logger.LogInformation($"[CampService] Starting check and release of staff from groups without campers for Camp {campId}");
+
+            try
+            {
+                int groupsReleased = 0;
+
+                // check and release staff from groups without campers
+                var allGroups = await _unitOfWork.Groups.GetByCampIdAsync(campId);
+                
+                foreach (var group in allGroups)
+                {
+                    // count number of campers in group
+                    var camperIds = await _unitOfWork.CamperGroups.GetCamperIdsByGroupIdAsync(group.groupId);
+                    int camperCount = camperIds.Count();
+
+                    // if group has no campers and has an assigned supervisor
+                    if (camperCount == 0 && group.supervisorId.HasValue && group.supervisorId.Value > 0)
+                    {
+                        _logger.LogInformation(
+                            $"[CampService] Releasing supervisor ID {group.supervisorId} from Group ID {group.groupId} ('{group.groupName}') because it has no campers");
+
+                        // release supervisor
+                        group.supervisorId = null;
+                        await _unitOfWork.Groups.UpdateAsync(group);
+                        groupsReleased++;
+                    }
+                }
+
+
+
+                // commit all changes
+                if (groupsReleased > 0)
+                {
+                    await _unitOfWork.CommitAsync();
+                    _logger.LogInformation(
+                        $"[CampService] Completed releasing staff for Camp {campId}: {groupsReleased} group(s) had supervisors released");
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        $"[CampService] No groups require staff release for Camp {campId}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"[CampService] ERROR releasing staff from empty groups for Camp {campId}");
+                // do not throw exception to avoid disrupting main flow
+            }
         }
 
     }

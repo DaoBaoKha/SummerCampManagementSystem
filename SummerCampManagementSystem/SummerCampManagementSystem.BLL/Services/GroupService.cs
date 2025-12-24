@@ -234,12 +234,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await RunGroupSupervisorValidation(Group.SupervisorId, Group.CampId, id);
 
-            // Validate maxSize is not less than current number of campers
+            // validation: maxSize must be greater than or equal to current number of campers in group
             if (Group.MaxSize.HasValue)
             {
                 var currentCamperCount = await _unitOfWork.CamperGroups.GetCamperIdsByGroupIdAsync(id);
                 var camperCount = currentCamperCount.Count();
                 
+                // check that maxSize cannot be less than number of campers already assigned to group
                 if (Group.MaxSize.Value < camperCount)
                 {
                     throw new BusinessRuleException($"Không thể cập nhật maxSize thành {Group.MaxSize.Value} vì nhóm hiện có {camperCount} camper(s). MaxSize phải lớn hơn hoặc bằng số lượng camper hiện tại.");
