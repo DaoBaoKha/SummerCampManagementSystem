@@ -18,6 +18,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<IEnumerable<Accommodation>> GetByCampIdAsync(int campId)
         {
             return await _context.Accommodations
+                .AsNoTracking()
                 .Where(a => a.campId == campId && a.isActive == true)
                 .ToListAsync();
         }
