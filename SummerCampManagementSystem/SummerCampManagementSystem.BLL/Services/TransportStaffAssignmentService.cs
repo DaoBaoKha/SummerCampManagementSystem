@@ -102,7 +102,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (!availableStaffIds.Any()) return new List<StaffSummaryDto>();
 
             var users = await _unitOfWork.Users.GetQueryable()
-                .Where(u => availableStaffIds.Contains(u.userId))
+                .Where(u => availableStaffIds.Contains(u.userId) && u.role == "Staff")
                 .ToListAsync(); 
 
             return _mapper.Map<IEnumerable<StaffSummaryDto>>(users);

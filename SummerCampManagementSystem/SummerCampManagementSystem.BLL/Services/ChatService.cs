@@ -123,6 +123,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 "trại viên mình", "học viên mình",
                 // keywords for schedule/camper name queries
                 "lịch của", "camper", "schedule của", "hoạt động của",
+                "lịch trình", "lịch học", "lịch hoạt động",
                 // keywords for camp/program queries
                 "chương trình của", "hội trại của"
             };
@@ -318,36 +319,69 @@ namespace SummerCampManagementSystem.BLL.Services
                     }
                 }
 
-                // add camper activity schedule - show all camp activities
+                // add camper activity schedule - smart camp detection
                 contextBuilder.AppendLine("\n[Lịch trình hoạt động trong trại]:");
                 
-                var today = DateTime.UtcNow;
-                bool foundSchedule = false;
+                // check if user is asking about specific camp
+                var lowerUserMessage = userMessage.ToLower();
+                RegistrationCamper targetCamp = null;
                 
+                // try to find camp by name in user message
                 foreach (var rc in activeCamperRegistrations)
                 {
-                    string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName ?? $"Camper ID {rc.camperId}";
-                    var campId = rc.registration?.camp?.campId;
-                    var campName = rc.registration?.camp?.name;
+                    var campName = rc.registration?.camp?.name?.ToLower();
+                    if (!string.IsNullOrEmpty(campName) && lowerUserMessage.Contains(campName))
+                    {
+                        targetCamp = rc;
+                        break;
+                    }
+                    
+                    // also check camper name
+                    var camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName?.ToLower();
+                    if (!string.IsNullOrEmpty(camperName) && lowerUserMessage.Contains(camperName))
+                    {
+                        targetCamp = rc;
+                        break;
+                    }
+                }
+                
+                // if user asks for "gần đây nhất" or "mới nhất", get most recent camp
+                if (targetCamp == null && (lowerUserMessage.Contains("gần đây") || lowerUserMessage.Contains("mới nhất") || 
+                    lowerUserMessage.Contains("hiện tại") || lowerUserMessage.Contains("đang diễn ra")))
+                {
+                    var now = DateTime.UtcNow;
+                    targetCamp = activeCamperRegistrations
+                        .Where(rc => rc.registration?.camp?.startDate != null)
+                        .OrderBy(rc => Math.Abs((rc.registration.camp.startDate.Value - now).TotalDays))
+                        .FirstOrDefault();
+                }
+                
+                // if we found a specific camp, show only that camp's schedule
+                if (targetCamp != null)
+                {
+                    string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == targetCamp.camperId)?.camper.camperName ?? $"Camper ID {targetCamp.camperId}";
+                    var campId = targetCamp.registration?.camp?.campId;
+                    var campName = targetCamp.registration?.camp?.name;
                     
                     if (campId.HasValue)
                     {
-                        // get ALL activities in the camp (not just camper-specific)
+                        var today = DateTime.UtcNow;
+                        
+                        // get ALL activities in the camp
                         var campActivities = await _unitOfWork.ActivitySchedules.GetQueryable()
                             .Include(asch => asch.activity)
                             .Include(asch => asch.location)
                             .Where(asch => asch.activity.campId == campId.Value &&
                                           asch.startTime.HasValue &&
-                                          asch.startTime >= today.AddDays(-7)) // from last 7 days onwards
+                                          asch.startTime >= today.AddDays(-7))
                             .OrderBy(asch => asch.startTime)
-                            .Take(10) // show up to 10 activities
+                            .Take(10)
                             .AsNoTracking()
                             .ToListAsync();
                         
                         if (campActivities.Any())
                         {
-                            foundSchedule = true;
-                            contextBuilder.AppendLine($"- Lịch trình trại {campName} (cho bé {camperName}):");
+                            contextBuilder.AppendLine($"Lịch trình trại {campName} (cho bé {camperName}):");
                             
                             foreach (var schedule in campActivities)
                             {
@@ -365,12 +399,89 @@ namespace SummerCampManagementSystem.BLL.Services
                                 }
                             }
                         }
+                        else
+                        {
+                            contextBuilder.AppendLine($"Hiện tại chưa có lịch trình hoạt động nào gần đây cho trại {campName}.");
+                        }
                     }
                 }
-                
-                if (!foundSchedule)
+                else
                 {
-                    contextBuilder.AppendLine("- Hiện tại không có lịch trình hoạt động nào gần đây cho các bé.");
+                    // no specific camp detected - list all camps and ask
+                    bool hasMultipleCamps = activeCamperRegistrations.Count > 1;
+                    
+                    if (hasMultipleCamps)
+                    {
+                        contextBuilder.AppendLine("Các trại viên đã đăng ký các trại sau:");
+                        
+                        foreach (var rc in activeCamperRegistrations)
+                        {
+                            string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName ?? $"Camper ID {rc.camperId}";
+                            var campName = rc.registration?.camp?.name;
+                            var campId = rc.registration?.camp?.campId;
+                            
+                            if (campName != null && campId.HasValue)
+                            {
+                                string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{campId}";
+                                contextBuilder.AppendLine($"- {camperName}: Trại {campName} (Link: {campDetailLink})");
+                            }
+                        }
+                        
+                        contextBuilder.AppendLine("\nAnh/chị muốn xem lịch trình của trại nào? Vui lòng cho biết tên trại hoặc tên trại viên.");
+                    }
+                    else if (activeCamperRegistrations.Count == 1)
+                    {
+                        // only one camp - show schedule directly
+                        var rc = activeCamperRegistrations.First();
+                        string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName ?? $"Camper ID {rc.camperId}";
+                        var campId = rc.registration?.camp?.campId;
+                        var campName = rc.registration?.camp?.name;
+                        
+                        if (campId.HasValue)
+                        {
+                            var today = DateTime.UtcNow;
+                            
+                            var campActivities = await _unitOfWork.ActivitySchedules.GetQueryable()
+                                .Include(asch => asch.activity)
+                                .Include(asch => asch.location)
+                                .Where(asch => asch.activity.campId == campId.Value &&
+                                              asch.startTime.HasValue &&
+                                              asch.startTime >= today.AddDays(-7))
+                                .OrderBy(asch => asch.startTime)
+                                .Take(10)
+                                .AsNoTracking()
+                                .ToListAsync();
+                            
+                            if (campActivities.Any())
+                            {
+                                contextBuilder.AppendLine($"Lịch trình trại {campName} (cho bé {camperName}):");
+                                
+                                foreach (var schedule in campActivities)
+                                {
+                                    if (schedule.activity != null)
+                                    {
+                                        var activity = schedule.activity;
+                                        string locationInfo = schedule.location != null ? schedule.location.address : "Chưa xác định";
+                                        string timeInfo = schedule.startTime.HasValue ? 
+                                            $"{schedule.startTime.Value:dd/MM/yyyy HH:mm}" : "Chưa xác định";
+                                        string endTimeInfo = schedule.endTime.HasValue ?
+                                            $" - {schedule.endTime.Value:HH:mm}" : "";
+                                        string activityType = schedule.isOptional == true ? "(Tự chọn)" : "(Bắt buộc)";
+                                        
+                                        contextBuilder.AppendLine($"  • {activity.name} {activityType}: {timeInfo}{endTimeInfo} tại {locationInfo}");
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                contextBuilder.AppendLine($"Hiện tại chưa có lịch trình hoạt động nào gần đây cho trại {campName}.");
+                            }
+                        }
+                    }
+                    else
+                    {
+                        contextBuilder.AppendLine("Hiện tại không có trại viên nào đã đăng ký trại.");
+                    }
                 }
 
                 // suggest suitable camps based on camper age
@@ -398,7 +509,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         // calculate camper age
                         var currentDate = DateTime.Today;
-                        var dobDateTime = link.camper.dob.Value.ToDateTime(TimeOnly.MinValue);
+                        var dobDateTime = link.camper.dob.Value.ToDateTime(new TimeOnly());
                         int age = currentDate.Year - dobDateTime.Year;
                         if (dobDateTime.Date > currentDate.AddYears(-age)) age--;
 
@@ -479,6 +590,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // add registration and management guide for user
                 contextBuilder.AppendLine("\n[Hướng dẫn quản lý và đăng ký]:");
                 contextBuilder.AppendLine("- Để xem danh sách con em của bạn, truy cập: https://summer-camp-web-seven.vercel.app/user/my-campers");
+                contextBuilder.AppendLine("- Để xem tất cả đơn đăng ký, truy cập: https://summer-camp-web-seven.vercel.app/user/my-registrations");
                 contextBuilder.AppendLine("- Để xem chi tiết tất cả các trại hè và đăng ký thêm, truy cập: https://summer-camp-web-seven.vercel.app/camp");
                 contextBuilder.AppendLine("- Để quản lý thông tin đăng ký của con, vui lòng đăng nhập vào hệ thống.");
 
