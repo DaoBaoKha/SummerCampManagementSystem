@@ -44,5 +44,17 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Where(rc => rc.registration.campId == campId)
                 .ToListAsync();
         }
+
+        public async Task<RegistrationCamper?> GetByCompositeKeyWithIncludesAsync(int registrationId, int camperId)
+        {
+            return await _context.RegistrationCampers
+                .Include(rc => rc.registration)
+                    .ThenInclude(r => r.camp)
+                .Include(rc => rc.registration)
+                    .ThenInclude(r => r.user)
+                .Include(rc => rc.camper)
+                .FirstOrDefaultAsync(rc => rc.registrationId == registrationId 
+                                        && rc.camperId == camperId);
+        }
     }
 }

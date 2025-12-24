@@ -6,5 +6,6 @@ namespace SummerCampManagementSystem.BLL.Interfaces
     {
         Task<IEnumerable<RegistrationCamperResponseDto>> GetAllRegistrationCampersAsync();
         Task<IEnumerable<RegistrationCamperResponseDto>> SearchRegistrationCampersAsync(RegistrationCamperSearchDto searchDto);
+        Task<RegistrationCamperResponseDto> LateCheckinAsync(LateCheckinRequestDto dto);
     }
 }
