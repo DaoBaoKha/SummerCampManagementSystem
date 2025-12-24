@@ -120,7 +120,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 // keywords for camper/student
                 "trại viên của tôi", "trại viên nhà tôi", "trại viên con tôi",
                 "học viên của tôi", "học viên nhà tôi", "các bé",
-                "trại viên mình", "học viên mình"
+                "trại viên mình", "học viên mình",
+                // keywords for schedule/camper name queries
+                "lịch của", "camper", "schedule của", "hoạt động của",
+                // keywords for camp/program queries
+                "chương trình của", "hội trại của"
             };
 
             if (personalKeywords.Any(k => lowerMessage.Contains(k)))
@@ -282,7 +286,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     return contextBuilder.ToString() + "\nThông tin thêm: User này có liên kết với camper, nhưng các camper đó hiện không có đăng ký (Registration) nào ở trạng thái (Confirmed) hoặc (OnGoing).";
                 }
 
-                contextBuilder.AppendLine("[Thông tin Trại hè & Trạng thái của con]:");
+                contextBuilder.AppendLine("[Thông tin Đăng ký & Trạng thái của con]:");
                 foreach (var rc in activeCamperRegistrations)
                 {
                     string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName ?? $"Camper ID {rc.camperId}";
@@ -305,14 +309,17 @@ namespace SummerCampManagementSystem.BLL.Services
 
                         // add detailed camp link with campId
                         string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{camp.campId}";
-                        contextBuilder.AppendLine($"- Bé {camperName} (ID Camper: {rc.camperId}) đang ở trại: {camp.name}. {campPriceInfo}");
-                        contextBuilder.AppendLine($"  - Trạng thái của bé: {rc.status}. (Trạng thái đơn tổng: {rc.registration.status}).");
-                        contextBuilder.AppendLine($"  - Xem chi tiết trại: {campDetailLink}");
+                        string campDuration = $"{camp.startDate:dd/MM/yyyy} - {camp.endDate:dd/MM/yyyy}";
+                        contextBuilder.AppendLine($"- Bé {camperName} đã đăng ký trại: {camp.name}");
+                        contextBuilder.AppendLine($"  - Thời gian trái: {campDuration}");
+                        contextBuilder.AppendLine($"  - Giá: {campPriceInfo}");
+                        contextBuilder.AppendLine($"  - Trạng thái đăng ký: {rc.status} (Đơn: {rc.registration.status})");
+                        contextBuilder.AppendLine($"  - Chi tiết: {campDetailLink}");
                     }
                 }
 
-                // add camper activity schedule
-                contextBuilder.AppendLine("\n[Lịch trình hoạt động của các bé]:");
+                // add camper activity schedule - show all camp activities
+                contextBuilder.AppendLine("\n[Lịch trình hoạt động trong trại]:");
                 
                 var today = DateTime.UtcNow;
                 bool foundSchedule = false;
@@ -321,39 +328,40 @@ namespace SummerCampManagementSystem.BLL.Services
                 {
                     string camperName = parentCamperLinks.FirstOrDefault(pcl => pcl.camperId == rc.camperId)?.camper.camperName ?? $"Camper ID {rc.camperId}";
                     var campId = rc.registration?.camp?.campId;
+                    var campName = rc.registration?.camp?.name;
                     
                     if (campId.HasValue)
                     {
-                        // get camper activities from CamperActivity
-                        var camperActivities = await _unitOfWork.CamperActivities.GetQueryable()
-                            .Include(ca => ca.activitySchedule)
-                                .ThenInclude(asch => asch.activity)
-                            .Include(ca => ca.activitySchedule)
-                                .ThenInclude(asch => asch.location)
-                            .Where(ca => ca.camperId == rc.camperId && 
-                                        ca.activitySchedule.activity.campId == campId.Value &&
-                                        ca.activitySchedule.startTime >= today.AddDays(-7)) // get activities from last 7 days onwards
-                            .OrderBy(ca => ca.activitySchedule.startTime)
-                            .Take(5) // get top 5 nearest activities
+                        // get ALL activities in the camp (not just camper-specific)
+                        var campActivities = await _unitOfWork.ActivitySchedules.GetQueryable()
+                            .Include(asch => asch.activity)
+                            .Include(asch => asch.location)
+                            .Where(asch => asch.activity.campId == campId.Value &&
+                                          asch.startTime.HasValue &&
+                                          asch.startTime >= today.AddDays(-7)) // from last 7 days onwards
+                            .OrderBy(asch => asch.startTime)
+                            .Take(10) // show up to 10 activities
                             .AsNoTracking()
                             .ToListAsync();
                         
-                        if (camperActivities.Any())
+                        if (campActivities.Any())
                         {
                             foundSchedule = true;
-                            contextBuilder.AppendLine($"- Lịch trình của bé {camperName}:");
+                            contextBuilder.AppendLine($"- Lịch trình trại {campName} (cho bé {camperName}):");
                             
-                            foreach (var ca in camperActivities)
+                            foreach (var schedule in campActivities)
                             {
-                                if (ca.activitySchedule != null && ca.activitySchedule.activity != null)
+                                if (schedule.activity != null)
                                 {
-                                    var schedule = ca.activitySchedule;
                                     var activity = schedule.activity;
                                     string locationInfo = schedule.location != null ? schedule.location.address : "Chưa xác định";
                                     string timeInfo = schedule.startTime.HasValue ? 
                                         $"{schedule.startTime.Value:dd/MM/yyyy HH:mm}" : "Chưa xác định";
+                                    string endTimeInfo = schedule.endTime.HasValue ?
+                                        $" - {schedule.endTime.Value:HH:mm}" : "";
+                                    string activityType = schedule.isOptional == true ? "(Tự chọn)" : "(Bắt buộc)";
                                     
-                                    contextBuilder.AppendLine($"  • {activity.name} - {timeInfo} tại {locationInfo}");
+                                    contextBuilder.AppendLine($"  • {activity.name} {activityType}: {timeInfo}{endTimeInfo} tại {locationInfo}");
                                 }
                             }
                         }
@@ -430,7 +438,42 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (!foundSuitableCamp)
                 {
-                    contextBuilder.AppendLine("- Hiện tại không tìm thấy trại phù hợp với độ tuổi của các bé. Vui lòng xem tất cả trại tại: https://summer-camp-web-seven.vercel.app/camp");
+                    // fallback 1: recommend camps where their campers are currently enrolled
+                    var enrolledCamps = activeCamperRegistrations
+                        .Where(rc => rc.registration?.camp != null)
+                        .Select(rc => rc.registration.camp)
+                        .Distinct()
+                        .ToList();
+
+                    if (enrolledCamps.Any())
+                    {
+                        contextBuilder.AppendLine("- Các bé hiện đang tham gia các trại sau, anh/chị có thể tham khảo:");
+                        foreach (var camp in enrolledCamps.Take(3))
+                        {
+                            string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{camp.campId}";
+                            contextBuilder.AppendLine($"  • {camp.name} - {campDetailLink}");
+                        }
+                    }
+                    else
+                    {
+                        // fallback 2: recommend all open camps
+                        if (availableCamps.Any())
+                        {
+                            contextBuilder.AppendLine("- Hiện tại chưa tìm thấy trại phù hợp với độ tuổi cụ thể, nhưng các trại sau đang mở đăng ký:");
+                            foreach (var camp in availableCamps.Take(3))
+                            {
+                                string campPriceInfo = camp.price.HasValue ? $"{camp.price:N0} VND" : "Liên hệ";
+                                string campTypeInfo = camp.campType != null ? camp.campType.name : "N/A";
+                                string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{camp.campId}";
+                                contextBuilder.AppendLine($"  • {camp.name} ({campTypeInfo}, độ tuổi: {camp.minAge}-{camp.maxAge}, giá: {campPriceInfo})");
+                                contextBuilder.AppendLine($"    Link: {campDetailLink}");
+                            }
+                        }
+                        else
+                        {
+                            contextBuilder.AppendLine("- Hiện tại không tìm thấy trại phù hợp với độ tuổi của các bé. Vui lòng xem tất cả trại tại: https://summer-camp-web-seven.vercel.app/camp");
+                        }
+                    }
                 }
 
                 // add registration and management guide for user
@@ -513,7 +556,8 @@ namespace SummerCampManagementSystem.BLL.Services
                     var generalKeywords = new[] { 
                         "trại hè", "camp", "giá", "lịch trình", "hoạt động", "đang mở", "active",
                         "bao nhiêu tiền", "chi phí", "học phí", "phí", "đăng ký",
-                        "khoảng", "triệu", "rẻ", "cao", "price" 
+                        "khoảng", "triệu", "rẻ", "cao", "price",
+                        "chương trình", "hội trại"
                     };
 
                     if (generalKeywords.Any(k => lowerUserMessage.Contains(k)))
