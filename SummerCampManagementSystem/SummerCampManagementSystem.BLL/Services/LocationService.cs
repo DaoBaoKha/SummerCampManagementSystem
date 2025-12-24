@@ -147,7 +147,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Không tìm thấy địa điểm với ID {id}.");
             }
 
-            // NEW: check if this is a child location and its parent is being used in ongoing camps
+            // check if this is a child location and its parent is being used in ongoing camps
             if (location.campLocationId.HasValue)
             {
                 var now = DateTime.UtcNow;
