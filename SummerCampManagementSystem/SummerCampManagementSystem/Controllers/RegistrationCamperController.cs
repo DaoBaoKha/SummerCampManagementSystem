@@ -36,5 +36,23 @@ namespace SummerCampManagementSystem.API.Controllers
                 return Ok(result);
             }
         }
+
+        /// <summary>
+        /// Late check-in for camper who arrived late on first day of camp
+        /// </summary>
+        [Authorize(Roles = "Staff")]
+        [HttpPost("late-checkin")]
+        public async Task<IActionResult> LateCheckin([FromBody] LateCheckinRequestDto dto)
+        {
+            try
+            {
+                var result = await _registrationCamperService.LateCheckinAsync(dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

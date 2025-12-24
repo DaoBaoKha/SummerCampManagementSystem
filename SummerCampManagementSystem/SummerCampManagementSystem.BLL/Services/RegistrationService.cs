@@ -801,7 +801,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // get camper name for more detail errors
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId);
                 var camperName = camper?.camperName ?? $"ID {camperId}";
-                throw new BusinessRuleException($"Camper {camperName} đã được đăng ký tham gia trại này hoặc đang có đơn chờ duyệt.");
+                throw new InvalidOperationException($"Camper {camperName} đã được đăng ký tham gia trại này hoặc đang có đơn chờ duyệt.");
             }
         }
 
