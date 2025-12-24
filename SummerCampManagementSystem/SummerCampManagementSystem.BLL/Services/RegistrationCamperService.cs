@@ -75,15 +75,15 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
             // Validate current time is within first day of camp
-            //var currentTimeVn = TimezoneHelper.GetVietnamNow();
-            //var campStartDateVn = camp.startDate.Value.ToVietnamTime();
-            //var firstDayStart = campStartDateVn.Date; // 00:00:00
-            //var firstDayEnd = campStartDateVn.Date.AddDays(1).AddSeconds(-1); // 23:59:59
+            var currentTimeVn = TimezoneHelper.GetVietnamNow();
+            var campStartDateVn = camp.startDate.Value.ToVietnamTime();
+            var firstDayStart = campStartDateVn.Date; // 00:00:00
+            var firstDayEnd = campStartDateVn.Date.AddDays(1).AddSeconds(-1); // 23:59:59
 
-            //if (currentTimeVn < firstDayStart || currentTimeVn > firstDayEnd)
-            //{
-            //    throw new BadRequestException($"Chỉ được phép check-in muộn trong ngày đầu tiên của trại ({campStartDateVn:dd/MM/yyyy}). Thời gian hiện tại: {currentTimeVn:dd/MM/yyyy HH:mm:ss}");
-            //}
+            if (currentTimeVn < firstDayStart || currentTimeVn > firstDayEnd)
+            {
+                throw new BadRequestException($"Chỉ được phép check-in muộn trong ngày đầu tiên của trại ({campStartDateVn:dd/MM/yyyy}). Thời gian hiện tại: {currentTimeVn:dd/MM/yyyy HH:mm:ss}");
+            }
 
             // Validate current status allows check-in
             var validStatuses = new[] {

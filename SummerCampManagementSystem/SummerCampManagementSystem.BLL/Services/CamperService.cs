@@ -281,7 +281,8 @@ namespace SummerCampManagementSystem.BLL.Services
             return await _unitOfWork.RegistrationCampers.GetQueryable()
                 .Where(rc => rc.registration.campId == campId
                           && rc.registration.status != "PendingApproval"
-                          && rc.registration.status != "Rejected")
+                          && rc.registration.status != "Rejected"
+                          && rc.status != RegistrationCamperStatus.Canceled.ToString())
                 .Select(rc => new CamperWithRegistrationStatus
                 {
                     CamperId = rc.camper.camperId,
