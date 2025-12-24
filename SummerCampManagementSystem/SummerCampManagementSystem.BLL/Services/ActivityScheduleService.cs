@@ -40,7 +40,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     campStatus == CampStatus.Completed.ToString() ||
                     campStatus == CampStatus.Canceled.ToString())
                 {
-                    throw new BadRequestException($"Cannot {operation} activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, or Rejected status.");
+                    throw new BadRequestException($"Không thể {operation} lịch trình khi trạng thái trại là '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval hoặc Rejected.");
                 }
             }
             else if (operation == "delete")
@@ -53,7 +53,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     campStatus == CampStatus.Completed.ToString() ||
                     campStatus == CampStatus.Canceled.ToString())
                 {
-                    throw new BadRequestException($"Cannot delete activity schedule when camp status is '{campStatus}'. Camp must be in Draft, PendingApproval, Rejected, or Published status.");
+                    throw new BadRequestException($"Không thể xóa lịch trình khi trạng thái trại là '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, Rejected hoặc Published.");
                 }
             }
         }
@@ -67,14 +67,14 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<ActivityScheduleResponseDto?> GetScheduleByIdAsync(int id)
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(id)
-                ?? throw new KeyNotFoundException("Activity schedule not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy lịch trình hoạt động.");
             return schedule == null ? null : _mapper.Map<ActivityScheduleResponseDto>(schedule);
         }
 
         public async Task<object> GetAllSchedulesByStaffIdAsync(int staffId, int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var schedules = await _unitOfWork.ActivitySchedules.GetAllSchedulesByStaffIdAsync(staffId, campId);
 
@@ -100,10 +100,10 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             // 1. Validation Tổng quan
             var activity = await _unitOfWork.Activities.GetByIdAsync(templateDto.ActivityId)
-                ?? throw new KeyNotFoundException("Activity not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy hoạt động.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "create");
 
@@ -287,13 +287,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 1. Lấy thông tin Activity và Camp
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy hoạt động.");
 
             if (activity.activityType != ActivityType.Core.ToString())
                 throw new InvalidOperationException("Activity ID cung cấp không phải là loại Core.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new KeyNotFoundException("Camp not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "create");
 
@@ -306,7 +306,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.StaffId.HasValue)
             {
                 var staff = await _unitOfWork.Users.GetByIdAsync(dto.StaffId.Value)
-                    ?? throw new KeyNotFoundException("Staff not found.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy nhân viên.");
                 if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("User được gán không phải là Staff.");
             }
@@ -379,7 +379,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     if (dto.LocationId.HasValue)
                     {
                         var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
-                                ?? throw new KeyNotFoundException("Location not found");
+                                ?? throw new KeyNotFoundException("Không tìm thấy địa điểm.");
 
                         bool locationConflict = await _unitOfWork.ActivitySchedules
                             .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
@@ -487,7 +487,7 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             // 1. Validate request
             var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             if (request.StartTime >= request.EndTime)
                 throw new InvalidOperationException("Giờ bắt đầu phải sớm hơn giờ kết thúc.");
@@ -541,14 +541,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 1. Lấy thông tin Activity và Camp
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy hoạt động.");
 
             // Validate: Đảm bảo Activity này đúng là loại Optional
             if (activity.activityType != ActivityType.Optional.ToString())
                 throw new InvalidOperationException("Activity ID cung cấp không phải là loại Optional.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new KeyNotFoundException("Camp not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "create");
 
@@ -560,7 +560,7 @@ namespace SummerCampManagementSystem.BLL.Services
             if (dto.StaffId.HasValue)
             {
                 var staff = await _unitOfWork.Users.GetByIdAsync(dto.StaffId.Value)
-                    ?? throw new KeyNotFoundException("Staff not found.");
+                    ?? throw new KeyNotFoundException("Không tìm thấy nhân viên.");
                 if (!string.Equals(staff.role, "Staff", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("User được gán không phải là Staff.");
             }
@@ -612,7 +612,7 @@ namespace SummerCampManagementSystem.BLL.Services
                     if (dto.LocationId.HasValue)
                     {
                         var location = await _unitOfWork.Locations.GetByIdAsync(dto.LocationId.Value)
-                              ?? throw new KeyNotFoundException("Location not found");
+                              ?? throw new KeyNotFoundException("Không tìm thấy địa điểm.");
 
                                         bool locationConflict = await _unitOfWork.ActivitySchedules
                                             .ExistsInSameTimeAndLocationAsync(dto.LocationId.Value, startTimeUtc, endTimeUtc);
@@ -707,14 +707,14 @@ namespace SummerCampManagementSystem.BLL.Services
 
             // 1. Validate & Lấy thông tin cơ bản
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy hoạt động.");
 
             // Đảm bảo đúng loại Resting
             if (activity.activityType != ActivityType.Resting.ToString())
                 throw new InvalidOperationException("Activity ID cung cấp không phải là loại Resting.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new KeyNotFoundException("Camp not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "create");
 
@@ -835,10 +835,10 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             // 1. Lấy thông tin Activity và Camp
             var activity = await _unitOfWork.Activities.GetByIdAsync(dto.ActivityId)
-                ?? throw new KeyNotFoundException("Activity not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy hoạt động.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new KeyNotFoundException("Camp not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "create");
 
@@ -965,7 +965,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 currentScheduleStatus != ActivityScheduleStatus.NotYet.ToString() &&
                 currentScheduleStatus != ActivityScheduleStatus.Rejected.ToString())
             {
-                throw new BusinessRuleException($"Cannot update activity schedule with status '{currentScheduleStatus}'. Only Draft, NotYet, or Rejected status can be updated.");
+                throw new BusinessRuleException($"Không thể cập nhật lịch trình với trạng thái '{currentScheduleStatus}'. Chỉ có thể cập nhật lịch trình ở trạng thái Draft, NotYet hoặc Rejected.");
             }
 
             // 2. VALIDATE THỜI GIAN (Global Rule)
@@ -1121,10 +1121,10 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetByCampAndStaffAsync(int campId, int staffId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException("Staff Not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy nhân viên.");
             
             var schedules = await _unitOfWork.ActivitySchedules.GetByCampAndStaffAsync(campId, staffId);
 
@@ -1135,10 +1135,10 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetCheckInCheckoutByCampAndStaffAsync(int campId, int staffId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId)
-                ?? throw new KeyNotFoundException("Staff Not found");
+                ?? throw new KeyNotFoundException("Không tìm thấy nhân viên.");
 
             var schedules = await _unitOfWork.ActivitySchedules.GetCheckInCheckoutByCampAndStaffAsync(campId, staffId);
 
@@ -1149,7 +1149,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByGroupStaffAsync(int campId, int staffId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
 
@@ -1161,7 +1161,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetAllTypeSchedulesByStaffAsync(int campId, int staffId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var staff = await _unitOfWork.Users.GetByIdAsync(staffId);
 
@@ -1173,16 +1173,16 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleByCamperResponseDto>> GetCamperSchedulesAsync(int campId, int camperId)
         {
             var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
-                ?? throw new KeyNotFoundException("Camper not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại sinh viên.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
 
             var isCamperInCamp = await _unitOfWork.ActivitySchedules
                 .IsCamperofCamp(campId, camperId);
 
             if (!isCamperInCamp)
-                throw new InvalidOperationException("Camper is not enrolled in the camp.");
+                throw new InvalidOperationException("Trại sinh viên chưa đăng ký tham gia trại này.");
 
             var (groupIds, accommodationIds) = await _unitOfWork.ActivitySchedules.GetCamperGroupAndAccommodationIdsAsync(campId, camperId);
 
@@ -1197,7 +1197,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetOptionalSchedulesByCampAsync(int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
             var schedules = await _unitOfWork.ActivitySchedules.GetOptionalScheduleByCampIdAsync(campId);
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
@@ -1205,7 +1205,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetCoreSchedulesByCampAsync(int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
             var schedules = await _unitOfWork.ActivitySchedules.GetCoreScheduleByCampIdAsync(campId);
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
@@ -1213,7 +1213,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<IEnumerable<ActivityScheduleResponseDto>> GetSchedulesByCampAsync(int campId)
         {
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
-                ?? throw new KeyNotFoundException("Camp not found.");
+                ?? throw new KeyNotFoundException("Không tìm thấy trại.");
             var schedules = await _unitOfWork.ActivitySchedules.GetScheduleByCampIdAsync(campId);
             return _mapper.Map<IEnumerable<ActivityScheduleResponseDto>>(schedules);
         }
@@ -1240,7 +1240,7 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<ActivityScheduleResponseDto> ChangeStatusActivitySchedule(int activityScheduleId, ActivityScheduleStatus status)
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
-            ?? throw new KeyNotFoundException("ActivitySchedule not found");
+            ?? throw new KeyNotFoundException("Không tìm thấy lịch trình hoạt động.");
 
             schedule.status = status.ToString();
             await _unitOfWork.ActivitySchedules.UpdateAsync(schedule);
@@ -1253,19 +1253,19 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<ActivityScheduleResponseDto> UpdateLiveStreamStatus(int activityScheduleId, bool status)
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
-            ?? throw new NotFoundException("ActivitySchedule not found");
+            ?? throw new NotFoundException("Không tìm thấy lịch trình hoạt động.");
 
             var activity = await _unitOfWork.Activities.GetByIdAsync(schedule.activityId)
-              ?? throw new NotFoundException("Activity not found");
+              ?? throw new NotFoundException("Không tìm thấy hoạt động.");
 
             var camp = await _unitOfWork.Camps.GetByIdAsync(activity.campId.Value)
-                ?? throw new NotFoundException("Camp not found");
+                ?? throw new NotFoundException("Không tìm thấy trại.");
 
             if (schedule.isLivestream == status)
-                throw new BusinessRuleException($"Live stream status is {status} now");
+                throw new BusinessRuleException($"Trạng thái livestream hiện tại đã là {status}.");
 
             if (schedule.startTime <= DateTime.UtcNow)
-                throw new BusinessRuleException("STATUS CANNOT BE UPDATED BECAUSE SCHEDULE IS IN PROGRESS OR HAS EXPIRED");
+                throw new BusinessRuleException("Không thể cập nhật trạng thái vì lịch trình đang diễn ra hoặc đã kết thúc.");
 
             if (status)
             {
@@ -1297,11 +1297,11 @@ namespace SummerCampManagementSystem.BLL.Services
         public async Task<bool> DeleteActivityScheduleAsync(int activityScheduleId)
         {
             var schedule = await _unitOfWork.ActivitySchedules.GetScheduleById(activityScheduleId)
-                ?? throw new NotFoundException("Activity schedule not found.");
+                ?? throw new NotFoundException("Không tìm thấy lịch trình hoạt động.");
 
             // Fetch camp to validate status
             var camp = await _unitOfWork.Camps.GetByIdAsync(schedule.activity.campId.Value)
-                ?? throw new NotFoundException("Camp not found.");
+                ?? throw new NotFoundException("Không tìm thấy trại.");
 
             ValidateCampStatusForOperation(camp, "delete");
 
@@ -1337,7 +1337,7 @@ namespace SummerCampManagementSystem.BLL.Services
             // Các status khác không cho xóa
             else
             {
-                throw new BusinessRuleException($"Cannot delete activity schedule with status '{currentStatus}'. Only Draft or NotYet status can be deleted.");
+                throw new BusinessRuleException($"Không thể xóa lịch trình với trạng thái '{currentStatus}'. Chỉ có thể xóa lịch trình ở trạng thái Draft hoặc NotYet.");
             }
         }
 

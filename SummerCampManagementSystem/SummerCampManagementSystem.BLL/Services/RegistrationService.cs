@@ -879,7 +879,8 @@ namespace SummerCampManagementSystem.BLL.Services
                 RegistrationStatus.PendingApproval.ToString(),
                 RegistrationStatus.Approved.ToString(),
                 RegistrationStatus.PendingPayment.ToString(),
-                RegistrationStatus.Confirmed.ToString()
+                RegistrationStatus.Confirmed.ToString(),
+                RegistrationStatus.Rejected.ToString()
             };
 
             if (!allowedStatuses.Contains(registration.status))

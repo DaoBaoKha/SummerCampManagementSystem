@@ -241,6 +241,8 @@ namespace SummerCampManagementSystem.BLL.Services
             await CreateRefundTransactionAsync(cancelRequest);
 
             var registration = cancelRequest.registration;
+            List<int> camperIds = new List<int>();
+            
             if (registration != null)
             {
                 registration.status = RegistrationStatus.Refunded.ToString();
@@ -259,7 +261,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // update all CamperTransports to Canceled status
-                var camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
+                camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
                 if (camperIds.Any())
                 {
                     var camperTransports = await _unitOfWork.CamperTransports
@@ -274,9 +276,69 @@ namespace SummerCampManagementSystem.BLL.Services
                         await _unitOfWork.CamperTransports.UpdateAsync(transport);
                     }
                 }
-            }
 
-            // 6. [TODO] Release Resources (Phase 5)
+                // release: remove campers from groups, accommodations, and activities
+                if (camperIds.Any())
+                {
+                    // release from Groups
+                    var camperGroups = await _unitOfWork.CamperGroups.GetQueryable()
+                        .Include(cg => cg.group)
+                        .Where(cg => camperIds.Contains(cg.camperId) && 
+                                     cg.group.campId == registration.campId && 
+                                     cg.status == "Active")
+                        .ToListAsync();
+
+                    var groupsToUpdate = new HashSet<int>();
+                    foreach (var camperGroup in camperGroups)
+                    {
+                        // soft delete or set to inactive
+                        camperGroup.status = "Inactive";
+                        await _unitOfWork.CamperGroups.UpdateAsync(camperGroup);
+                        
+                        // track group for size update
+                        groupsToUpdate.Add(camperGroup.groupId);
+                    }
+
+                    // update group currentSize
+                    foreach (var groupId in groupsToUpdate)
+                    {
+                        var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
+                        if (group != null && group.currentSize.HasValue && group.currentSize.Value > 0)
+                        {
+                            group.currentSize = group.currentSize.Value - 1;
+                            await _unitOfWork.Groups.UpdateAsync(group);
+                        }
+                    }
+
+                    // release from Accommodations
+                    var camperAccommodations = await _unitOfWork.CamperAccommodations.GetQueryable()
+                        .Include(ca => ca.accommodation)
+                        .Where(ca => camperIds.Contains(ca.camperId) && 
+                                     ca.accommodation.campId == registration.campId && 
+                                     ca.status == "Active")
+                        .ToListAsync();
+
+                    foreach (var camperAccommodation in camperAccommodations)
+                    {
+                        camperAccommodation.status = "Inactive";
+                        await _unitOfWork.CamperAccommodations.UpdateAsync(camperAccommodation);
+                    }
+
+                    // release from Optional Activities (CamperActivity)
+                    var camperActivities = await _unitOfWork.CamperActivities.GetQueryable()
+                        .Include(ca => ca.activitySchedule)
+                        .ThenInclude(asch => asch.activity)
+                        .Where(ca => camperIds.Contains((int)ca.camperId) && 
+                                     ca.activitySchedule.activity.campId == registration.campId &&
+                                     ca.activitySchedule.isOptional == true)
+                        .ToListAsync();
+
+                    foreach (var camperActivity in camperActivities)
+                    {
+                        await _unitOfWork.CamperActivities.RemoveAsync(camperActivity);
+                    }
+                }
+            }
 
             await _unitOfWork.CommitAsync();
 
@@ -358,78 +420,56 @@ namespace SummerCampManagementSystem.BLL.Services
 
         private RefundCalculationDto CalculateRefundInternal(Registration registration)
         {
-            // havent paid -> free cancel
-            if (registration.status == RegistrationStatus.PendingPayment.ToString())
-            {
-                return new RefundCalculationDto
-                {
-                    TotalAmountPaid = 0,
-                    RefundAmount = 0,
-                    RefundPercentage = 0,
-                    PolicyDescription = "Đơn chưa thanh toán (Hủy miễn phí)."
-                };
-            }
+            // get camp info
+            var camp = registration.camp;
+            if (camp == null)
+                throw new InvalidOperationException("Không tìm thấy thông tin trại");
 
-            // already paid -> calculate refund
+            // get registrationEndDate (use camp startDate if not set)
+            var registrationEndDate = camp.registrationEndDate ?? camp.startDate;
+            if (!registrationEndDate.HasValue)
+                throw new InvalidOperationException("Trại chưa có ngày đóng đăng ký");
+
+            var requestDate = DateTime.UtcNow;
+
+            // get total paid amount
             var totalPaid = registration.Transactions
                 .Where(t => t.type == "Payment" && t.status == TransactionStatus.Confirmed.ToString())
                 .Sum(t => t.amount) ?? 0;
 
+            // check if registration period has ended
+            if (requestDate >= registrationEndDate.Value)
+            {
+                // AFTER registrationEndDate -> NO REFUND
+                return new RefundCalculationDto
+                {
+                    TotalAmountPaid = totalPaid,
+                    RefundAmount = 0,
+                    RefundPercentage = 0,
+                    PolicyDescription = "Đã đóng đăng ký (Không hoàn tiền)."
+                };
+            }
+
+            // BEFORE registrationEndDate -> ALLOW REFUND
             if (totalPaid <= 0)
             {
+                // haven't paid -> free cancel
                 return new RefundCalculationDto
                 {
                     TotalAmountPaid = 0,
                     RefundAmount = 0,
-                    RefundPercentage = 0,
-                    PolicyDescription = "Chưa ghi nhận khoản thanh toán nào."
+                    RefundPercentage = 100,
+                    PolicyDescription = "Đơn chưa thanh toán (Hủy miễn phí - Hoàn 100%)."
                 };
             }
 
-            // calculate % refund based on camp dates
-            var camp = registration.camp;
-            if (camp.startDate == null)
-                throw new InvalidOperationException("Trại chưa có ngày bắt đầu");
-
-            var campStartDate = camp.startDate.Value;
-            var registrationEndDate = camp.registrationEndDate ?? campStartDate; // if no reg end date use start date
-
-            var requestDate = DateTime.UtcNow;
-
-            int refundPercentage = 0;
-            string policyDesc = "";
-
-            // if camp already started -> no refund
-            if (requestDate >= campStartDate)
-            {
-                refundPercentage = 0;
-                policyDesc = "Trại đã bắt đầu (Không hoàn tiền).";
-            }
-            else
-            {
-                // camp not begin yet
-                if (requestDate < registrationEndDate)
-                {
-                    // before registration end date -> refund 100%
-                    refundPercentage = 100;
-                    policyDesc = "Hủy trước khi đóng đăng ký (Hoàn 100%).";
-                }
-                else
-                {
-                    // after registration end date and before camp start -> refund 50%
-                    refundPercentage = 50;
-                    policyDesc = "Hủy sau khi đóng đăng ký (Hoàn 50%).";
-                }
-            }
-
-            decimal refundAmount = totalPaid * refundPercentage / 100;
-
+            // already paid before registrationEndDate -> refund 100%
             return new RefundCalculationDto
             {
                 TotalAmountPaid = totalPaid,
-                RefundAmount = refundAmount,
-                RefundPercentage = refundPercentage,
-                PolicyDescription = policyDesc
+                RefundAmount = totalPaid,
+                RefundPercentage = 100,
+                PolicyDescription = "Hủy trước khi đóng đăng ký (Hoàn 100%)."
             };
         }
 

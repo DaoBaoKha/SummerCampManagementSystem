@@ -747,6 +747,25 @@ namespace SummerCampManagementSystem.BLL.Services
             var reqEndDate = campRequest.EndDate.Value;
             var reqRegEndDate = campRequest.RegistrationEndDate.Value; // DateTime
 
+            // validate dates are not in the past
+            var today = DateTime.UtcNow.Date;
+            if (campRequest.StartDate.Value.Date < today)
+            {
+                throw new BadRequestException("Ngày bắt đầu trại không được ở trong quá khứ.");
+            }
+            if (campRequest.EndDate.Value.Date < today)
+            {
+                throw new BadRequestException("Ngày kết thúc trại không được ở trong quá khứ.");
+            }
+            if (campRequest.RegistrationStartDate.Value.Date < today)
+            {
+                throw new BadRequestException("Ngày mở đăng ký không được ở trong quá khứ.");
+            }
+            if (campRequest.RegistrationEndDate.Value.Date < today)
+            {
+                throw new BadRequestException("Ngày đóng đăng ký không được ở trong quá khứ.");
+            }
+
             // registration date
             if (campRequest.RegistrationStartDate.Value >= reqRegEndDate)
             {

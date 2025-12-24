@@ -147,12 +147,47 @@ namespace SummerCampManagementSystem.BLL.Services
                 throw new KeyNotFoundException($"Không tìm thấy địa điểm với ID {id}.");
             }
 
-            // check if this location has child locations
-            var hasChildren = await _unitOfWork.Locations.GetQueryable()
-                .AnyAsync(l => l.campLocationId == id);
-
-            if (hasChildren)
+            // check if this is a child location and its parent is being used in ongoing camps
+            if (location.campLocationId.HasValue)
             {
+                var now = DateTime.UtcNow;
+                var parentLocationInOngoingCamp = await _unitOfWork.Camps.GetQueryable()
+                    .Where(c => c.locationId == location.campLocationId.Value &&
+                                c.startDate.HasValue && 
+                                c.endDate.HasValue &&
+                                c.startDate.Value <= now && 
+                                now <= c.endDate.Value)
+                    .AnyAsync();
+
+                if (parentLocationInOngoingCamp)
+                {
+                    throw new BusinessRuleException("Không thể xóa địa điểm con này vì địa điểm cha đang được sử dụng trong các trại đang diễn ra.");
+                }
+            }
+
+            // check if this location has child locations
+            var childLocationIds = await _unitOfWork.Locations.GetQueryable()
+                .Where(l => l.campLocationId == id)
+                .Select(l => l.locationId)
+                .ToListAsync();
+
+            if (childLocationIds.Any())
+            {
+                // check if any child locations are being used in ongoing camps
+                var now = DateTime.UtcNow;
+                var ongoingCampsUsingChildLocations = await _unitOfWork.Camps.GetQueryable()
+                    .Where(c => childLocationIds.Contains(c.locationId.Value) &&
+                                c.startDate.HasValue && 
+                                c.endDate.HasValue &&
+                                c.startDate.Value <= now && 
+                                now <= c.endDate.Value)
+                    .AnyAsync();
+
+                if (ongoingCampsUsingChildLocations)
+                {
+                    throw new BusinessRuleException("Không thể xóa địa điểm cha này vì các địa điểm con đang được sử dụng trong các trại đang diễn ra.");
+                }
+                
                 throw new InvalidOperationException("Không thể xóa vị trí này vì nó đang chứa các vị trí con (Activity Locations).");
             }
 
