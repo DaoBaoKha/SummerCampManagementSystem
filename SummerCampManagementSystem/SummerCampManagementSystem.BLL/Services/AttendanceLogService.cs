@@ -435,6 +435,39 @@ namespace SummerCampManagementSystem.BLL.Services
             foreach (var log in logs)
             {
                 var req = updates.AttendanceLogs.First(u => u.AttendanceLogId == log.attendanceLogId);
+                var schedule = schedules.First(s => s.activityScheduleId == log.activityScheduleId);
+
+                // Validation: Nếu camper absent ở checkin, không được phép đánh Present ở activity khác
+                if (req.participantStatus == ParticipationStatus.Present && 
+                    schedule.activity.activityType != ActivityType.Checkin.ToString())
+                {
+                    // Kiểm tra xem camper có absent ở checkin không
+                    var checkinActivity = await _unitOfWork.Activities.GetQueryable()
+                        .Where(a => a.campId == schedule.activity.campId && 
+                                    a.activityType == ActivityType.Checkin.ToString())
+                        .FirstOrDefaultAsync();
+
+                    if (checkinActivity != null)
+                    {
+                        var checkinSchedule = await _unitOfWork.ActivitySchedules.GetQueryable()
+                            .Where(s => s.activityId == checkinActivity.activityId)
+                            .FirstOrDefaultAsync();
+
+                        if (checkinSchedule != null)
+                        {
+                            var checkinLog = await _unitOfWork.AttendanceLogs.GetQueryable()
+                                .Where(l => l.camperId == log.camperId && 
+                                           l.activityScheduleId == checkinSchedule.activityScheduleId)
+                                .FirstOrDefaultAsync();
+
+                            if (checkinLog != null && checkinLog.participantStatus == ParticipationStatus.Absent.ToString())
+                            {
+                                throw new InvalidOperationException($"Không thể đánh dấu Present cho học viên đã Absent ở Checkin. Vui lòng checkin trước hoặc đánh dấu Absent.");
+                            }
+                        }
+                    }
+                }
+
                 log.participantStatus = req.participantStatus.ToString();
                 log.timestamp = DateTime.UtcNow;
                 log.staffId = staffId;
@@ -442,13 +475,11 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 await _unitOfWork.AttendanceLogs.UpdateAsync(log);
 
-                var schedule = schedules.First(s => s.activityScheduleId == log.activityScheduleId);
-
                 if (schedule.activity.activityType == ActivityType.Checkin.ToString() ||
                     schedule.activity.activityType == ActivityType.Checkout.ToString())
                 {
-                    // Bỏ qua nếu camper vẫn NotYet
-                    if (req.participantStatus != ParticipationStatus.NotYet)
+                    // Chỉ update status khi camper Present, không update nếu Absent hoặc NotYet
+                    if (req.participantStatus == ParticipationStatus.Present)
                     {
                         var regisCamper = await _unitOfWork.RegistrationCampers.GetQueryable()
                             .FirstOrDefaultAsync(r => r.camperId == log.camperId && r.registration.campId == schedule.activity.campId);

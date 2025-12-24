@@ -61,7 +61,17 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             if (!string.IsNullOrEmpty(camperName))
                 query = query.Where(cg => cg.camper.camperName.Contains(camperName));
 
-            return await query.ToListAsync();
+            // Filter out canceled campers
+            var result = await query.ToListAsync();
+            var camperIds = result.Select(cg => cg.camperId).Distinct().ToList();
+            
+            var canceledCamperIds = await _context.RegistrationCampers
+                .Where(rc => camperIds.Contains(rc.camperId) && rc.status == "Canceled")
+                .Select(rc => rc.camperId)
+                .Distinct()
+                .ToListAsync();
+
+            return result.Where(cg => !canceledCamperIds.Contains(cg.camperId));
         }
 
         public async Task<CamperGroup?> GetByIdWithDetailsAsync(int id)
