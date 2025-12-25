@@ -139,14 +139,14 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<List<(string CamperName, int Age, string Gender, string GuardianName, string GuardianPhone, string GroupName, string MedicalNotes, string TransportInfo, string AccommodationInfo)>> GetCamperRosterDataAsync(int campId)
         {
             // get campers from Confirmed onwards (Confirmed, Transporting, Transported, CheckedIn, CheckedOut)
+            // also include PendingAssignGroup because they are active campers awaiting group assignment
             // exclude Canceled status
             var camperData = await _context.RegistrationCampers
                 .Where(rc => rc.registration.campId == campId && 
                             rc.status != RegistrationCamperStatus.Canceled.ToString() &&
                             rc.status != RegistrationCamperStatus.PendingApproval.ToString() &&
                             rc.status != RegistrationCamperStatus.Approved.ToString() &&
-                            rc.status != RegistrationCamperStatus.Rejected.ToString() &&
-                            rc.status != RegistrationCamperStatus.PendingAssignGroup.ToString())
+                            rc.status != RegistrationCamperStatus.Rejected.ToString())
                 .Include(rc => rc.camper)
                     .ThenInclude(c => c.CamperGuardians)
                     .ThenInclude(cg => cg.guardian)

@@ -68,7 +68,8 @@ namespace SummerCampManagementSystem.BLL.Services
             var totalRevenue = await _registrationRepository.GetTotalRevenueAsync(campId);
 
             // get total campers (with confirmed statuses)
-            var validStatuses = new[] { "Confirmed", "Transporting", "Transported", "CheckedIn", "CheckedOut" };
+            // include PendingAssignGroup because these campers have paid and are active participants
+            var validStatuses = new[] { "PendingAssignGroup", "Confirmed", "Transporting", "Transported", "CheckedIn", "CheckedOut" };
             var campRegistrationCampers = await _registrationCamperRepository.GetByCampIdAsync(campId);
             var confirmedCampers = campRegistrationCampers
                 .Where(rc => validStatuses.Contains(rc.status))
