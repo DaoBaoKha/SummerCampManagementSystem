@@ -75,8 +75,8 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
 
-            // get context from database
-            var rawContext = await GetDatabaseContextAsync(request.Message, userId, isPersonalIntent);
+            // get context from database and extract camp names for validation
+            var (rawContext, validCampNames) = await GetDatabaseContextWithCampNamesAsync(request.Message, userId, isPersonalIntent);
             // filter sensitive admin/staff data before sending to AI
             var contextPrompt = FilterSensitiveContext(rawContext);
             
@@ -87,8 +87,10 @@ namespace SummerCampManagementSystem.BLL.Services
             try
             {
                 // call Gemini API
-                modelResponseText = await CallGeminiApiAsync(contextPrompt, history, systemPromptText);
+                var rawAIResponse = await CallGeminiApiAsync(contextPrompt, history, systemPromptText);
                 
+                // VALIDATION LAYER: check for hallucinated camp names
+                modelResponseText = ValidateAIResponse(rawAIResponse, validCampNames);
             }
             catch (Exception ex)
             {
@@ -257,10 +259,54 @@ namespace SummerCampManagementSystem.BLL.Services
             return string.Join("\n", filteredLines);
         }
 
-        // get relevant context from database based on user message and userId
-        private async Task<string> GetDatabaseContextAsync(string userMessage, int userId, bool isPersonalIntent)
+        // validate AI response - detect hallucinated camp names
+        private string ValidateAIResponse(string aiResponse, List<string> validCampNames)
+        {
+            if (string.IsNullOrEmpty(aiResponse) || validCampNames == null || !validCampNames.Any())
+            {
+                return aiResponse; // no validation needed
+            }
+
+            // detect patterns like "Tên: [camp name]" or "• [camp name]" or "- [camp name]"
+            var lines = aiResponse.Split('\n');
+            var suspiciousLines = new List<string>();
+
+            foreach (var line in lines)
+            {
+                // check if line mentions a camp name
+                var lowerLine = line.ToLower();
+                
+                // patterns to detect camp mentions: "Tên:", "Trại", bullet points
+                if (lowerLine.Contains("tên:") || lowerLine.Contains("trại") || line.Trim().StartsWith("-") || line.Trim().StartsWith("•"))
+                {
+                    // check if this line contains a VALID camp name
+                    bool containsValidCamp = validCampNames.Any(campName => 
+                        line.IndexOf(campName, StringComparison.OrdinalIgnoreCase) >= 0
+                    );
+
+                    // if line mentions camps but doesn't contain any valid camp name → suspicious
+                    if (!containsValidCamp && (lowerLine.Contains("camp") || lowerLine.Contains("trại") || lowerLine.Contains("tên:")))
+                    {
+                        suspiciousLines.Add(line);
+                    }
+                }
+            }
+
+            // if detected hallucinated camp names → return safe fallback
+            if (suspiciousLines.Any())
+            {
+                return "Dạ, hiện tại không tìm thấy trại hè phù hợp với yêu cầu của anh/chị trong hệ thống. " +
+                       "Vui lòng xem tất cả các trại hè tại: https://summer-camp-web-seven.vercel.app/camp";
+            }
+
+            return aiResponse; // validation passed
+        }
+
+        // get database context for AI (returns context + valid camp names for validation)
+        private async Task<(string, List<string>)> GetDatabaseContextWithCampNamesAsync(string userMessage, int userId, bool isPersonalIntent)
         {
             var contextBuilder = new StringBuilder();
+            var validCampNames = new List<string>();
             contextBuilder.AppendLine("Thông tin tham khảo TỪ DATABASE (Bắt buộc dùng):");
 
             // always include FAQ for both personal and general questions
@@ -295,7 +341,7 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (!parentCamperLinks.Any() || parentCamperLinks.All(pc => pc.camper == null))
                 {
-                    return "Thông tin tham khảo: User này đã đăng nhập, nhưng hệ thống không tìm thấy (hoặc chưa liên kết) họ với camper (con) nào.";
+                    return ("Thông tin tham khảo: User này đã đăng nhập, nhưng hệ thống không tìm thấy (hoặc chưa liên kết) họ với camper (con) nào.", new List<string>());
                 }
 
                 var camperIds = parentCamperLinks.Select(pc => pc.camperId.Value).ToList();
@@ -326,7 +372,8 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 if (!activeCamperRegistrations.Any())
                 {
-                    return contextBuilder.ToString() + "\nThông tin thêm: User này có liên kết với camper, nhưng các camper đó hiện không có đăng ký (Registration) nào ở trạng thái (Confirmed) hoặc (OnGoing).";
+                    // return personal context + empty camp list (personal queries don't need camp validation)
+                    return (contextBuilder.ToString() + "\nThông tin thêm: User này có liên kết với camper, nhưng các camper đó hiện không có đăng ký (Registration) nào ở trạng thái (Confirmed) hoặc (OnGoing).", new List<string>());
                 }
 
                 contextBuilder.AppendLine("[Thông tin Đăng ký & Trạng thái của con]:");
@@ -708,7 +755,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 // SCENARIO B.1: specific camp found
                 if (foundCamp != null)
                 {
-
+                    // add to validation list
+                    validCampNames.Add(foundCamp.name);
+                    
                     string campPriceInfo = $"Giá: {foundCamp.price:N0} VND";
                     if (foundCamp.promotion != null && foundCamp.promotion.percent.HasValue && foundCamp.price.HasValue)
                     {
@@ -721,8 +770,17 @@ namespace SummerCampManagementSystem.BLL.Services
                         campPriceInfo = $"Giá gốc: {foundCamp.price:N0} VND, Khuyến mãi: {foundCamp.promotion.name} ({foundCamp.promotion.percent.Value}%), Giá cuối: {finalPrice:N0} VND";
                     }
 
+                    // add age range info
+                    string ageRangeInfo = "N/A";
+                    if (foundCamp.minAge.HasValue && foundCamp.maxAge.HasValue)
+                        ageRangeInfo = $"{foundCamp.minAge.Value}-{foundCamp.maxAge.Value} tuổi";
+                    else if (foundCamp.minAge.HasValue)
+                        ageRangeInfo = $"Từ {foundCamp.minAge.Value} tuổi";
+                    else if (foundCamp.maxAge.HasValue)
+                        ageRangeInfo = $"Tối đa {foundCamp.maxAge.Value} tuổi";
+
                     string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{foundCamp.campId}";
-                    contextBuilderPublic.AppendLine($"- Tên Trại: {foundCamp.name}, {campPriceInfo}, Bắt đầu: {foundCamp.startDate:dd/MM/yyyy}, Trạng thái: {foundCamp.status}.");
+                    contextBuilderPublic.AppendLine($"- Tên Trại: {foundCamp.name}, Độ tuổi: {ageRangeInfo}, {campPriceInfo}, Bắt đầu: {foundCamp.startDate:dd/MM/yyyy}, Trạng thái: {foundCamp.status}.");
                     contextBuilderPublic.AppendLine($"- Xem chi tiết: {campDetailLink}");
                 }
                 // scenario b.2: no specific camp, check for general keywords 
@@ -748,18 +806,14 @@ namespace SummerCampManagementSystem.BLL.Services
                                 if (minPrice.HasValue && maxPrice.HasValue)
                                     priceRangeInfo = $" (khoảng giá {minPrice.Value / 1_000_000:N0}-{maxPrice.Value / 1_000_000:N0} triệu VND)";
                                 else if (maxPrice.HasValue)
-                                    priceRangeInfo = $" (dưới {maxPrice.Value / 1_000_000:N0} triệu VND)";
-                                else if (minPrice.HasValue)
-                                    priceRangeInfo = $" (trên {minPrice.Value / 1_000_000:N0} triệu VND)";
-                                contextBuilderPublic.AppendLine($"[Danh sách các trại đang hoạt động/mở đăng ký{priceRangeInfo}]:");
-                            }
-                            else
-                            {
-                                contextBuilderPublic.AppendLine("[Danh sách các trại đang hoạt động/mở đăng ký]:");
-                            }
-                            foreach (var camp in campsToShow)
-                            {
-                                // xây dựng thông tin giá với khuyến mãi
+                            contextBuilderPublic.AppendLine("[Danh sách các trại đang hoạt động/mở đăng ký]:");
+                        }
+                        foreach (var camp in campsToShow)
+                        {
+                            // add camp name to validation list
+                            validCampNames.Add(camp.name);
+                            
+                            // xây dựng thông tin giá với khuyến mãi
                                 string campPriceInfo = $"Giá: {camp.price:N0} VND";
                                 if (camp.promotion != null && camp.promotion.percent.HasValue && camp.price.HasValue)
                                 {
@@ -776,8 +830,18 @@ namespace SummerCampManagementSystem.BLL.Services
                                 string locationInfo = camp.location != null ? camp.location.address : "N/A";
                                 string campTypeInfo = camp.campType != null ? camp.campType.name : "N/A";
                                 string campDetailLink = $"https://summer-camp-web-seven.vercel.app/camp/{camp.campId}";
+                                
+                                // add age range info
+                                string ageRangeInfo = "N/A";
+                                if (camp.minAge.HasValue && camp.maxAge.HasValue)
+                                    ageRangeInfo = $"{camp.minAge.Value}-{camp.maxAge.Value} tuổi";
+                                else if (camp.minAge.HasValue)
+                                    ageRangeInfo = $"Từ {camp.minAge.Value} tuổi";
+                                else if (camp.maxAge.HasValue)
+                                    ageRangeInfo = $"Tối đa {camp.maxAge.Value} tuổi";
                                
                                 contextBuilderPublic.AppendLine($"- Tên: {camp.name}");
+                                contextBuilderPublic.AppendLine($"  Độ tuổi: {ageRangeInfo}");
                                 contextBuilderPublic.AppendLine($"  Loại: {campTypeInfo}");
                                 contextBuilderPublic.AppendLine($"  Địa điểm: {locationInfo}");
                                 contextBuilderPublic.AppendLine($"  Thời gian: {camp.startDate:dd/MM/yyyy} - {camp.endDate:dd/MM/yyyy}");
@@ -805,21 +869,22 @@ namespace SummerCampManagementSystem.BLL.Services
                                     priceRangeMsg = $" dưới {maxPrice.Value / 1_000_000:N0} triệu VND";
                                 else if (minPrice.HasValue)
                                     priceRangeMsg = $" trên {minPrice.Value / 1_000_000:N0} triệu VND";
-                                return $"Thông tin tham khảo: Hiện tại không có trại hè nào{priceRangeMsg}. Vui lòng xem tất cả trại tại: https://summer-camp-web-seven.vercel.app/camp";
+                                return ("Thông tin tham khảo: Hiện tại không có trại hè nào" + priceRangeMsg + ". Vui lòng xem tất cả trại tại: https://summer-camp-web-seven.vercel.app/camp", new List<string>());
                             }
-                            return "Thông tin tham khảo: Hiện tại không có trại hè nào (Published, OpenForRegistration, InProgress) trong hệ thống. Vui lòng xem thêm tại: https://summer-camp-web-seven.vercel.app/camp";
+                            return ("Thông tin tham khảo: Hiện tại không có trại hè nào (Published, OpenForRegistration, InProgress) trong hệ thống. Vui lòng xem thêm tại: https://summer-camp-web-seven.vercel.app/camp", new List<string>());
                         }
                     }
                     else
                     {
                         // scenario b.3: no specific keywords, let AI answer from general knowledge
-                        return null;
+                        return (string.Empty, new List<string>());
                     }
                 }
-                return contextBuilderPublic.ToString();
+                return (contextBuilderPublic.ToString(), validCampNames);
             }
 
-            return contextBuilder.ToString();
+            // return personal context + empty camp list (personal queries don't need camp validation)
+            return (contextBuilder.ToString(), new List<string>());
         }
 
         // call Gemini API with dynamic system prompt
