@@ -75,9 +75,10 @@ namespace SummerCampManagementSystem.BLL.Services
             }
 
 
-
-            // get userid context from database
-            var contextPrompt = await GetDatabaseContextAsync(request.Message, userId, isPersonalIntent);
+            // get context from database
+            var rawContext = await GetDatabaseContextAsync(request.Message, userId, isPersonalIntent);
+            // filter sensitive admin/staff data before sending to AI
+            var contextPrompt = FilterSensitiveContext(rawContext);
             
 
             var history = await GetChatHistoryAsync(conversation.chatConversationId);
@@ -220,6 +221,42 @@ namespace SummerCampManagementSystem.BLL.Services
             return (minPrice, maxPrice); // no price constraint found
         }
 
+        // filter sensitive admin/staff data from context before sending to AI
+        // prevents leaking internal information like salary, CCCD, passwords, etc.
+        private string FilterSensitiveContext(string context)
+        {
+            if (string.IsNullOrEmpty(context))
+                return context;
+
+            // List of sensitive keywords/fields that should trigger filtering
+            var sensitiveKeywords = new List<string>
+            {
+                "salary", "lương", "luong",
+                "identificationNumber", "CCCD", "cccd",
+                "passwordHash", "password", "mật khẩu", "mat khau",
+                "emergencyContact", "liên hệ khẩn cấp",
+                "minParticipant", "maxParticipant", "currentCapacity",
+                "staff assignment", "phân công nhân viên"
+            };
+
+            var lines = context.Split('\n');
+            var filteredLines = new List<string>();
+
+            foreach (var line in lines)
+            {
+                bool isSensitive = sensitiveKeywords.Any(keyword =>
+                    line.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+
+                if (!isSensitive)
+                {
+                    filteredLines.Add(line);
+                }
+                // line contains sensitive info, skip
+            }
+
+            return string.Join("\n", filteredLines);
+        }
+
         // get relevant context from database based on user message and userId
         private async Task<string> GetDatabaseContextAsync(string userMessage, int userId, bool isPersonalIntent)
         {
@@ -271,14 +308,19 @@ namespace SummerCampManagementSystem.BLL.Services
                 }
 
                 // get Registration and Camp info based on camperIds
+                // only get Confirmed registrations, exclude Cancelled/Rejected campers
                 var activeRegStatuses = new List<string> {
                     RegistrationStatus.Confirmed.ToString()
+                };
+                var excludedCamperStatuses = new List<string> {
+                    "Cancelled", "Rejected"
                 };
 
                 var activeCamperRegistrations = await _unitOfWork.RegistrationCampers.GetQueryable()
                     .Include(rc => rc.registration).ThenInclude(r => r.camp).ThenInclude(c => c.promotion)
                     .Where(rc => camperIds.Contains(rc.camperId) &&
-                                 activeRegStatuses.Contains(rc.registration.status))
+                                 activeRegStatuses.Contains(rc.registration.status) &&
+                                 !excludedCamperStatuses.Contains(rc.status))
                     .AsNoTracking()
                     .ToListAsync();
 
@@ -600,10 +642,15 @@ namespace SummerCampManagementSystem.BLL.Services
             // user asking general questions about camps
             else
             {
+                // camps valid for public display (Published onwards, excluding Canceled)
                 var publicCampStatuses = new List<string> {
                     CampStatus.Published.ToString(),
                     CampStatus.OpenForRegistration.ToString(),
-                    CampStatus.InProgress.ToString()
+                    CampStatus.RegistrationClosed.ToString(),
+                    CampStatus.UnderEnrolled.ToString(),
+                    CampStatus.InProgress.ToString(),
+                    CampStatus.Completed.ToString()
+                    // Canceled is excluded
                 };
 
                 // get all public camps with full details
@@ -640,6 +687,23 @@ namespace SummerCampManagementSystem.BLL.Services
 
                 var contextBuilderPublic = new StringBuilder();
                 contextBuilderPublic.AppendLine("Thông tin tham khảo từ database (Chỉ dùng thông tin này để trả lời):");
+                
+                // add camp count and Vietnamese status mapping
+                int totalValidCamps = allPublicCamps.Count;
+                contextBuilderPublic.AppendLine($"[Tổng số trại hè hiện có]: {totalValidCamps} trại (đã loại bỏ các trại Canceled/Draft/Pending)");
+                contextBuilderPublic.AppendLine();
+                
+                // Vietnamese translation for status codes (helps AI understand Vietnamese queries)
+                contextBuilderPublic.AppendLine("[Bản dịch trạng thái (Status Codes)]:");
+                contextBuilderPublic.AppendLine("- Published = Đã xuất bản");
+                contextBuilderPublic.AppendLine("- OpenForRegistration = Đang mở đăng ký");
+                contextBuilderPublic.AppendLine("- RegistrationClosed = Đã đóng đăng ký");
+                contextBuilderPublic.AppendLine("- InProgress = Đang diễn ra");
+                contextBuilderPublic.AppendLine("- Completed = Đã hoàn thành");
+                contextBuilderPublic.AppendLine("- Confirmed = Đã xác nhận (đã thanh toán)");
+                contextBuilderPublic.AppendLine("- Cancelled = Đã hủy");
+                contextBuilderPublic.AppendLine("- Rejected = Bị từ chối");
+                contextBuilderPublic.AppendLine();
 
                 // SCENARIO B.1: specific camp found
                 if (foundCamp != null)
