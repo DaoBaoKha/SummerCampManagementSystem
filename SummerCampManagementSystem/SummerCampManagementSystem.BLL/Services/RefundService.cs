@@ -241,103 +241,13 @@ namespace SummerCampManagementSystem.BLL.Services
             await CreateRefundTransactionAsync(cancelRequest);
 
             var registration = cancelRequest.registration;
-            List<int> camperIds = new List<int>();
             
             if (registration != null)
             {
+                // update registration status to Refunded
+                // resources already released in CancelRegistrationAsync when refund was requested
                 registration.status = RegistrationStatus.Refunded.ToString();
                 await _unitOfWork.Registrations.UpdateAsync(registration);
-
-                // update all RegistrationCampers to Canceled status
-                var registrationCampers = await _unitOfWork.RegistrationCampers
-                    .GetQueryable()
-                    .Where(rc => rc.registrationId == registration.registrationId)
-                    .ToListAsync();
-
-                foreach (var regCamper in registrationCampers)
-                {
-                    regCamper.status = RegistrationCamperStatus.Canceled.ToString();
-                    await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
-                }
-
-                // update all CamperTransports to Canceled status
-                camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
-                if (camperIds.Any())
-                {
-                    var camperTransports = await _unitOfWork.CamperTransports
-                        .GetQueryable()
-                        .Where(ct => camperIds.Contains(ct.camperId) && 
-                                     ct.transportSchedule.campId == registration.campId)
-                        .ToListAsync();
-
-                    foreach (var transport in camperTransports)
-                    {
-                        transport.status = CamperTransportStatus.Canceled.ToString();
-                        await _unitOfWork.CamperTransports.UpdateAsync(transport);
-                    }
-                }
-
-                // release: remove campers from groups, accommodations, and activities
-                if (camperIds.Any())
-                {
-                    // release from Groups
-                    var camperGroups = await _unitOfWork.CamperGroups.GetQueryable()
-                        .Include(cg => cg.group)
-                        .Where(cg => camperIds.Contains(cg.camperId) && 
-                                     cg.group.campId == registration.campId && 
-                                     cg.status == "Active")
-                        .ToListAsync();
-
-                    var groupsToUpdate = new HashSet<int>();
-                    foreach (var camperGroup in camperGroups)
-                    {
-                        // soft delete or set to inactive
-                        camperGroup.status = "Inactive";
-                        await _unitOfWork.CamperGroups.UpdateAsync(camperGroup);
-                        
-                        // track group for size update
-                        groupsToUpdate.Add(camperGroup.groupId);
-                    }
-
-                    // update group currentSize
-                    foreach (var groupId in groupsToUpdate)
-                    {
-                        var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
-                        if (group != null && group.currentSize.HasValue && group.currentSize.Value > 0)
-                        {
-                            group.currentSize = group.currentSize.Value - 1;
-                            await _unitOfWork.Groups.UpdateAsync(group);
-                        }
-                    }
-
-                    // release from Accommodations
-                    var camperAccommodations = await _unitOfWork.CamperAccommodations.GetQueryable()
-                        .Include(ca => ca.accommodation)
-                        .Where(ca => camperIds.Contains(ca.camperId) && 
-                                     ca.accommodation.campId == registration.campId && 
-                                     ca.status == "Active")
-                        .ToListAsync();
-
-                    foreach (var camperAccommodation in camperAccommodations)
-                    {
-                        camperAccommodation.status = "Inactive";
-                        await _unitOfWork.CamperAccommodations.UpdateAsync(camperAccommodation);
-                    }
-
-                    // release from Optional Activities (CamperActivity)
-                    var camperActivities = await _unitOfWork.CamperActivities.GetQueryable()
-                        .Include(ca => ca.activitySchedule)
-                        .ThenInclude(asch => asch.activity)
-                        .Where(ca => camperIds.Contains((int)ca.camperId) && 
-                                     ca.activitySchedule.activity.campId == registration.campId &&
-                                     ca.activitySchedule.isOptional == true)
-                        .ToListAsync();
-
-                    foreach (var camperActivity in camperActivities)
-                    {
-                        await _unitOfWork.CamperActivities.RemoveAsync(camperActivity);
-                    }
-                }
             }
 
             await _unitOfWork.CommitAsync();
@@ -359,41 +269,13 @@ namespace SummerCampManagementSystem.BLL.Services
 
             await _unitOfWork.RegistrationCancels.UpdateAsync(cancelRequest);
 
-            // cancel registration even though refund rejected
+            // update registration status to Canceled (no refund given)
+            // resources already released in CancelRegistrationAsync when refund was requested
             var registration = cancelRequest.registration;
             if (registration != null)
             {
                 registration.status = RegistrationStatus.Canceled.ToString();
                 await _unitOfWork.Registrations.UpdateAsync(registration);
-
-                // update all RegistrationCampers to Canceled 
-                var registrationCampers = await _unitOfWork.RegistrationCampers
-                    .GetQueryable()
-                    .Where(rc => rc.registrationId == registration.registrationId)
-                    .ToListAsync();
-
-                foreach (var regCamper in registrationCampers)
-                {
-                    regCamper.status = RegistrationCamperStatus.Canceled.ToString();
-                    await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
-                }
-
-                // update all CamperTransports to Canceled
-                var camperIds = registrationCampers.Select(rc => rc.camperId).ToList();
-                if (camperIds.Any())
-                {
-                    var camperTransports = await _unitOfWork.CamperTransports
-                        .GetQueryable()
-                        .Where(ct => camperIds.Contains(ct.camperId) && 
-                                     ct.transportSchedule.campId == registration.campId)
-                        .ToListAsync();
-
-                    foreach (var transport in camperTransports)
-                    {
-                        transport.status = CamperTransportStatus.Canceled.ToString();
-                        await _unitOfWork.CamperTransports.UpdateAsync(transport);
-                    }
-                }
             }
 
             await _unitOfWork.CommitAsync();
