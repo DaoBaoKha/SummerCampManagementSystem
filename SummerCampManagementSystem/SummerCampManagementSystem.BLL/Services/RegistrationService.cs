@@ -72,6 +72,9 @@ namespace SummerCampManagementSystem.BLL.Services
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
                     ?? throw new NotFoundException($"Camper with ID {camperId} not found.");
 
+                // validate age
+                await ValidateCamperAge(camper, camp);
+
                 // create
                 var registrationCamper = new RegistrationCamper
                 {
@@ -243,6 +246,10 @@ namespace SummerCampManagementSystem.BLL.Services
                 dbContext.RegistrationCampers.RemoveRange(linksToRemove);
             }
 
+            // get camp for validation
+            var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
+                ?? throw new NotFoundException($"Camp with ID {request.CampId} not found.");
+
             // add camper(s) in the new list
             var existingCamperIds = oldCamperLinks.Select(rc => rc.camperId).ToList();
             var camperIdsToAdd = request.CamperIds
@@ -252,6 +259,13 @@ namespace SummerCampManagementSystem.BLL.Services
             {
                 // validation
                 await ValidateCamperNotAlreadyRegisteredAsync(request.CampId, camperId);
+
+                // get camper for age validation
+                var camper = await _unitOfWork.Campers.GetByIdAsync(camperId)
+                    ?? throw new NotFoundException($"Camper with ID {camperId} not found.");
+
+                // validate age
+                await ValidateCamperAge(camper, camp);
 
                 var newLink = new RegistrationCamper
                 {
@@ -279,9 +293,6 @@ namespace SummerCampManagementSystem.BLL.Services
                     dbContext.Entry(link).State = EntityState.Modified;
                 }
             }
-
-            var camp = await _unitOfWork.Camps.GetByIdAsync(request.CampId)
-                ?? throw new NotFoundException($"Camp with ID {request.CampId} not found.");
 
             existingRegistration.campId = request.CampId;
             existingRegistration.appliedPromotionId = request.appliedPromotionId;
@@ -802,6 +813,38 @@ namespace SummerCampManagementSystem.BLL.Services
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId);
                 var camperName = camper?.camperName ?? $"ID {camperId}";
                 throw new InvalidOperationException($"Camper {camperName} đã được đăng ký tham gia trại này. Chỉ có thể đăng ký lại nếu đơn đăng ký trước đó đã bị hủy.");
+            }
+        }
+
+        private async Task ValidateCamperAge(Camper camper, Camp camp)
+        {
+            // check if camper has dob
+            if (!camper.dob.HasValue)
+            {
+                throw new BusinessRuleException($"Không thể đăng ký. Camper {camper.camperName} chưa có thông tin ngày sinh.");
+            }
+
+            // skip validation if camp doesn't have age restrictions
+            if (!camp.minAge.HasValue && !camp.maxAge.HasValue)
+            {
+                return;
+            }
+
+            // calculate age at time of registration
+            var today = DateOnly.FromDateTime(DateTime.Now);
+            int age = today.Year - camper.dob.Value.Year;
+            if (today < camper.dob.Value.AddYears(age)) age--;
+
+            // validate min age
+            if (camp.minAge.HasValue && age < camp.minAge.Value)
+            {
+                throw new BusinessRuleException($"Không thể đăng ký. Camper {camper.camperName} ({age} tuổi) chưa đủ tuổi tối thiểu ({camp.minAge} tuổi) để tham gia trại {camp.name}.");
+            }
+
+            // validate max age
+            if (camp.maxAge.HasValue && age > camp.maxAge.Value)
+            {
+                throw new BusinessRuleException($"Không thể đăng ký. Camper {camper.camperName} ({age} tuổi) vượt quá độ tuổi tối đa ({camp.maxAge} tuổi) để tham gia trại {camp.name}.");
             }
         }
 
