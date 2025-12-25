@@ -95,10 +95,9 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         {
             return await _context.Registrations
                 .Where(r => r.campId == campId &&
-                            r.RegistrationCampers.Any(rc => rc.camperId == camperId) &&
-                            (r.status == RegistrationStatus.Approved.ToString() ||
-                             r.status == RegistrationStatus.PendingApproval.ToString() ||
-                             r.status == RegistrationStatus.PendingPayment.ToString()))
+                            r.status != RegistrationStatus.Canceled.ToString() &&
+                            r.RegistrationCampers.Any(rc => rc.camperId == camperId &&
+                                                           rc.status != RegistrationCamperStatus.Canceled.ToString()))
                 .AnyAsync();
         }
 

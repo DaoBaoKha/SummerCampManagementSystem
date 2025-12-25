@@ -801,7 +801,7 @@ namespace SummerCampManagementSystem.BLL.Services
                 // get camper name for more detail errors
                 var camper = await _unitOfWork.Campers.GetByIdAsync(camperId);
                 var camperName = camper?.camperName ?? $"ID {camperId}";
-                throw new InvalidOperationException($"Camper {camperName} đã được đăng ký tham gia trại này hoặc đang có đơn chờ duyệt.");
+                throw new InvalidOperationException($"Camper {camperName} đã được đăng ký tham gia trại này. Chỉ có thể đăng ký lại nếu đơn đăng ký trước đó đã bị hủy.");
             }
         }
 
@@ -930,6 +930,51 @@ namespace SummerCampManagementSystem.BLL.Services
                                 transport.status = CamperTransportStatus.Canceled.ToString();
                                 await _unitOfWork.CamperTransports.UpdateAsync(transport);
                             }
+
+                            // release campers from Groups
+                            var camperGroups = await _unitOfWork.CamperGroups.GetQueryable()
+                                .Include(cg => cg.group)
+                                .Where(cg => camperIds.Contains(cg.camperId) && 
+                                             cg.group.campId == registration.campId && 
+                                             cg.status == CamperGroupStatus.Active.ToString())
+                                .ToListAsync();
+
+                            var groupsToUpdate = new HashSet<int>();
+                            foreach (var camperGroup in camperGroups)
+                            {
+                                // set to inactive to release camper from group
+                                camperGroup.status = CamperGroupStatus.Inactive.ToString();
+                                await _unitOfWork.CamperGroups.UpdateAsync(camperGroup);
+                                
+                                // track group for size update
+                                groupsToUpdate.Add(camperGroup.groupId);
+                            }
+
+                            // update group currentSize
+                            foreach (var groupId in groupsToUpdate)
+                            {
+                                var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
+                                if (group != null && group.currentSize.HasValue && group.currentSize.Value > 0)
+                                {
+                                    group.currentSize = group.currentSize.Value - 1;
+                                    await _unitOfWork.Groups.UpdateAsync(group);
+                                }
+                            }
+
+                            // release campers from Accommodations
+                            var camperAccommodations = await _unitOfWork.CamperAccommodations.GetQueryable()
+                                .Include(ca => ca.accommodation)
+                                .Where(ca => camperIds.Contains(ca.camperId) && 
+                                             ca.accommodation.campId == registration.campId && 
+                                             ca.status == CamperAccommodationStatus.Active.ToString())
+                                .ToListAsync();
+
+                            foreach (var camperAccommodation in camperAccommodations)
+                            {
+                                // set to inactive to release camper from accommodation
+                                camperAccommodation.status = CamperAccommodationStatus.Inactive.ToString();
+                                await _unitOfWork.CamperAccommodations.UpdateAsync(camperAccommodation);
+                            }
                         }
 
                         // update registration status to canceled
@@ -972,27 +1017,120 @@ namespace SummerCampManagementSystem.BLL.Services
                 if (bankUser.userId != currentUserId.Value)
                     throw new UnauthorizedException("Tài khoản ngân hàng đã chỉ định không thuộc về bạn.");
 
-                // delegate to refund service for policy-based refund
-                var refundRequest = new CancelRequestDto
+                using (var transaction = await _unitOfWork.BeginTransactionAsync())
                 {
-                    RegistrationId = registrationId,
-                    BankUserId = request.BankUserId.Value,
-                    Reason = request.Reason
-                };
+                    try
+                    {
+                        // update registration campers to Canceled immediately
+                        foreach (var regCamper in registration.RegistrationCampers)
+                        {
+                            regCamper.status = RegistrationCamperStatus.Canceled.ToString();
+                            await _unitOfWork.RegistrationCampers.UpdateAsync(regCamper);
+                        }
 
-                var refundResult = await _refundService.RequestCancelAsync(refundRequest);
+                        // update optional activities to Canceled
+                        var optionalActivities = registration.RegistrationOptionalActivities;
+                        foreach (var activity in optionalActivities)
+                        {
+                            activity.status = "Canceled";
+                            var dbContext = _unitOfWork.GetDbContext();
+                            dbContext.Entry(activity).State = EntityState.Modified;
+                        }
 
-                // calculate refund info for response
-                var refundCalc = await _refundService.CalculateRefundAsync(registrationId);
+                        // release resources immediately when refund is requested
+                        var camperIds = registration.RegistrationCampers.Select(rc => rc.camperId).ToList();
+                        if (camperIds.Any())
+                        {
+                            // update all CamperTransports to Canceled status
+                            var camperTransports = await _unitOfWork.CamperTransports
+                                .GetQueryable()
+                                .Where(ct => camperIds.Contains(ct.camperId) && 
+                                             ct.transportSchedule.campId == registration.campId)
+                                .ToListAsync();
 
-                return new CancelRegistrationResponseDto
-                {
-                    RegistrationId = registrationId,
-                    Status = refundResult.Status,
-                    RefundAmount = refundResult.RefundAmount,
-                    RefundPercentage = refundCalc.RefundPercentage,
-                    Message = $"Đã gửi yêu cầu hoàn tiền. {refundCalc.PolicyDescription}"
-                };
+                            foreach (var transport in camperTransports)
+                            {
+                                transport.status = CamperTransportStatus.Canceled.ToString();
+                                await _unitOfWork.CamperTransports.UpdateAsync(transport);
+                            }
+
+                            // release campers from Groups
+                            var camperGroups = await _unitOfWork.CamperGroups.GetQueryable()
+                                .Include(cg => cg.group)
+                                .Where(cg => camperIds.Contains(cg.camperId) && 
+                                             cg.group.campId == registration.campId && 
+                                             cg.status == CamperGroupStatus.Active.ToString())
+                                .ToListAsync();
+
+                            var groupsToUpdate = new HashSet<int>();
+                            foreach (var camperGroup in camperGroups)
+                            {
+                                // set to inactive to release camper from group
+                                camperGroup.status = CamperGroupStatus.Inactive.ToString();
+                                await _unitOfWork.CamperGroups.UpdateAsync(camperGroup);
+                                
+                                // track group for size update
+                                groupsToUpdate.Add(camperGroup.groupId);
+                            }
+
+                            // update group currentSize
+                            foreach (var groupId in groupsToUpdate)
+                            {
+                                var group = await _unitOfWork.Groups.GetByIdAsync(groupId);
+                                if (group != null && group.currentSize.HasValue && group.currentSize.Value > 0)
+                                {
+                                    group.currentSize = group.currentSize.Value - 1;
+                                    await _unitOfWork.Groups.UpdateAsync(group);
+                                }
+                            }
+
+                            // release campers from Accommodations
+                            var camperAccommodations = await _unitOfWork.CamperAccommodations.GetQueryable()
+                                .Include(ca => ca.accommodation)
+                                .Where(ca => camperIds.Contains(ca.camperId) && 
+                                             ca.accommodation.campId == registration.campId && 
+                                             ca.status == CamperAccommodationStatus.Active.ToString())
+                                .ToListAsync();
+
+                            foreach (var camperAccommodation in camperAccommodations)
+                            {
+                                // set to inactive to release camper from accommodation
+                                camperAccommodation.status = CamperAccommodationStatus.Inactive.ToString();
+                                await _unitOfWork.CamperAccommodations.UpdateAsync(camperAccommodation);
+                            }
+                        }
+
+                        // delegate to refund service for policy-based refund
+                        var refundRequest = new CancelRequestDto
+                        {
+                            RegistrationId = registrationId,
+                            BankUserId = request.BankUserId.Value,
+                            Reason = request.Reason
+                        };
+
+                        var refundResult = await _refundService.RequestCancelAsync(refundRequest);
+
+                        await _unitOfWork.CommitAsync();
+                        await transaction.CommitAsync();
+
+                        // calculate refund info for response
+                        var refundCalc = await _refundService.CalculateRefundAsync(registrationId);
+
+                        return new CancelRegistrationResponseDto
+                        {
+                            RegistrationId = registrationId,
+                            Status = refundResult.Status,
+                            RefundAmount = refundResult.RefundAmount,
+                            RefundPercentage = refundCalc.RefundPercentage,
+                            Message = $"Đã gửi yêu cầu hoàn tiền và nhả tài nguyên. {refundCalc.PolicyDescription}"
+                        };
+                    }
+                    catch (Exception)
+                    {
+                        await transaction.RollbackAsync();
+                        throw;
+                    }
+                }
             }
         }
 
