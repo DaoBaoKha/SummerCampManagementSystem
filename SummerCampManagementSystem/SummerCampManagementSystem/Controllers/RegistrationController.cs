@@ -80,28 +80,9 @@ namespace SummerCampManagementSystem.API.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            try
-            {
-                var result = await _registrationService.CreateRegistrationAsync(registration);
-
-                return CreatedAtAction(nameof(GetRegistrationById), new { id = result.registrationId }, result);
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Lỗi hệ thống nội bộ.", detail = ex.Message });
-            }
+            
+            var result = await _registrationService.CreateRegistrationAsync(registration);
+            return CreatedAtAction(nameof(GetRegistrationById), new { id = result.registrationId }, result);
         }
 
         [HttpPost("{id}/payment-link")]
