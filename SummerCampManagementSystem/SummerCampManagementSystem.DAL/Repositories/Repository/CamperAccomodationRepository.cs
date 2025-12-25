@@ -16,6 +16,8 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                 .Include(ca => ca.camper)
                 .Include(ca => ca.accommodation)
                 .ThenInclude(a => a.camp)
+                 .Where(cg => cg.status == "Active")
+
                 .AsNoTracking();
 
             if (camperId.HasValue)
@@ -32,15 +34,16 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
             // Filter out canceled campers
             var result = await query.ToListAsync();
-            var camperIds = result.Select(ca => ca.camperId).Distinct().ToList();
-            
-            var canceledCamperIds = await _context.RegistrationCampers
-                .Where(rc => camperIds.Contains(rc.camperId) && rc.status == "Canceled")
-                .Select(rc => rc.camperId)
-                .Distinct()
-                .ToListAsync();
+            //var camperIds = result.Select(ca => ca.camperId).Distinct().ToList();
 
-            return result.Where(ca => !canceledCamperIds.Contains(ca.camperId));
+            //var canceledCamperIds = await _context.RegistrationCampers
+            //    .Where(rc => camperIds.Contains(rc.camperId) && rc.status == "Canceled")
+            //    .Select(rc => rc.camperId)
+            //    .Distinct()
+            //    .ToListAsync();
+
+            //return result.Where(ca => !canceledCamperIds.Contains(ca.camperId));
+            return result;
         }
 
         public async Task<CamperAccommodation?> GetByIdWithDetailsAsync(int id)
