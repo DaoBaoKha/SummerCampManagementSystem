@@ -278,11 +278,15 @@ namespace SummerCampManagementSystem.BLL.Services
             var camp = await _unitOfWork.Camps.GetByIdAsync(campId)
                 ?? throw new KeyNotFoundException($"Camp with id {campId} not found.");
 
+            // get campers from Confirmed onwards (Confirmed, Transporting, Transported, CheckedIn, CheckedOut)
+            // exclude: PendingApproval, Approved, Rejected, PendingAssignGroup, Canceled
             return await _unitOfWork.RegistrationCampers.GetQueryable()
-                .Where(rc => rc.registration.campId == campId
-                          && rc.registration.status != "PendingApproval"
-                          && rc.registration.status != "Rejected"
-                          && rc.status != RegistrationCamperStatus.Canceled.ToString())
+                .Where(rc => rc.registration.campId == campId &&
+                              rc.status != RegistrationCamperStatus.Canceled.ToString() &&
+                              rc.status != RegistrationCamperStatus.PendingApproval.ToString() &&
+                              rc.status != RegistrationCamperStatus.Approved.ToString() &&
+                              rc.status != RegistrationCamperStatus.Rejected.ToString() &&
+                              rc.status != RegistrationCamperStatus.PendingAssignGroup.ToString())
                 .Select(rc => new CamperWithRegistrationStatus
                 {
                     CamperId = rc.camper.camperId,

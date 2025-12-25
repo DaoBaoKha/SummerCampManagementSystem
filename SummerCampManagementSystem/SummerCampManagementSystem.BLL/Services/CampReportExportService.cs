@@ -40,8 +40,11 @@ namespace SummerCampManagementSystem.BLL.Services
                 ? (decimal)confirmedCampers / overviewData.MaxParticipants * 100 
                 : 0;
 
-            var totalRevenue = transactionData.Where(t => t.Amount > 0).Sum(t => t.Amount);
-            var totalRefunds = Math.Abs(transactionData.Where(t => t.Amount < 0).Sum(t => t.Amount));
+            // calculate revenue from CONFIRMED transactions only
+            // Payment type = add to revenue, Refund type = subtract from revenue
+            var confirmedTransactions = transactionData.Where(t => t.Status == "Confirmed").ToList();
+            var totalRevenue = confirmedTransactions.Where(t => t.Type == "Payment").Sum(t => Math.Abs(t.Amount));
+            var totalRefunds = confirmedTransactions.Where(t => t.Type == "Refund").Sum(t => Math.Abs(t.Amount));
             var netRevenue = totalRevenue - totalRefunds;
 
             // create workbook
@@ -237,7 +240,7 @@ namespace SummerCampManagementSystem.BLL.Services
             ws.Columns().AdjustToContents();
         }
 
-        private void CreateFinancialTransactionsSheet(XLWorkbook workbook, List<(string TransactionCode, DateTime? TransactionDate, string PayerName, string Description, decimal Amount, string Status, string PaymentMethod)> transactions)
+        private void CreateFinancialTransactionsSheet(XLWorkbook workbook, List<(string TransactionCode, DateTime? TransactionDate, string PayerName, string Description, decimal Amount, string Status, string PaymentMethod, string Type)> transactions)
         {
             var ws = workbook.Worksheets.Add("Tài Chính");
 

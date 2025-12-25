@@ -186,7 +186,7 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
             return camperData.Select(x => (x.CamperName, x.Age, x.Gender, x.GuardianName, x.GuardianPhone, x.GroupName, x.MedicalNotes, x.TransportInfo, x.AccommodationInfo)).ToList();
         }
 
-        public async Task<List<(string TransactionCode, DateTime? TransactionDate, string PayerName, string Description, decimal Amount, string Status, string PaymentMethod)>> GetFinancialTransactionsAsync(int campId)
+        public async Task<List<(string TransactionCode, DateTime? TransactionDate, string PayerName, string Description, decimal Amount, string Status, string PaymentMethod, string Type)>> GetFinancialTransactionsAsync(int campId)
         {
             var transactions = await _context.Transactions
                 .Where(t => t.registration.campId == campId)
@@ -205,11 +205,12 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                         : $"Hoàn tiền đơn #{t.registrationId}",
                     Amount = t.type == "Refund" ? -(t.amount ?? 0) : (t.amount ?? 0),
                     Status = t.status ?? "N/A",
-                    PaymentMethod = t.method ?? "N/A"
+                    PaymentMethod = t.method ?? "N/A",
+                    Type = t.type ?? "N/A"
                 })
                 .ToListAsync();
 
-            return transactions.Select(x => (x.TransactionCode, x.TransactionDate, x.PayerName, x.Description, x.Amount, x.Status, x.PaymentMethod)).ToList();
+            return transactions.Select(x => (x.TransactionCode, x.TransactionDate, x.PayerName, x.Description, x.Amount, x.Status, x.PaymentMethod, x.Type)).ToList();
         }
 
         public async Task<List<(string StaffName, string Role, string Email, string PhoneNumber, string AssignmentType)>> GetStaffAssignmentsAsync(int campId)
