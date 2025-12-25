@@ -151,9 +151,9 @@ namespace SummerCampManagementSystem.BLL.Services
                     {
                         int campId = registration.campId.Value;
 
-                        // load groups
+                        // load groups with status Active only
                         var groups = await _unitOfWork.Groups.GetQueryable()
-                            .Where(g => g.campId == campId)
+                            .Where(g => g.campId == campId && g.status == "Active")
                             .Include(g => g.CamperGroups)
                             .ToListAsync();
 
