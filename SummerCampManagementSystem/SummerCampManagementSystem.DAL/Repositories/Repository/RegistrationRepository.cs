@@ -127,21 +127,24 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
 
         public async Task<decimal> GetTotalRevenueAsync(int campId)
         {
-            // calculate total revenue from Confirmed transactions of Confirmed registrations
-            var confirmedRevenue = await _context.Registrations
-                .Where(r => r.campId == campId && r.status == RegistrationStatus.Confirmed.ToString())
+            // calculate revenue from all confirmed transactions
+            // Payment type = add to revenue
+            // Refund type = subtract from revenue
+            var paymentRevenue = await _context.Registrations
+                .Where(r => r.campId == campId)
                 .SelectMany(r => r.Transactions)
-                .Where(t => t.status == TransactionStatus.Confirmed.ToString())
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() && 
+                           t.type == "Payment")
                 .SumAsync(t => t.amount ?? 0);
 
-            // subtract refunded amounts
-            var refundedAmount = await _context.Registrations
-                .Where(r => r.campId == campId && r.status == RegistrationStatus.Refunded.ToString())
+            var refundAmount = await _context.Registrations
+                .Where(r => r.campId == campId)
                 .SelectMany(r => r.Transactions)
-                .Where(t => t.status == TransactionStatus.Refunded.ToString())
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() && 
+                           t.type == "Refund")
                 .SumAsync(t => t.amount ?? 0);
 
-            return confirmedRevenue - refundedAmount;
+            return paymentRevenue - refundAmount;
         }
 
         public async Task<int> GetPendingApprovalsCountAsync(int campId)
@@ -180,7 +183,10 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
                     Date: g.Key,
                     Count: g.Count(),
                     Revenue: g.SelectMany(r => r.Transactions)
-                             .Where(t => t.status == TransactionStatus.Confirmed.ToString())
+                             .Where(t => t.status == TransactionStatus.Confirmed.ToString() && t.type == "Payment")
+                             .Sum(t => t.amount ?? 0) -
+                             g.SelectMany(r => r.Transactions)
+                             .Where(t => t.status == TransactionStatus.Confirmed.ToString() && t.type == "Refund")
                              .Sum(t => t.amount ?? 0)
                 ))
                 .OrderBy(x => x.Date)
@@ -235,45 +241,51 @@ namespace SummerCampManagementSystem.DAL.Repositories.Repository
         public async Task<decimal> GetTotalSystemRevenueAsync()
         {
             // get current month revenue
+            // Payment type = add to revenue, Refund type = subtract from revenue
             var now = DateTime.UtcNow;
             var firstDayOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var firstDayOfNextMonth = firstDayOfCurrentMonth.AddMonths(1);
 
-            var confirmedRevenue = await _context.Transactions
+            var paymentRevenue = await _context.Transactions
                 .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.type == "Payment" &&
                            t.transactionTime >= firstDayOfCurrentMonth &&
                            t.transactionTime < firstDayOfNextMonth)
                 .SumAsync(t => t.amount ?? 0);
 
-            var refundedAmount = await _context.Transactions
-                .Where(t => t.status == TransactionStatus.Refunded.ToString() &&
+            var refundAmount = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.type == "Refund" &&
                            t.transactionTime >= firstDayOfCurrentMonth &&
                            t.transactionTime < firstDayOfNextMonth)
                 .SumAsync(t => t.amount ?? 0);
 
-            return confirmedRevenue - refundedAmount;
+            return paymentRevenue - refundAmount;
         }
 
         public async Task<decimal> GetPreviousMonthRevenueAsync()
         {
             // get previous month revenue
+            // Payment type = add to revenue, Refund type = subtract from revenue
             var now = DateTime.UtcNow;
             var firstDayOfCurrentMonth = new DateTime(now.Year, now.Month, 1);
             var firstDayOfPreviousMonth = firstDayOfCurrentMonth.AddMonths(-1);
 
-            var confirmedRevenue = await _context.Transactions
+            var paymentRevenue = await _context.Transactions
                 .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.type == "Payment" &&
                            t.transactionTime >= firstDayOfPreviousMonth &&
                            t.transactionTime < firstDayOfCurrentMonth)
                 .SumAsync(t => t.amount ?? 0);
 
-            var refundedAmount = await _context.Transactions
-                .Where(t => t.status == TransactionStatus.Refunded.ToString() &&
+            var refundAmount = await _context.Transactions
+                .Where(t => t.status == TransactionStatus.Confirmed.ToString() &&
+                           t.type == "Refund" &&
                            t.transactionTime >= firstDayOfPreviousMonth &&
                            t.transactionTime < firstDayOfCurrentMonth)
                 .SumAsync(t => t.amount ?? 0);
 
-            return confirmedRevenue - refundedAmount;
+            return paymentRevenue - refundAmount;
         }
     }
 }
