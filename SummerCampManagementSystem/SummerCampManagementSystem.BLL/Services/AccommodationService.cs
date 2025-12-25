@@ -183,15 +183,14 @@ namespace SummerCampManagementSystem.BLL.Services
         {
             var campStatus = camp.status;
 
-            // Block operations if camp status is OpenForRegistration or later
-            if (campStatus == CampStatus.OpenForRegistration.ToString() ||
-                campStatus == CampStatus.RegistrationClosed.ToString() ||
+            // Block operations if camp status is RegistrationClosed or later
+            if (campStatus == CampStatus.RegistrationClosed.ToString() ||
                 campStatus == CampStatus.UnderEnrolled.ToString() ||
                 campStatus == CampStatus.InProgress.ToString() ||
                 campStatus == CampStatus.Completed.ToString() ||
                 campStatus == CampStatus.Canceled.ToString())
             {
-                throw new BadRequestException($"Không thể {operation} accommodation khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, Published hoặc Rejected.");
+                throw new BadRequestException($"Không thể {operation} accommodation khi trại đã ở trạng thái '{campStatus}'. Trại phải ở trạng thái Draft, PendingApproval, Published hoặc OpenForRegistration");
             }
         }
 
